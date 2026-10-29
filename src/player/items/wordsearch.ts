@@ -94,17 +94,16 @@ export const wordSearchRenderer: ItemRenderer = {
       if (foundIds.size === item.words.length) finish()
     }
 
-    const gridEl = h('div', { class: 'ws-grid', role: 'grid', 'aria-label': ctx.text.t(item.prompt), style: `--cols:${grid.size}` })
+    const gridEl = h('div', { class: 'ws-grid', role: 'group', 'aria-label': ctx.text.t(item.prompt), style: `--cols:${grid.size}` })
     for (let r = 0; r < grid.size; r++) {
       const row: HTMLButtonElement[] = []
-      const rowEl = h('div', { class: 'ws-row', role: 'row' })
+      const rowEl = h('div', { class: 'ws-row' })
       for (let c = 0; c < grid.size; c++) {
         const b = h(
           'button',
           {
             type: 'button',
             class: 'ws-cell',
-            role: 'gridcell',
             testid: `cell-${r}-${c}`,
             tabindex: r === 0 && c === 0 ? '0' : '-1',
             'aria-pressed': 'false',

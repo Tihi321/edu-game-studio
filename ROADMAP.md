@@ -6,18 +6,14 @@ Every phase ends in something that can be checked: a command, a screenshot set, 
 
 ## Where it stands (2026-10-29)
 
-- **Phase 0 and phase 1 are done** (EGS-01 to EGS-04, branches stacked on `EGS-01_skeleton`, not merged yet): the engine core copied from VN Studio, the course contract with 13 item kinds, SM-2 and adaptive difficulty, our own browser player with the chalkboard quiz arena, the build, `edu_lint`, the course MCP tools and CLI, and the autoplay bot. Both golden fixtures build, lint clean and pass the bot in all three runs with 0 console errors.
-- **Not checked yet:** `yarn dev` (the desktop window) has not been opened; real audio, touch devices and a measured contrast run wait for phase 2 and 6.
-- **Next:** EGS-05, the design system and the studio UI.
+- **Phase 0, phase 1 and phase 2 are done** (EGS-01 to EGS-05, branches stacked on `EGS-01_skeleton`, not merged yet): the engine core copied from VN Studio, the course contract with 13 item kinds, SM-2 and adaptive difficulty, our own browser player with the chalkboard quiz arena, the build, `edu_lint`, the course MCP tools and CLI, and the autoplay bot; the design system (tokens, four themes in a registry, bundled fonts) and the studio pages. Both golden fixtures build, lint clean and pass the bot in all three runs with 0 console errors, also keyboard-only, with 0 axe-core violations; every studio page passes axe-core too.
+- **Not checked yet:** `yarn dev` (the desktop window) has not been opened; the studio was checked in Chromium with a mocked engine. Real audio and touch devices wait for phase 6.
+- **Next:** phase 3 (EGS-06 to EGS-08, the roles and the content pipeline), being done in parallel; the studio's Brief, Curriculum notes, research and Playtest history have empty slots that it fills.
 - **The pilot** (EGS-09) is a history and geography course; the exact topic is chosen then. It is done only when the user has played it.
 
 ## Tasks, in order
 
 The phase numbers are the ones of the hub plan.
-
-### Phase 2: design system and the studio UI
-
-- **EGS-05** the design tokens and the four shell themes (castle stone and torchlight, parchment and brass, pixel art, chalkboard) made with the frontend-design skill; the studio pages (Library; Course with the tabs Brief, Curriculum, Encyclopedia, Items, Game, Assets, Voice, Editions, Build, Playtest; Models, Agents, Generators, Settings); screenshot sets at desktop and mobile width; keyboard-only play in the bot and an axe-core contrast run.
 
 ### Phase 3: roles and the content pipeline
 
@@ -58,6 +54,7 @@ Each shell: the bot plays a fixture course through it (perfect, wrong, random ru
 - **EGS-02** the course contract (`src/shared/course.ts`), 13 item kinds with pure-TS checkers in a registry, tolerant matching, SM-2, adaptive difficulty, seeded crossword and word search, the validator, and the golden fixtures (solar system en + hr, Croatian A1 greetings). Plan `.claude/tickets/EGS-02-course-contract/`.
 - **EGS-03** the player runtime (`window.EduEngine`, quiz arena, all item renderers, localStorage progress with export and import), the build into a `file://` folder, `edu_lint` with a broken fixture, the course MCP tools and CLI. Plan `.claude/tickets/EGS-03-player-runtime/`.
 - **EGS-04** the autoplay bot (`scripts/play.mjs`, perfect / wrong / random runs, screenshots) and its e2e test on both fixtures. Plan `.claude/tickets/EGS-04-autoplay-bot/`.
+- **EGS-05** the design system and the studio UI: `--edu-*` tokens, the theme registry with four looks (chalkboard, castle stone, parchment and brass, pixel quest), bundled OFL fonts, motion behind `prefers-reduced-motion`; the studio pages (Library, Course with ten tabs and an item editor with a live preview, Models, Agents, Generators, Settings); the bot's keyboard-only mode and axe-core runs on the game, the theme previews and the studio. Plan `.claude/tickets/EGS-05-design-system/`.
 
 ## Later
 
@@ -65,4 +62,6 @@ Not planned yet:
 
 - Speaking practice through VibeWhisper (speech recognition).
 - A teacher or classroom mode, and a multiplayer quiz.
+- Run the autoplay bot from the studio's Playtest tab (`playtestCourse`): the packaged app does not carry Playwright, so it needs an engine-side runner; the tab shows the `yarn play` commands until then.
+- Save a course's theme from the Game tab once a second shell can play another look.
 - Rename the `book` field of a job file (the course slug) once a ticket touches the scheduler.

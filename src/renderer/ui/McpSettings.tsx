@@ -24,11 +24,10 @@ export function McpSettings() {
     if (!mcp || !portOk) return
     sendCommand({ type: 'saveMcpConfig', enabled: patch.enabled ?? mcp.enabled, port: portNum, ...(patch.token !== undefined ? { token: patch.token } : {}) })
   }
-  const snippets = mcpSnippets(mcp?.url ?? `http://127.0.0.1:${portOk ? portNum : (mcp?.port ?? 7459)}/mcp`, !!mcp?.tokenSet)
+  const snippets = mcpSnippets(mcp?.url ?? `http://127.0.0.1:${portOk ? portNum : (mcp?.port ?? 7463)}/mcp`, !!mcp?.tokenSet)
 
   return (
     <div className="stack" data-testid="mcp-settings">
-      <label>MCP server</label>
       <div className="row">
         {!mcp && <span className="dim">Waiting for the engine...</span>}
         {mcp?.listening && <Pill tone="good" testId="mcp-listening">listening on {mcp.url}</Pill>}
@@ -40,14 +39,15 @@ export function McpSettings() {
         )}
       </div>
       <label className="row">
-        <input type="checkbox" style={{ width: 'auto' }} checked={mcp?.enabled === true} disabled={!mcp} data-testid="mcp-enabled" onChange={(e) => save({ enabled: e.target.checked })} />
+        <input type="checkbox" checked={mcp?.enabled === true} disabled={!mcp} data-testid="mcp-enabled" onChange={(e) => save({ enabled: e.target.checked })} />
         Let other programs drive Edu Studio through MCP (this computer only)
       </label>
       <div className="row" style={{ flexWrap: 'nowrap' }}>
-        <input style={{ width: 100 }} value={port ?? ''} placeholder="7459" onChange={(e) => setPort(e.target.value)} onBlur={() => save()} onKeyDown={(e) => e.key === 'Enter' && save()} data-testid="mcp-port" />
+        <input style={{ width: 100 }} aria-label="MCP port" value={port ?? ''} placeholder="7463" onChange={(e) => setPort(e.target.value)} onBlur={() => save()} onKeyDown={(e) => e.key === 'Enter' && save()} data-testid="mcp-port" />
         <input
           type="password"
           autoComplete="off"
+          aria-label="MCP token"
           style={{ flex: 1, minWidth: 0 }}
           value={token}
           placeholder={mcp?.tokenSet ? 'A token is set. Type to replace' : 'Optional token (clients send it as a bearer token)'}
@@ -68,11 +68,11 @@ export function McpSettings() {
           Clear
         </button>
       </div>
-      <div className="dim">Connect Claude Code (the snippets are plain text: select and copy)</div>
-      <input readOnly value={snippets.http} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-http" />
-      <input readOnly value={snippets.stdio} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-stdio" />
-      <input readOnly value={snippets.headless} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-headless" />
-      <div className="dim">With the window closed, run the headless command: the same server runs without the app. Only one Edu Studio engine can use a data folder.</div>
+      <p className="dim">Connect Claude Code (the commands are plain text: select and copy)</p>
+      <input readOnly aria-label="Command that connects Claude Code over HTTP" value={snippets.http} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-http" />
+      <input readOnly aria-label="Command that connects Claude Code over stdio" value={snippets.stdio} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-stdio" />
+      <input readOnly aria-label="Command that starts the engine without a window" value={snippets.headless} onFocus={(e) => e.target.select()} data-testid="mcp-snippet-headless" />
+      <p className="dim">With the window closed, run the headless command: the same server runs without the app. Only one Edu Studio engine can use a data folder.</p>
     </div>
   )
 }

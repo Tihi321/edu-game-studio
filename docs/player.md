@@ -1,6 +1,6 @@
 # The browser player
 
-Our own runtime (plain TypeScript and DOM, no game engine, no React) that plays a built course in a browser, over `file://`. The sources are in `src/player/`; `yarn build:player` bundles them into **one IIFE** `out/player/player.js` and `out/player/player.css` (no code splitting, no external imports, no CDN, no web fonts). The engine's build copies both next to `index.html`, `game-data.js` and `assets/` (the layout is in `src/shared/game-data.ts`).
+Our own runtime (plain TypeScript and DOM, no game engine, no React) that plays a built course in a browser, over `file://`. The sources are in `src/player/`; `yarn build:player` bundles them into **one IIFE** `out/player/player.js` and `out/player/player.css` (no code splitting, no external imports, no CDN; the chalkboard theme's fonts, Kalam and Atkinson Hyperlegible Next, are inlined in the CSS as data URIs, so the one CSS file works over `file://`). The engine's build copies both next to `index.html`, `game-data.js` and `assets/` (the layout is in `src/shared/game-data.ts`).
 
 The autoplay bot (EGS-04, `scripts/play.mjs`) and Playwright drive the game **only through `data-testid`s and `window.EduEngine.getState()`**, both documented here, plus the small solver hook `window.EduEngine.debug` (below).
 
@@ -18,7 +18,10 @@ The autoplay bot (EGS-04, `scripts/play.mjs`) and Playwright drive the game **on
 | `state.ts` | Pure `getState()` snapshot builder |
 | `i18n.ts` | The player's own words (English, Croatian; a course catalog can override any string with `ui.<key>`) |
 | `items/*.ts` | One renderer per item kind |
-| `style/*.css` | `theme.css` (tokens, board, buttons, motion), `arena.css` (screens), `items.css` (widgets) |
+| `style/base.css` | The only global rules (html, body, `#edu-root`); only the player bundle imports it |
+| `style/items.css` | Buttons, chips and every item widget, scoped under `.edu-stage`, on the `--edu-*` tokens |
+| `style/arena.css` | The quiz-arena screens (frame, board, HUD, feedback, summary, burst), scoped under `.edu-stage` |
+| `style/embed.css` | What the studio imports to mount an item renderer in a live preview (tokens + chalkboard theme + motion + `items.css`; no global rules) |
 
 Every answer goes through the shared `checkItem` (`src/shared/edu`) with a `CheckContext` built from the course (`matching.diacritics`, `matching.typos`) and the edition's text resolver, so the player, the lint and the bot agree on what is right.
 
@@ -125,10 +128,24 @@ Typed text goes through the tolerant matcher: case, spacing and punctuation neve
 
 ## Keyboard and accessibility
 
-Everything is a real `<button>`, `<input>` or `<select>`; Tab, Enter and Space work everywhere. Number keys 1-9 pick options (mcq, true-false, multi-select, listening-choose) and 1-4 grade a flipped flashcard (not while typing). Enter or Space on a page with the feedback open continues. Arrow keys move in the crossword and word-search grids (the word search is one tab stop). Focus is moved to the first thing to do on each screen and to `next` after an answer. Focus rings are 3 px. Feedback is read through an `aria-live` region; right and wrong are shown with a symbol as well as a colour; inputs have labels. `prefers-reduced-motion` zeroes every duration and stops the shake, glow, pop, burst, star pop and card flip.
+Everything is a real `<button>`, `<input>` or `<select>`; Tab, Enter and Space work everywhere. Number keys 1-9 pick options (mcq, true-false, multi-select, listening-choose) and 1-4 grade a flipped flashcard (not while typing). Enter or Space on a page with the feedback open continues. Arrow keys move in the crossword and word-search grids (the crossword grid and the word search are each ONE tab stop: Tab enters the grid at the cell last used, Tab again leaves it; the crossword has a whole-word input per clue as well). Focus is moved to the first thing to do on each screen and to `next` after an answer. Every screen has exactly one `h1` (the title, the screen name, or the question; a flashcard has a hidden one). Focus rings are 3 px and follow the theme's `--edu-focus`. Feedback is read through an `aria-live` region; right and wrong are shown with a symbol as well as a colour; inputs have labels. `prefers-reduced-motion` zeroes every duration and stops the shake, glow, pop, burst, star pop and card flip.
 
 Tap targets are at least 44 px, except the cells of the crossword and word-search grids (dense by nature: at least about 22-26 px, above the WCAG 2.2 AA minimum of 24 px at 390 px width for grids up to 14 columns); the crossword has a 44 px whole-word input per clue for phones. No page scrolls sideways from 360 px up.
 
 ## Look and theming
 
-Chalkboard: green-charcoal board with CSS-gradient and inline-SVG noise texture, chalk-white text, coloured-chalk accents, a wooden frame and ledge, hand-lettered headings from a system font stack (`Segoe Print`, `Bradley Hand`, `Chalkboard SE`, `Comic Neue` ... then `cursive`) and a readable system sans for body text. Every colour, space, radius, font and duration is a CSS variable in `style/theme.css` (`--board`, `--chalk`, `--accent-*`, `--space-*`, `--radius`, `--dur-*`, `--font-chalk`, `--font-body`), so a later theme only overrides `:root`.
+The look is the design system of `src/design/` (`docs/design.md`, "Look"): `main.ts` imports `tokens.css`, the chalkboard theme (`themes/chalkboard.css` and its two fonts), `motion.css`, then `base.css`, `items.css` and `arena.css`. The shell puts the class `edu-stage` and `data-edu-theme="chalkboard"` on `#edu-root`; every selector of `items.css` and `arena.css` starts with `.edu-stage` (a test checks it), colours come only from `--edu-*` slots, and the chalkboard extras (wood frame, board noise, chalk underline) are `--chalk-*` variables of the theme file. Chalkboard: Kalam lettering for headings and buttons over Atkinson Hyperlegible Next body text, a wooden frame with a chalk ledge, a board with a smudge and noise texture, coloured chalk for the answers; the new screen is written onto the board from the left behind an eraser smudge, a combo (3, 5, 7, 10 ...) stamps its lettering with a puff of chalk dust, a right answer glows and a wrong one shakes. Motion is switched off under `prefers-reduced-motion` (the durations are 0 and `animation` is `none`).
+
+### Embedding an item in the studio (live preview)
+
+```ts
+import '../../player/style/embed.css'   // tokens + chalkboard theme + motion + items.css, no global rules
+// ... render an item with a renderer from src/player/items and append view.el to:
+// <div class="edu-stage" data-edu-theme="chalkboard"> ... </div>
+```
+
+`.edu-stage` is the contract: it sets the body font, text colour, box model and the focus ring for everything inside it, and all item and control styles (`.btn`, `.chip`, `.choice`, `.pair-btn`, `.order-row`, ...) apply only inside it. Wrap the preview in it and the studio's own look is untouched. The arena screens (`arena.css`) are not part of the embed.
+
+### Keyboard and accessibility checks in the bot
+
+`node scripts/play.mjs <build-dir> --mode perfect --keyboard` plays with the keyboard only (`page.keyboard`: Tab and Shift+Tab to reach a control, Enter or Space to use it, arrow keys in the word search, digits for options and grades, typing for text; no element click, no mouse; the summary reports `keyboard.mouseClicks: 0`). It fails when a control cannot be reached with Tab, when the focus is not inside the game after a screen change, when the feedback does not move the focus to `next`, or when a control reached with Tab has no focus outline. `--axe` injects `node_modules/axe-core` into the page and runs it once on every distinct screen, item kind and feedback kind (title, map, each item kind, right and wrong feedback, summary, review, end); a serious or critical violation fails the run and the JSON summary has `axe: { runs, violations: { critical, serious, moderate, minor }, rules, screens, minor }`. The two flags combine with every mode and with `--shots` / `--viewport`. `tests/bot.e2e.test.ts` runs the keyboard mode and axe on both golden fixtures.

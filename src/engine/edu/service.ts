@@ -23,6 +23,7 @@ import { findAppDirs } from './appdirs'
 import type { AppDirs } from './appdirs'
 import { assertSlug, coursesDir, dataFolders, loadComfyConfigFor } from './paths'
 import { CourseStore, listCourses } from './store'
+import { handleStudioCommand } from './studio-commands'
 import type { CourseSummary } from './store'
 
 /** What the course pipeline gets from the engine. */
@@ -360,6 +361,12 @@ export class EduService {
         return
       case 'studiosStatus':
         this.emit({ type: 'studios.status', studios: await this.studiosStatus() })
+        return
+      case 'getCourse':
+      case 'buildCourse':
+      case 'lintCourse':
+      case 'updateItem':
+        await handleStudioCommand(this, cmd) // the Course page's commands (EGS-05), in studio-commands.ts
         return
     }
   }

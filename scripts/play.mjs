@@ -3,7 +3,7 @@
  * The autoplay bot: plays a BUILT game folder in headless Chromium over file:// and proves it is playable.
  *
  *   node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--seed N] [--accuracy 0.75] [--shots <dir>]
- *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--json] [--verbose]
+ *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]
  *
  * It needs the folder alone (index.html, game-data.json, player.js ...) and `playwright` with Chromium; no TypeScript and no
  * source of this repository is imported. It drives the game ONLY through `data-testid`s and `window.EduEngine.getState()`, and asks
@@ -17,6 +17,15 @@
  *            cannot finish: the boss never opens).
  *   random   a seeded learner who is right with probability --accuracy (default 0.75); must reach the end screen within maxSteps.
  *
+ * Flags that apply to every mode:
+ *   --keyboard  plays with the keyboard ONLY (page.keyboard: Tab / Shift+Tab to reach a control, Enter or Space to use it, arrows in the
+ *               word search, digits for options and grades, typing for text): no element click, no mouse. A control that Tab cannot reach,
+ *               a focus that is lost after a screen change (it must stay inside #edu-main), the feedback not taking the focus to "next",
+ *               or a focused control with no visible outline is a failure.
+ *   --axe       injects node_modules/axe-core (or the copy next to the script's repository) into the page and runs it once on every
+ *               distinct screen and item kind (title, map, each item kind, each feedback kind, summary, review, end); a serious or
+ *               critical violation is a failure; the counts are in the JSON summary (`axe`).
+ *
  * Step bound (all modes, unless --max-steps): maxSteps = ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)
  * where roundLength and bossLength come from the pack's quiz-arena config (defaults 7 and 10). A round has roundLength fresh questions
  * plus at most two retries per miss; the factor 6 leaves room for retries and for repeating a unit or the boss a few times.
@@ -25,15 +34,16 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 
-const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--json] [--verbose]'
+const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]'
 const ACTION_TIMEOUT = 8000
 
 // ---------------------------------------------------------------- arguments
 
 function parseArgs(argv) {
-  const o = { dir: '', mode: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, json: false, verbose: false }
+  const o = { dir: '', mode: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, json: false, verbose: false }
   const rest = argv.slice()
   const take = (flag) => {
     const v = rest.shift()
@@ -52,7 +62,9 @@ function parseArgs(argv) {
       const m = /^(\d+)x(\d+)$/.exec(take(a))
       if (!m) throw new Error('--viewport must look like 1280x800')
       o.viewport = { width: Number(m[1]), height: Number(m[2]) }
-    } else if (a === '--json') o.json = true
+    } else if (a === '--keyboard') o.keyboard = true
+    else if (a === '--axe') o.axe = true
+    else if (a === '--json') o.json = true
     else if (a === '--verbose') o.verbose = true
     else if (a.startsWith('--')) throw new Error(`unknown option ${a}`)
     else if (!o.dir) o.dir = a
@@ -128,21 +140,29 @@ async function run(opts) {
   const context = await browser.newContext({ viewport: opts.viewport, acceptDownloads: true })
   const page = await context.newPage()
   page.setDefaultTimeout(ACTION_TIMEOUT)
+  let axeBusy = false
   page.on('console', (m) => {
-    if (m.type() === 'error') consoleErrors.push(`console.error: ${m.text()}`)
-    else if (m.type() === 'warning') consoleWarnings++
+    if (m.type() === 'error') {
+      if (!axeBusy) consoleErrors.push(`console.error: ${m.text()}`)
+    } else if (m.type() === 'warning') consoleWarnings++
   })
   page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`))
   page.on('crash', () => consoleErrors.push('page crashed'))
   page.on('requestfailed', (r) => {
-    if (r.url().startsWith('file:')) consoleErrors.push(`request failed: ${r.url()} (${r.failure()?.errorText ?? 'unknown'})`)
+    if (r.url().startsWith('file:') && !axeBusy) consoleErrors.push(`request failed: ${r.url()} (${r.failure()?.errorText ?? 'unknown'})`)
   })
 
   // ------------------------------------------------------------ helpers
 
   const state = () => page.evaluate(() => window.EduEngine.getState())
   const exists = async (id) => (await page.locator(tid(id)).count()) > 0
-  const click = (id) => page.locator(tid(id)).click()
+  let mouseClicks = 0
+  const click = (id) => {
+    // keyboard mode never reaches a click: every control is used through press() / activate()
+    if (opts.keyboard) throw new Error(`bug in the bot: a mouse click on "${id}" in keyboard mode`)
+    mouseClicks++
+    return page.locator(tid(id)).click()
+  }
   const text = (lang, key) => data.catalogs[lang]?.strings?.[key] ?? (pack.targetLang && pack.targetLang !== lang ? data.catalogs[pack.targetLang]?.strings?.[key] : undefined)
 
   /** Waits for the published state to differ from `prev` (screen, step count, question or round); a stuck screen is a failure. */
@@ -159,6 +179,7 @@ async function run(opts) {
     } catch {
       throw new Error(`stuck: no state change after ${what} (screen ${prev.screen}, item ${prev.itemId ?? '-'}) within ${ACTION_TIMEOUT} ms`)
     }
+    if (opts.keyboard) await focusInMain(what)
   }
 
   async function waitScreen(screen, what) {
@@ -173,14 +194,114 @@ async function run(opts) {
 
   let shotNo = 0
   const shotKeys = new Set()
+  /** One screenshot (--shots) and one axe run (--axe) per distinct key: a screen, an item kind, a feedback kind. */
   async function shot(key, label = key) {
-    if (!opts.shots || shotKeys.has(key)) return
+    if ((!opts.shots && !opts.axe) || shotKeys.has(key)) return
     shotKeys.add(key)
-    fs.mkdirSync(opts.shots, { recursive: true })
-    await page.waitForTimeout(500) // let the entrance animations finish
-    shotNo++
-    const file = `${opts.mode}-${String(shotNo).padStart(2, '0')}-${label}.png`
-    await page.screenshot({ path: path.join(opts.shots, file), fullPage: true })
+    await page.waitForTimeout(900) // let the entrance animations finish (a half-faded screen has no real contrast, a half-popped star no real size)
+    if (opts.shots) {
+      fs.mkdirSync(opts.shots, { recursive: true })
+      shotNo++
+      const file = `${opts.mode}-${String(shotNo).padStart(2, '0')}-${label}.png`
+      await page.screenshot({ path: path.join(opts.shots, file), fullPage: true })
+    }
+    if (key !== 'failure') await axeRun(label)
+  }
+
+  // ------------------------------------------------------------ axe-core, injected from node_modules
+
+  const axeSummary = { runs: 0, violations: { critical: 0, serious: 0, moderate: 0, minor: 0 }, rules: {}, screens: [], minor: [] }
+  let axeSource = ''
+  async function axeRun(label) {
+    if (!opts.axe) return
+    if (!axeSource) axeSource = fs.readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
+    axeBusy = true
+    try {
+      if (!(await page.evaluate(() => typeof window.axe !== 'undefined'))) await page.evaluate(axeSource)
+      const res = await page.evaluate(() => window.axe.run(document, { resultTypes: ['violations'] }))
+      axeSummary.runs++
+      axeSummary.screens.push(label)
+      for (const v of res.violations) {
+        axeSummary.violations[v.impact] = (axeSummary.violations[v.impact] ?? 0) + 1
+        axeSummary.rules[v.id] = (axeSummary.rules[v.id] ?? 0) + 1
+        if (v.impact !== 'serious' && v.impact !== 'critical') axeSummary.minor.push(`${label}: ${v.id} at ${v.nodes[0]?.target?.join(' ') ?? '?'}`)
+        if (v.impact === 'serious' || v.impact === 'critical') fail(`axe ${v.impact} on ${label}: ${v.id} (${v.help}) at ${v.nodes[0]?.target?.join(' ') ?? '?'}`)
+      }
+    } finally {
+      await page.waitForTimeout(50) // the failed fetches of file:// stylesheets are reported a moment later
+      axeBusy = false
+    }
+  }
+
+  // ------------------------------------------------------------ keyboard-only helpers (--keyboard): Tab, Shift+Tab, Enter, Space, arrows, digits, typing
+
+  const kb = { presses: 0, focusChecks: 0, ringChecks: 0, tabbableMax: 0 }
+  const focusedId = () => page.evaluate(() => document.activeElement?.getAttribute?.('data-testid') ?? null)
+
+  /** In the page: which key (and how many presses of it) moves the focus from where it is to the control with this test id. */
+  const tabPlan = (id) =>
+    page.evaluate((target) => {
+      const visible = (el) => !el.closest('[hidden]') && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'
+      const els = [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')].filter((el) => !el.disabled && el.tabIndex >= 0 && el.type !== 'hidden' && visible(el))
+      const at = document.activeElement
+      const t = els.findIndex((e) => e.getAttribute('data-testid') === target)
+      if (t < 0) return { found: false, n: 0, dir: 'Tab', tabbable: els.length }
+      const here = els.indexOf(at)
+      if (here >= 0) return { found: true, n: Math.abs(t - here), dir: t >= here ? 'Tab' : 'Shift+Tab', tabbable: els.length }
+      // the focus is on something that cannot be tabbed to (the heading, the page): Tab goes to the next tabbable after it
+      let next = 0
+      if (at && at !== document.body) {
+        next = els.findIndex((e) => !!(at.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING) && !(at.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_CONTAINED_BY))
+        if (next < 0) next = 0
+      }
+      return t >= next ? { found: true, n: t - next + 1, dir: 'Tab', tabbable: els.length } : { found: true, n: next - t, dir: 'Shift+Tab', tabbable: els.length }
+    }, id)
+
+  async function ringCheck(id) {
+    const r = await page.evaluate(() => {
+      const el = document.activeElement
+      if (!el || el instanceof SVGElement) return null // a region of a hotspot is drawn with a stroke
+      const cs = getComputedStyle(el)
+      return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) }
+    })
+    kb.ringChecks++
+    if (r && (r.style === 'none' || r.width < 2)) fail(`keyboard: "${id}" has no visible focus ring (outline ${r.style} ${r.width}px)`)
+  }
+
+  /** Moves the focus to a control with Tab / Shift+Tab only, then checks it really arrived and shows a focus ring. */
+  async function tabTo(id) {
+    for (let round = 0; round < 4; round++) {
+      const p = await tabPlan(id)
+      kb.tabbableMax = Math.max(kb.tabbableMax, p.tabbable)
+      if (!p.found) throw new Error(`keyboard: "${id}" cannot be reached with Tab (hidden, disabled or out of the tab order)`)
+      if (p.n === 0) break
+      for (let i = 0; i < p.n; i++) await page.keyboard.press(p.dir)
+      kb.presses += p.n
+      if ((await focusedId()) === id) break
+    }
+    if ((await focusedId()) !== id) throw new Error(`keyboard: Tab did not reach "${id}" (the focus is on "${(await focusedId()) ?? 'something without a test id'}")`)
+    await ringCheck(id)
+  }
+
+  const activate = async (id, key = 'Enter') => {
+    await tabTo(id)
+    await page.keyboard.press(key)
+  }
+  const typeInto = async (id, value) => {
+    await tabTo(id)
+    await page.keyboard.type(value)
+  }
+  /** A button press: a click with the mouse, Tab + Enter with --keyboard. */
+  const press = (id) => (opts.keyboard ? activate(id) : click(id))
+
+  /** After a screen change the focus must be inside the game (not on the page behind it). */
+  async function focusInMain(what) {
+    const inside = await page.evaluate(() => {
+      const main = document.getElementById('edu-main') ?? document.getElementById('edu-root')
+      return !!main && main.contains(document.activeElement) && document.activeElement !== main
+    })
+    kb.focusChecks++
+    if (!inside) fail(`keyboard: the focus is not inside the game after ${what}`)
   }
 
   async function overflowCheck(where) {
@@ -202,10 +323,135 @@ async function run(opts) {
     }
   }
 
+  /** Order item with the keyboard: Tab to the "move up" button of a row and press Enter until it is in place. */
+  async function setOrderKeyboard(target) {
+    for (let i = 0; i < target.length; i++) {
+      const cur = await page.$$eval('[data-testid^="order-row-"]', (els) => els.map((e) => e.dataset.testid.slice('order-row-'.length)))
+      let at = cur.indexOf(target[i])
+      while (at > i) {
+        await activate(`order-up-${target[i]}`)
+        at--
+      }
+    }
+  }
+
+  /** The 0-based place of an option among the options shown (number keys count in displayed order). */
+  const optionIndex = async (id) => (await page.$$eval('[data-testid^="option-"]', (els) => els.map((e) => e.dataset.testid.slice('option-'.length)))).indexOf(String(id))
+
+  /** Choose an option: the number key on every other answer, Tab + Enter on the rest, so both ways are exercised. */
+  async function chooseKeyboard(id) {
+    const i = await optionIndex(id)
+    if (i >= 0 && i < 9 && answered % 2 === 0) await page.keyboard.press(String(i + 1))
+    else await activate(`option-${id}`)
+  }
+
+  /** The word search with arrow keys: the grid is one tab stop, arrows move, Enter picks the first and the last letter of a word. */
+  async function wordSearchKeyboard(selections) {
+    const where = () => page.evaluate(() => {
+      const m = /^cell-(\d+)-(\d+)$/.exec(document.activeElement?.getAttribute('data-testid') ?? '')
+      return m ? [Number(m[1]), Number(m[2])] : null
+    })
+    const goTo = async (r, c) => {
+      let pos = await where()
+      if (!pos) {
+        await tabTo(await page.locator('[data-testid^="cell-"][tabindex="0"]').first().getAttribute('data-testid'))
+        pos = await where()
+      }
+      for (const [axis, plus, minus] of [[0, 'ArrowDown', 'ArrowUp'], [1, 'ArrowRight', 'ArrowLeft']]) {
+        while (pos[axis] !== (axis === 0 ? r : c)) {
+          await page.keyboard.press(pos[axis] < (axis === 0 ? r : c) ? plus : minus)
+          pos = await where()
+        }
+      }
+    }
+    for (const sel of selections) {
+      await goTo(sel.start[0], sel.start[1])
+      await page.keyboard.press('Enter')
+      await goTo(sel.end[0], sel.end[1])
+      await page.keyboard.press('Enter')
+    }
+    if (selections.length === 0) await activate('submit') // give up
+  }
+
+  /** The same answers as perform(), given with the keyboard only. */
+  async function performKeyboard(item, right, ans) {
+    switch (item.kind) {
+      case 'mcq':
+      case 'true-false':
+        await chooseKeyboard(ans)
+        break
+      case 'multi-select':
+        for (const id of ans) {
+          const i = await optionIndex(id)
+          if (i >= 0 && i < 9) await page.keyboard.press(String(i + 1))
+          else await activate(`option-${id}`, ' ')
+        }
+        await activate('submit')
+        break
+      case 'cloze':
+        for (const g of item.gaps) {
+          if (g.bank) {
+            const key = right ? g.answer : (g.bank.find((b) => b !== g.answer) ?? g.answer)
+            await activate(`bank-${g.id}-${key}`, ' ')
+          } else await typeInto(`gap-${g.id}`, String(ans[g.id] ?? ''))
+        }
+        await activate('submit')
+        break
+      case 'typed':
+        await typeInto('answer-input', String(ans))
+        await page.keyboard.press('Enter')
+        break
+      case 'listening':
+        await activate('audio-play')
+        if (item.mode === 'choose') await chooseKeyboard(ans)
+        else {
+          await typeInto('answer-input', String(ans))
+          await page.keyboard.press('Enter')
+        }
+        break
+      case 'match-pairs':
+        for (const [l, r] of Object.entries(ans)) {
+          await activate(`pair-left-${l}`, ' ')
+          await activate(`pair-right-${r}`, ' ')
+        }
+        await activate('submit')
+        break
+      case 'order':
+        await setOrderKeyboard(ans)
+        await activate('submit')
+        break
+      case 'sort-groups':
+        for (const [id, g] of Object.entries(ans)) await activate(`group-${g}-${id}`, ' ')
+        await activate('submit')
+        break
+      case 'hotspot':
+        await activate(`region-${ans}`)
+        break
+      case 'flashcard': {
+        await activate('flip')
+        await page.keyboard.press(String(['again', 'hard', 'good', 'easy'].indexOf(ans) + 1))
+        break
+      }
+      case 'crossword':
+        for (const [id, t] of Object.entries(ans)) await typeInto(`word-${id}`, String(t))
+        await activate('submit')
+        break
+      case 'word-search':
+        await wordSearchKeyboard(ans)
+        break
+      default:
+        throw new Error(`the bot cannot drive the item kind "${item.kind}"`)
+    }
+  }
+
   /** Answers the question on screen. `right` says which kind of answer to give. Returns the answer given (for the expectations). */
   async function perform(item, right) {
     const ans = await ask(right ? 'solve' : 'wrong', item.id)
     if (ans === undefined) throw new Error(`the page has no ${right ? 'solution' : 'wrong answer'} for ${item.id} (${item.kind})`)
+    if (opts.keyboard) {
+      await performKeyboard(item, right, ans)
+      return ans
+    }
     switch (item.kind) {
       case 'mcq':
       case 'true-false':
@@ -337,7 +583,8 @@ async function run(opts) {
       }
       if (!after.reviewQueue.includes(item.id)) fail(`${item.id}: a missed item is not in the review queue`)
     }
-    await click('next')
+    if (opts.keyboard && (await focusedId()) !== 'next') fail(`keyboard: the focus is not on "next" after the feedback of ${item.id} (it is on "${(await focusedId()) ?? 'nothing'}")`)
+    await press('next')
     await waitChange(after, `next after ${item.id}`)
     return item
   }
@@ -356,7 +603,7 @@ async function run(opts) {
 
   const startRound = async (testid, label) => {
     const prev = await state()
-    await click(testid)
+    await press(testid)
     await waitChange(prev, `opening ${label}`)
     const s = await state()
     if (s.screen !== 'item') throw new Error(`${label} did not open a question (screen "${s.screen}")`)
@@ -368,7 +615,7 @@ async function run(opts) {
     await shot(`summary-${roundKind}`, `summary-${roundKind}`)
     await overflowCheck(`summary of ${label}`)
     const prev = await state()
-    await click('to-map')
+    await press('to-map')
     await waitChange(prev, `to-map after ${label}`)
     await waitScreen('map', 'to-map')
   }
@@ -388,7 +635,7 @@ async function run(opts) {
     await overflowCheck('title')
     {
       const prev = st
-      await click('start')
+      await press('start')
       await waitChange(prev, 'start')
       await waitScreen('map', 'start')
     }
@@ -411,7 +658,7 @@ async function run(opts) {
       if (!(await exists('review'))) fail('the review entry is not offered on the map')
       else {
         const prev = await state()
-        await click('review')
+        await press('review')
         await waitChange(prev, 'review')
         await waitScreen('review', 'review')
         await shot('review')
@@ -419,7 +666,8 @@ async function run(opts) {
         for (const id of st.reviewQueue) if (!(await exists(`review-item-${id}`))) fail(`the review screen does not list ${id}`)
         if (!(await exists('practice'))) fail('the review screen has no practice button')
         const p2 = await state()
-        await page.locator(tid('to-map')).last().click() // the review screen has a small back button and a big one
+        if (opts.keyboard) await activate('to-map')
+        else await page.locator(tid('to-map')).last().click() // the review screen has a small back button and a big one
         await waitChange(p2, 'to-map from review')
         await waitScreen('map', 'to-map from review')
       }
@@ -451,7 +699,7 @@ async function run(opts) {
         await shot('map-mastered')
         if (await exists('finish')) {
           const prev = await state()
-          await click('finish')
+          await press('finish')
           await waitChange(prev, 'finish')
           break
         }
@@ -465,7 +713,7 @@ async function run(opts) {
         await overflowCheck('summary of the boss')
         if (hasFinish) {
           const prev = await state()
-          await click('finish')
+          await press('finish')
           await waitChange(prev, 'finish')
           break
         }
@@ -510,6 +758,8 @@ async function run(opts) {
   summary.consoleWarnings = consoleWarnings
   summary.maxSteps = maxSteps
   summary.checks = checks
+  if (opts.keyboard) summary.keyboard = { ...kb, mouseClicks }
+  if (opts.axe) summary.axe = axeSummary
   summary.viewport = `${opts.viewport.width}x${opts.viewport.height}`
   summary.ok = failures.length === 0
   summary.failures = failures

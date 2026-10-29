@@ -1,0 +1,141 @@
+/*
+ * Theme "chalkboard" (quiz arena): a green school board in a wooden frame, chalk-white text, coloured chalk for the answers.
+ * Kalam (hand-lettered headings) over Atkinson Hyperlegible Next (body). Dark ground; AA contrast for every text slot (checked by
+ * tests/design-tokens.test.ts). Motion: the new screen is written onto the board from the left behind an eraser smudge; a combo
+ * throws chalk dust.
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="chalkboard"]`. The player's root carries that attribute
+ * (set by the shell), so this file never touches `:root` and is safe to import into the studio too. Chalkboard-only extras
+ * (`--chalk-*`: wood, board texture) are local variables of this theme.
+ */
+@import '../fonts/kalam/font.css';
+@import '../fonts/atkinson-hyperlegible-next/font.css';
+
+[data-edu-theme='chalkboard'] {
+  color-scheme: dark;
+
+  --edu-bg: #1d3a2e;
+  --edu-bg-2: #17302a;
+  --edu-surface: #264a3a;
+  --edu-surface-2: #2f5a47;
+  --edu-line: #4d7260;
+  --edu-line-strong: #9db9a8;
+  --edu-text: #f5f2e8;
+  --edu-text-dim: #cfdacd;
+  --edu-accent: #f7d95a;
+  --edu-accent-ink: #15241c;
+  --edu-accent-2: #8fd3f7;
+  --edu-good: #a6e8a0;
+  --edu-good-ink: #15241c;
+  --edu-bad: #ff9d92;
+  --edu-bad-ink: #2a0f0c;
+  --edu-warn: #f8c76a;
+  --edu-warn-bg: #3d3a1c;
+  --edu-mark: #f7a8c4;
+  --edu-mark-ink: #2a1420;
+  --edu-focus: #8fd3f7;
+  --edu-shadow-1: 0 2px 0 rgb(0 0 0 / 0.35);
+  --edu-shadow-2: 0 3px 0 rgb(0 0 0 / 0.35), 0 14px 30px rgb(0 0 0 / 0.45);
+  --edu-series-1: #f7d95a;
+  --edu-series-2: #8fd3f7;
+  --edu-series-3: #f7a8c4;
+  --edu-series-4: #a6e8a0;
+  --edu-series-5: #f8b26a;
+  --edu-series-6: #cdb6f7;
+  --edu-series-ink: #15241c;
+
+  --edu-font-display: 'Kalam', 'Segoe Print', 'Bradley Hand', 'Chalkboard SE', cursive;
+  --edu-font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  /* shape: chalk is never a ruled line */
+  --edu-radius-control: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --edu-radius-l: 14px;
+  --edu-border: 2px;
+
+  /* screen entrance: written onto the board from the left */
+  --edu-enter-name: edu-enter-wipe;
+  --edu-enter-scale: 1.1;
+  --edu-enter-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* chalkboard-only */
+  --chalk-wall: #101b16;
+  --chalk-wood: #8a5a33;
+  --chalk-wood-light: #b98450;
+  --chalk-wood-dark: #4f321b;
+  --chalk-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.1'/%3E%3C/svg%3E");
+  --chalk-smudge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .02' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .7 -.18'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)' opacity='.16'/%3E%3C/svg%3E");
+  /* a hand-drawn chalk underline under the title */
+  --chalk-underline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='14' viewBox='0 0 300 14'%3E%3Cpath d='M3 9 C 40 3, 80 12, 130 7 S 220 3, 262 8 S 290 6, 297 7' fill='none' stroke='%23f7d95a' stroke-width='4' stroke-linecap='round' opacity='.9'/%3E%3C/svg%3E");
+}
+
+/* ---- the dressing of the quiz arena: wooden frame, ledge, board ---- */
+
+[data-edu-theme='chalkboard'] .frame {
+  padding: clamp(7px, 1.4vw, 15px);
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(92deg, rgb(0 0 0 / 0.1) 0 2px, transparent 2px 9px, rgb(255 255 255 / 0.05) 9px 10px, transparent 10px 23px),
+    linear-gradient(180deg, var(--chalk-wood-light), var(--chalk-wood) 35%, var(--chalk-wood-dark));
+  box-shadow:
+    inset 0 0 0 2px rgb(0 0 0 / 0.35),
+    inset 0 2px 0 rgb(255 255 255 / 0.25),
+    0 22px 50px rgb(0 0 0 / 0.55);
+  border: 0;
+}
+
+/* the chalk ledge */
+[data-edu-theme='chalkboard'] .frame::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -9px;
+  height: 9px;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, var(--chalk-wood), var(--chalk-wood-dark));
+  box-shadow: 0 8px 14px rgb(0 0 0 / 0.45);
+}
+
+[data-edu-theme='chalkboard'] .board {
+  overflow: clip;
+  border: 0;
+  border-radius: 5px;
+  background:
+    radial-gradient(ellipse at 15% 8%, rgb(255 255 255 / 0.08), transparent 55%),
+    radial-gradient(ellipse at 85% 95%, rgb(0 0 0 / 0.3), transparent 60%),
+    var(--chalk-smudge),
+    var(--chalk-noise),
+    linear-gradient(160deg, var(--edu-surface), var(--edu-bg) 45%, var(--edu-bg-2));
+  box-shadow:
+    inset 0 0 70px rgb(0 0 0 / 0.5),
+    inset 0 0 0 2px rgb(0 0 0 / 0.45);
+}
+
+/* the eraser smudge that crosses the board with every new screen */
+[data-edu-theme='chalkboard'] .board::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(100deg, transparent 0%, rgb(245 242 232 / 0.05) 30%, rgb(245 242 232 / 0.2) 48%, rgb(245 242 232 / 0.07) 62%, transparent 80%);
+  animation: edu-eraser calc(var(--edu-dur-slow) * 1.1) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* chalk dust of the combo burst */
+[data-edu-theme='chalkboard'] .dust {
+  background: var(--edu-text);
+  border-radius: 50%;
+}
+
+/* a title written with a chalk underline */
+[data-edu-theme='chalkboard'] .title-screen .screen-title::after {
+  content: '';
+  display: block;
+  width: min(100%, 11ch);
+  height: 14px;
+  margin: 2px auto 0;
+  background: var(--chalk-underline) center / 100% 100% no-repeat;
+}

@@ -44,6 +44,8 @@ export function createEngine(): EduEngineApi {
     state = { ...state, screen: 'error' }
     const ui = makeUi(lang)
     if (root) {
+      root.classList.add('edu-stage')
+      root.setAttribute('data-edu-theme', 'chalkboard')
       clear(root)
       root.appendChild(h('div', { class: 'edu-error', role: 'alert', testid: 'error' }, h('h1', {}, ui('error')), h('p', {}, message)))
     }

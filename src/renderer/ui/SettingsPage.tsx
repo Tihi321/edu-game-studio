@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { getStartWithWindows, sendCommand, setStartWithWindows } from '../api'
 import { useEdu } from '../store/hooks'
+import { SCHEMES, type Scheme } from '../lib/scheme'
+import { eduStore } from '../store/store'
+import { Field } from './common'
 import { McpSettings } from './McpSettings'
+
+const SCHEME_LABEL: Record<Scheme, string> = { system: 'Follow the system', light: 'Light paper', dark: 'Night desk' }
 
 export function SettingsPage() {
   const secretsSet = useEdu((s) => s.secretsSet)
   /** The key variables the engine reports (`api_key_env` of every provider, custom ones too). It refuses names that are not in providers.md. */
   const keyNames = useEdu((s) => s.keyNames)
   const dataDir = useEdu((s) => s.dataDir)
+  const scheme = useEdu((s) => s.scheme)
   const [picked, setKeyName] = useState('')
   const [keyValue, setKeyValue] = useState('')
   const [login, setLogin] = useState<boolean | null>(null)
@@ -19,49 +25,97 @@ export function SettingsPage() {
   const keyName = names.includes(picked) ? picked : (names[0] ?? '')
   const keySet = secretsSet.includes(keyName)
   return (
-    <div className="stack" style={{ maxWidth: 640 }} data-testid="page-settings">
-      <div className="panel-title">Settings</div>
-      <label>Edu Studio data folder</label>
-      <input value={dataDir} readOnly data-testid="set-dataDir" />
-      <div className="dim">Set with --data or the EDU_DATA environment variable. The default is ~/EduGames. Restart to change it.</div>
-      <hr />
-      <McpSettings />
-      <hr />
-      <div className="dim">Provider API key (stored in the Windows credential store, never in a file)</div>
-      <select value={keyName} onChange={(e) => setKeyName(e.target.value)} data-testid="set-key-name">
-        {names.map((n) => (
-          <option key={n} value={n}>
-            {n}
-            {secretsSet.includes(n) ? ' (set)' : ''}
-          </option>
-        ))}
-      </select>
-      <div className="row">
-        <input
-          type="password"
-          autoComplete="off"
-          style={{ flex: 1 }}
-          value={keyValue}
-          placeholder={keySet ? 'Key is set. Type to replace' : 'Paste the key'}
-          onChange={(e) => setKeyValue(e.target.value)}
-          data-testid="set-key-value"
-        />
-        <button
-          disabled={!keyValue || !keyName}
-          data-testid="set-key-save"
-          onClick={() => {
-            sendCommand({ type: 'setSecret', name: keyName, value: keyValue })
-            setKeyValue('')
-          }}
-        >
-          Store key
-        </button>
-      </div>
-      <hr />
-      <label className="row">
-        <input type="checkbox" style={{ width: 'auto' }} checked={login === true} disabled={login === null} data-testid="set-login" onChange={(e) => void setStartWithWindows(e.target.checked).then(setLogin)} />
-        Start Edu Studio with Windows{login === null ? ' (only in the desktop app)' : ''}
-      </label>
+    <div className="page-body settings" data-testid="page-settings">
+      <header className="page-head">
+        <h1>Settings</h1>
+      </header>
+
+      <section className="sheet panel" aria-labelledby="set-look">
+        <h2 id="set-look" className="panel-title">
+          Look of the studio
+        </h2>
+        <fieldset className="scheme" data-testid="set-scheme">
+          <legend>Colours</legend>
+          {SCHEMES.map((s) => (
+            <label key={s} className="inline">
+              <input type="radio" name="scheme" value={s} checked={scheme === s} onChange={() => eduStore.getState().setScheme(s)} data-testid={`set-scheme-${s}`} />
+              {SCHEME_LABEL[s]}
+            </label>
+          ))}
+        </fieldset>
+        <p className="dim">The games have their own looks; this only changes the studio. The choice is kept on this computer.</p>
+      </section>
+
+      <section className="sheet panel" aria-labelledby="set-data">
+        <h2 id="set-data" className="panel-title">
+          Data folder
+        </h2>
+        <Field label="Edu Studio data folder" hint="Set with --data or the EDU_DATA environment variable. The default is ~/EduGames. Restart to change it.">
+          {(id, described) => <input id={id} aria-describedby={described} value={dataDir} readOnly data-testid="set-dataDir" />}
+        </Field>
+      </section>
+
+      <section className="sheet panel" aria-labelledby="set-mcp">
+        <h2 id="set-mcp" className="panel-title">
+          MCP server
+        </h2>
+        <McpSettings />
+      </section>
+
+      <section className="sheet panel" aria-labelledby="set-keys">
+        <h2 id="set-keys" className="panel-title">
+          Provider API key
+        </h2>
+        <p className="dim">Stored in the Windows credential store, never in a file.</p>
+        <Field label="Key">
+          {(id) => (
+            <select id={id} value={keyName} onChange={(e) => setKeyName(e.target.value)} data-testid="set-key-name">
+              {names.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                  {secretsSet.includes(n) ? ' (set)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+        <Field label="Value">
+          {(id) => (
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <input
+                id={id}
+                type="password"
+                autoComplete="off"
+                style={{ flex: 1, minWidth: 0 }}
+                value={keyValue}
+                placeholder={keySet ? 'Key is set. Type to replace' : 'Paste the key'}
+                onChange={(e) => setKeyValue(e.target.value)}
+                data-testid="set-key-value"
+              />
+              <button
+                disabled={!keyValue || !keyName}
+                data-testid="set-key-save"
+                onClick={() => {
+                  sendCommand({ type: 'setSecret', name: keyName, value: keyValue })
+                  setKeyValue('')
+                }}
+              >
+                Store key
+              </button>
+            </div>
+          )}
+        </Field>
+      </section>
+
+      <section className="sheet panel" aria-labelledby="set-start">
+        <h2 id="set-start" className="panel-title">
+          Start-up
+        </h2>
+        <label className="inline">
+          <input type="checkbox" checked={login === true} disabled={login === null} data-testid="set-login" onChange={(e) => void setStartWithWindows(e.target.checked).then(setLogin)} />
+          Start Edu Studio with Windows{login === null ? ' (only in the desktop app)' : ''}
+        </label>
+      </section>
     </div>
   )
 }

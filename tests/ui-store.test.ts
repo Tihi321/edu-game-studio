@@ -28,8 +28,9 @@ describe('reduceCourses', () => {
 })
 
 describe('the store', () => {
-  it('has the skeleton pages and starts on the courses page', () => {
-    expect(PAGES.map((p) => p.id)).toEqual(['courses', 'models', 'agents', 'settings'])
+  it('has the studio pages and starts on the library', () => {
+    expect(PAGES.map((p) => p.id)).toEqual(['courses', 'models', 'agents', 'generators', 'settings'])
+    expect(PAGES[0]?.label).toBe('Library')
     expect(eduStore.getState().page).toBe('courses')
     expect(eduStore.getState().connected).toBe(false)
   })

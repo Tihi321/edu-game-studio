@@ -16,6 +16,7 @@ const api: EduStudioApi & HostApi = {
   readFile: (rel) => ipcRenderer.invoke('host:readFile', rel),
   tailFile: (rel, fromByte) => ipcRenderer.invoke('host:tailFile', rel, fromByte),
   openFolder: (rel) => ipcRenderer.invoke('host:openFolder', rel),
+  openGame: (slug) => ipcRenderer.invoke('host:openGame', slug),
   pickFolder: (title) => ipcRenderer.invoke('host:pickFolder', title),
   pickFile: (title, kind) => ipcRenderer.invoke('host:pickFile', title, kind),
   getStartWithWindows: () => ipcRenderer.invoke('host:getLogin'),

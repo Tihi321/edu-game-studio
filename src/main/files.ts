@@ -100,7 +100,7 @@ export function themesRoot(env: NodeJS.ProcessEnv = process.env, cwd: string = p
 }
 
 /**
- * Maps a `edustudio-file://data/<rel>` URL to a file path. Served: `courses/<slug>/assets|preview|voice/...` from the data folder
+ * Maps a `edustudio-file://data/<rel>` URL to a file path. Served: `courses/<slug>/assets|preview|voice/...` and, for an Edu Studio course, `courses/<slug>/course/assets/...` (the source) and `courses/<slug>/build/assets/...` (the built game) from the data folder
  * (images and audio), and `themes/<name>/fonts/<file>` from the themes folder (fonts). Only the file types above.
  */
 export function fileUrlToPath(dataDir: string, url: string, themes: string = themesRoot()): ServedFile | null {
@@ -123,7 +123,7 @@ export function fileUrlToPath(dataDir: string, url: string, themes: string = the
     const type = file ? FONT_TYPES[path.extname(file).toLowerCase()] : undefined
     return file && type ? { file, type, root: themes } : null
   }
-  if (!/^courses\/[^/]+\/(assets|preview|voice)\//.test(rel)) return null
+  if (!/^courses\/[^/]+\/(assets|preview|voice|course\/assets|build\/assets)\//.test(rel)) return null
   const file = resolveInside(dataDir, rel)
   if (!file) return null
   const type = TYPES[path.extname(file).toLowerCase()]

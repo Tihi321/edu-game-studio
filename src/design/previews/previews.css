@@ -1,0 +1,24 @@
+/*
+ * The static theme previews (EGS-05): one page per theme, built by scripts/theme-previews.mjs into .claude/temp/theme-previews/.
+ * The page loads the real design system (tokens, every theme, motion) and the player's own item and arena styles, so what it shows is
+ * what a game in that theme looks like; this file adds nothing but the page behind the stage.
+ */
+@import '../tokens.css';
+@import '../themes/chalkboard.css';
+@import '../themes/castle.css';
+@import '../themes/parchment.css';
+@import '../themes/pixel.css';
+@import '../motion.css';
+@import '../../player/style/items.css';
+@import '../../player/style/arena.css';
+
+html,
+body {
+  margin: 0;
+  background: #0d0f12;
+}
+
+.edu-stage {
+  min-height: 100vh;
+  background: var(--edu-bg-2);
+}

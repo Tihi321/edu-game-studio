@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, powerSaveBlocke
 import { existsSync } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { isCommand } from '../shared/protocol'
 import type { EngineEvent } from '../shared/protocol'
 import { FILE_SCHEME } from '../renderer/hostApi'
@@ -249,6 +250,18 @@ if (!app.requestSingleInstanceLock()) {
       const full = dataDir ? resolveInside(dataDir, rel) : null
       if (!full) return false
       return (await shell.openPath(full)) === ''
+    })
+    ipcMain.handle('host:openGame', async (_e, slug: unknown) => {
+      // the built game of a course, in the default browser: only <data>/courses/<slug>/build/index.html, and only when it exists
+      if (!dataDir || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) return false
+      const file = resolveInside(dataDir, `courses/${slug}/build/index.html`)
+      if (!file || !existsSync(file)) return false
+      try {
+        await shell.openExternal(pathToFileURL(file).href)
+        return true
+      } catch {
+        return false
+      }
     })
     ipcMain.handle('host:pickFolder', async (_e, title: unknown) => {
       const options: Electron.OpenDialogOptions = { title: typeof title === 'string' ? title : 'Choose a folder', properties: ['openDirectory'] }

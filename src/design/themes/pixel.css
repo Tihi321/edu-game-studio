@@ -1,0 +1,102 @@
+/*
+ * Theme "pixel" (RPG): a 16-bit adventure. Night-blue panels with stepped borders and hard shadows, gold coins, grass green;
+ * Pixelify Sans for display and body. Dark ground; AA contrast for every text slot. Motion: everything moves in hard steps
+ * (`steps()`), never glides; images are scaled with `image-rendering: pixelated`.
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="pixel"]`.
+ */
+@import '../fonts/pixelify-sans/font.css';
+@import '../fonts/atkinson-hyperlegible-next/font.css';
+
+[data-edu-theme='pixel'] {
+  color-scheme: dark;
+
+  --edu-bg: #1b1b2f;
+  --edu-bg-2: #131324;
+  --edu-surface: #2c2c54;
+  --edu-surface-2: #3a3a6e;
+  --edu-line: #4d4d8a;
+  --edu-line-strong: #9a9ad8;
+  --edu-text: #f4f4f4;
+  --edu-text-dim: #c9c9ea;
+  --edu-accent: #ffcd3c;
+  --edu-accent-ink: #1b1b2f;
+  --edu-accent-2: #5fd35a;
+  --edu-good: #5fd35a;
+  --edu-good-ink: #0d1f0d;
+  --edu-bad: #ff7070;
+  --edu-bad-ink: #2a0a0a;
+  --edu-warn: #ffcd3c;
+  --edu-warn-bg: #3d3516;
+  --edu-mark: #5ee7ff;
+  --edu-mark-ink: #0b1f26;
+  --edu-focus: #5ee7ff;
+  --edu-shadow-1: 3px 3px 0 #0b0b1a;
+  --edu-shadow-2: 6px 6px 0 #0b0b1a;
+  --edu-series-1: #ffcd3c;
+  --edu-series-2: #5ee7ff;
+  --edu-series-3: #ff8fd8;
+  --edu-series-4: #6fe36a;
+  --edu-series-5: #ff9f4a;
+  --edu-series-6: #b79bff;
+  --edu-series-ink: #1b1b2f;
+
+  --edu-font-display: 'Pixelify Sans', 'Courier New', monospace;
+  --edu-font-body: 'Pixelify Sans', 'Atkinson Hyperlegible Next', sans-serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  --edu-text-m: 1.0625rem;
+  --edu-radius-s: 0;
+  --edu-radius-m: 0;
+  --edu-radius-l: 0;
+  --edu-radius-pill: 0;
+  --edu-border: 3px;
+
+  --edu-enter-name: edu-enter-steps;
+  --edu-enter-scale: 0.7;
+  --edu-enter-ease: steps(5, end);
+  --edu-ease: steps(4, end);
+  --edu-ease-out: steps(4, end);
+  --edu-ease-bounce: steps(4, end);
+}
+
+[data-edu-theme='pixel'] img,
+[data-edu-theme='pixel'] svg image,
+[data-edu-theme='pixel'] canvas {
+  image-rendering: pixelated;
+}
+
+[data-edu-theme='pixel'] .frame {
+  padding: 8px;
+  border: 4px solid var(--edu-line-strong);
+  background: var(--edu-bg-2);
+  box-shadow: var(--edu-shadow-2);
+}
+
+[data-edu-theme='pixel'] .board {
+  overflow: clip;
+  border: 4px solid #0b0b1a;
+  background:
+    linear-gradient(rgb(255 255 255 / 0.03) 50%, transparent 50%) 0 0 / 100% 4px,
+    linear-gradient(180deg, var(--edu-surface), var(--edu-bg));
+  box-shadow: inset 4px 4px 0 rgb(255 255 255 / 0.08), inset -4px -4px 0 rgb(0 0 0 / 0.25);
+}
+
+[data-edu-theme='pixel'] .dust {
+  background: var(--edu-accent);
+  border-radius: 0;
+  width: 8px !important;
+  height: 8px !important;
+  animation-name: edu-hop !important;
+  animation-timing-function: steps(6, end) !important;
+}
+
+[data-edu-theme='pixel'] .screen-title {
+  letter-spacing: 0.04em;
+  text-shadow: 3px 3px 0 #0b0b1a;
+}
+
+/* stepped corners: the four corner pixels of a panel are cut away (not on focus, so the focus ring is never clipped) */
+[data-edu-theme='pixel'] :is(.btn, .choice, .pair-btn, .order-row, .sort-card, .unit-card, .feedback, .typed-row, .text-input, .hint-text):not(:focus-visible) {
+  clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+}

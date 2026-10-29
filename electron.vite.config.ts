@@ -13,6 +13,8 @@ export default defineConfig({
     root: resolve(__dirname, 'src/renderer'),
     // electron-vite does not minify by default
     build: { minify: 'esbuild', rollupOptions: { input: { index: resolve(__dirname, 'src/renderer/index.html') } } },
+    // the dev server may serve the design tokens, fonts and the player's item renderers that live outside src/renderer
+    server: { fs: { allow: [resolve(__dirname)] } },
     plugins: [react()]
   }
 })

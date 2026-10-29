@@ -1,0 +1,91 @@
+/*
+ * Theme "parchment" (encyclopedia): warm vellum, sepia ink, brass fittings and oxblood rubrics, set in EB Garamond. Light ground;
+ * AA contrast for every text slot. Motion: a page turns over from the left edge.
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="parchment"]`.
+ */
+@import '../fonts/eb-garamond/font.css';
+
+[data-edu-theme='parchment'] {
+  color-scheme: light;
+
+  --edu-bg: #e6d7b8;
+  --edu-bg-2: #d9c8a3;
+  --edu-surface: #f4ead3;
+  --edu-surface-2: #ebdfc0;
+  --edu-line: #c4ad80;
+  --edu-line-strong: #7a6540;
+  --edu-text: #2f2012;
+  --edu-text-dim: #594530;
+  --edu-accent: #6b4d10;
+  --edu-accent-ink: #fbf3de;
+  --edu-accent-2: #7a2230;
+  --edu-good: #2a5f34;
+  --edu-good-ink: #fbf3de;
+  --edu-bad: #8f2238;
+  --edu-bad-ink: #fff6e8;
+  --edu-warn: #6e4300;
+  --edu-warn-bg: #f7e2a8;
+  --edu-mark: #f2d25d;
+  --edu-mark-ink: #2f2012;
+  --edu-focus: #7a2230;
+  --edu-shadow-1: 0 1px 0 rgb(47 32 18 / 0.18), 0 2px 5px rgb(47 32 18 / 0.14);
+  --edu-shadow-2: 0 2px 0 rgb(47 32 18 / 0.18), 0 14px 30px rgb(47 32 18 / 0.28);
+  --edu-series-1: #e8c76a;
+  --edu-series-2: #9fc3d9;
+  --edu-series-3: #e3a3b4;
+  --edu-series-4: #a9cf9b;
+  --edu-series-5: #e8a96a;
+  --edu-series-6: #c0aee0;
+  --edu-series-ink: #2f2012;
+
+  --edu-font-display: 'EB Garamond', Garamond, 'Palatino Linotype', Georgia, serif;
+  --edu-font-body: 'EB Garamond', Garamond, 'Palatino Linotype', Georgia, serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  --edu-text-m: 1.125rem; /* a serif at 16px reads small: 18px body */
+  --edu-radius-s: 2px;
+  --edu-radius-m: 3px;
+  --edu-radius-l: 4px;
+  --edu-border: 2px;
+
+  --edu-enter-name: edu-enter-page;
+  --edu-enter-scale: 1.2;
+  --edu-enter-ease: cubic-bezier(0.3, 0.6, 0.3, 1);
+
+  /* parchment-only */
+  --parch-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.16'/%3E%3C/svg%3E");
+}
+
+[data-edu-theme='parchment'] .frame {
+  padding: clamp(5px, 1vw, 10px);
+  border: 2px solid var(--edu-accent);
+  border-radius: 3px;
+  background: var(--edu-bg-2);
+  box-shadow: inset 0 0 0 4px var(--edu-bg-2), inset 0 0 0 5px var(--edu-line-strong), var(--edu-shadow-2);
+}
+
+[data-edu-theme='parchment'] .board {
+  overflow: clip;
+  border: 1px solid var(--edu-line-strong);
+  background:
+    var(--parch-grain),
+    radial-gradient(ellipse at 50% 0%, rgb(255 255 255 / 0.35), transparent 60%),
+    linear-gradient(180deg, var(--edu-surface), var(--edu-bg));
+  box-shadow: inset 0 0 60px rgb(122 90 23 / 0.28);
+}
+
+/* the title gets a flourish under it */
+[data-edu-theme='parchment'] .title-screen .screen-title::after {
+  content: '\2766';
+  display: block;
+  margin-top: 4px;
+  color: var(--edu-accent);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+[data-edu-theme='parchment'] .dust {
+  background: var(--edu-accent);
+  border-radius: 50%;
+}

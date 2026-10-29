@@ -1,0 +1,13 @@
+/*
+ * What the studio imports to mount a player item renderer in a live preview (EGS-05):
+ *
+ *   import '../../player/style/embed.css'
+ *   <div class="edu-stage" data-edu-theme="chalkboard"> ...item renderer's view.el... </div>
+ *
+ * It brings the design tokens, the chalkboard theme (and its fonts) and the item widgets, all scoped under `.edu-stage` /
+ * `[data-edu-theme]`; there are no global rules (no reset, no html or body styles), so the studio's own look is untouched.
+ */
+@import '../../design/tokens.css';
+@import '../../design/themes/chalkboard.css';
+@import '../../design/motion.css';
+@import './items.css';

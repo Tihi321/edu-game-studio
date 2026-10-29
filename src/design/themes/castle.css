@@ -1,0 +1,128 @@
+/*
+ * Theme "castle" (MindMaze): cold dressed stone lit by torches. Torch amber for the primary voice, ember for the second; Cinzel
+ * (carved capitals) for titles over Alegreya (a calligraphic book face) for text. Dark ground; AA contrast for every text slot.
+ * Motion: the screen is a door that swings open; the torch light flickers (opacity only, off under reduced motion).
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="castle"]`.
+ */
+@import '../fonts/cinzel/font.css';
+@import '../fonts/alegreya/font.css';
+
+[data-edu-theme='castle'] {
+  color-scheme: dark;
+
+  --edu-bg: #1e2026;
+  --edu-bg-2: #16181d;
+  --edu-surface: #2f333b;
+  --edu-surface-2: #3b404a;
+  --edu-line: #4b515d;
+  --edu-line-strong: #98a1b1;
+  --edu-text: #efe6d2;
+  --edu-text-dim: #c9c0ab;
+  --edu-accent: #f4a53c;
+  --edu-accent-ink: #1e1409;
+  --edu-accent-2: #f08357;
+  --edu-good: #86d392;
+  --edu-good-ink: #0d2013;
+  --edu-bad: #f58f82;
+  --edu-bad-ink: #2a0f0c;
+  --edu-warn: #f4c569;
+  --edu-warn-bg: #3a2e14;
+  --edu-mark: #f0d78c;
+  --edu-mark-ink: #2a2208;
+  --edu-focus: #f4a53c;
+  --edu-shadow-1: 0 2px 0 rgb(0 0 0 / 0.45), 0 4px 10px rgb(0 0 0 / 0.35);
+  --edu-shadow-2: 0 3px 0 rgb(0 0 0 / 0.5), 0 18px 36px rgb(0 0 0 / 0.55);
+  --edu-series-1: #f4a53c;
+  --edu-series-2: #8fb8e8;
+  --edu-series-3: #e59ab8;
+  --edu-series-4: #8fd19a;
+  --edu-series-5: #ef8f66;
+  --edu-series-6: #b9a2e8;
+  --edu-series-ink: #1e1409;
+
+  --edu-font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --edu-font-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  --edu-text-m: 1.0625rem; /* Alegreya is small for its size: 17px body */
+  --edu-radius-s: 2px;
+  --edu-radius-m: 3px;
+  --edu-radius-l: 6px;
+  --edu-border: 2px;
+
+  --edu-enter-name: edu-enter-door;
+  --edu-enter-scale: 1;
+  --edu-enter-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* castle-only */
+  --castle-torch: rgb(244 165 60 / 0.22);
+  --castle-mortar: rgb(0 0 0 / 0.35);
+  /* dressed stone: courses of blocks drawn with gradients */
+  --castle-stone:
+    linear-gradient(var(--castle-mortar) 2px, transparent 2px) 0 0 / 100% 56px,
+    linear-gradient(90deg, var(--castle-mortar) 2px, transparent 2px) 0 0 / 112px 56px,
+    linear-gradient(90deg, var(--castle-mortar) 2px, transparent 2px) 56px 28px / 112px 56px;
+}
+
+[data-edu-theme='castle'] .frame {
+  padding: clamp(6px, 1.2vw, 14px);
+  border: 3px solid var(--edu-line);
+  border-radius: 4px 4px 0 0;
+  background: var(--edu-bg-2);
+  box-shadow: 0 0 0 3px #0e0f12, var(--edu-shadow-2);
+}
+
+[data-edu-theme='castle'] .board {
+  overflow: clip;
+  border: 2px solid #0e0f12;
+  background:
+    radial-gradient(ellipse 60% 55% at 0% 0%, var(--castle-torch), transparent 70%),
+    radial-gradient(ellipse 60% 55% at 100% 0%, var(--castle-torch), transparent 70%),
+    var(--castle-stone),
+    linear-gradient(180deg, var(--edu-surface), var(--edu-bg));
+  box-shadow: inset 0 0 90px rgb(0 0 0 / 0.55);
+}
+
+/* two torches: glow only, flickering in opacity */
+[data-edu-theme='castle'] .board::before,
+[data-edu-theme='castle'] .board::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 46%;
+  height: 70%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgb(244 165 60 / 0.16), transparent 70%);
+  animation: edu-torch 3.1s ease-in-out infinite;
+}
+
+[data-edu-theme='castle'] .board::before {
+  left: 0;
+}
+
+[data-edu-theme='castle'] .board::after {
+  right: 0;
+  animation-duration: 4.3s;
+  animation-delay: -1.2s;
+}
+
+/* Cinzel is a capitals-only face: it carries titles and questions; small labels and buttons are set in the body face so nothing reads as shouting */
+[data-edu-theme='castle'] .screen-title,
+[data-edu-theme='castle'] .prompt {
+  letter-spacing: 0.02em;
+}
+
+[data-edu-theme='castle'] :is(.eyebrow, .hud-unit, .fb-part h3, .btn, .chip, .stat b, .timer-s, .q-meta) {
+  font-family: var(--edu-font-body);
+}
+
+[data-edu-theme='castle'] .btn {
+  font-size: 1.1rem;
+}
+
+[data-edu-theme='castle'] .dust {
+  background: var(--edu-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--edu-accent);
+}

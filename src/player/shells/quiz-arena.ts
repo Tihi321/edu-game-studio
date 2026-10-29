@@ -38,6 +38,8 @@ import type { ItemContext, ItemRenderer, ItemView, ScreenName, Shell, ShellHost 
  */
 
 const SHELL_ID = 'quiz-arena'
+/** The look of this shell: a theme id of src/design/themes (the bundle loads the chalkboard only). */
+const THEME_ID = 'chalkboard'
 const NO_IMAGE_KINDS = new Set(['hotspot', 'listening', 'flashcard'])
 
 const pickLang = (data: GameData, saved: string | undefined): string => {
@@ -116,6 +118,9 @@ class QuizArena {
   }
 
   mount(): void {
+    // the player root is the stage the design system styles: item and screen CSS are scoped under .edu-stage, the theme by attribute
+    this.host.root.classList.add('edu-stage')
+    this.host.root.setAttribute('data-edu-theme', THEME_ID)
     document.addEventListener('keydown', this.onKey)
     this.go('title')
   }
@@ -475,7 +480,7 @@ class QuizArena {
         button('menu', `‹ ${ui('menu')}`, () => this.go('title'), { class: 'btn btn-small btn-ghost' }),
         h('span', { class: 'topbar-stars', testid: 'map-stars' }, `★ ${ui('map.stars', { n: totalStars(this.pack, this.progress), total: this.pack.units.length * 3 })}`)
       ),
-      this.heading('h2', ui('map.title'), 'map-title'),
+      this.heading('h1', ui('map.title'), 'map-title'),
       h('p', { class: 'subject' }, this.courseTitle()),
       queue.length > 0 ? h('div', { class: 'actions actions-center' }, button('review', `↻ ${ui('map.review', { n: queue.length })}`, () => this.go('review'), { class: 'btn' })) : null,
       h('ol', { class: 'map-levels', testid: 'unit-map' }, rows, boss),
@@ -608,11 +613,11 @@ class QuizArena {
     if (!slot) return
     const ui = this.ui
     const last = !!this.round && this.round.asked.length >= this.round.size && this.round.session.pending.length === 0
-    const section = (cls: string, testid: string, title: string, ...kids: Child[]): HTMLElement => h('div', { class: `fb-part ${cls}`, testid }, h('h4', {}, title), kids)
+    const section = (cls: string, testid: string, title: string, ...kids: Child[]): HTMLElement => h('div', { class: `fb-part ${cls}`, testid }, h('h3', {}, title), kids)
     const panel = h(
       'div',
       { class: `feedback is-${fb.verdict}`, testid: 'feedback', 'data-result': fb.verdict, tabindex: '-1' },
-      h('h3', { class: 'fb-title', testid: 'feedback-title' }, h('span', { class: 'fb-icon', 'aria-hidden': 'true' }, fb.verdict === 'correct' ? '✓' : fb.verdict === 'partial' ? '≈' : fb.verdict === 'timeout' ? '⏱' : '✗'), fb.title),
+      h('h2', { class: 'fb-title', testid: 'feedback-title' }, h('span', { class: 'fb-icon', 'aria-hidden': 'true' }, fb.verdict === 'correct' ? '✓' : fb.verdict === 'partial' ? '≈' : fb.verdict === 'timeout' ? '⏱' : '✗'), fb.title),
       fb.notes.length ? h('ul', { class: 'fb-notes', testid: 'feedback-notes' }, fb.notes.map((n) => h('li', {}, n))) : null,
       fb.detail ? h('p', { class: 'fb-detail', testid: 'feedback-detail' }, fb.detail) : null,
       fb.whys.length ? section('fb-why', 'feedback-why', ui('fb.why'), fb.whys.map((w) => h('p', {}, w))) : null,
@@ -634,7 +639,17 @@ class QuizArena {
   private burst(n: number): void {
     const layer = this.host.root.querySelector('.burst-layer')
     if (!layer) return
-    const el = h('div', { class: 'burst', testid: 'combo-burst' }, this.ui('burst', { n }))
+    // a puff of dust (chalk, sparks or coins, by theme) flies out from the lettering; CSS hides it for reduced motion
+    const dust = Array.from({ length: 14 }, (_, i) => {
+      const angle = (i / 14) * Math.PI * 2 + (i % 2) * 0.22
+      const dist = 90 + (i % 3) * 48
+      return h('span', {
+        class: 'dust',
+        'aria-hidden': 'true',
+        style: `--dx:${Math.round(Math.cos(angle) * dist)}px;--dy:${Math.round(Math.sin(angle) * dist)}px;--s:${5 + (i % 4) * 2}px;--delay:${(i % 5) * 30}ms`
+      })
+    })
+    const el = h('div', { class: 'burst', testid: 'combo-burst' }, this.ui('burst', { n }), dust)
     layer.appendChild(el)
     window.setTimeout(() => el.remove(), 1400)
   }
@@ -746,7 +761,8 @@ class QuizArena {
       { class: 'q-meta', testid: 'question-number' },
       cur.pick.retry ? h('span', { class: 'tag tag-retry', testid: 'retry-tag' }, ui('retry')) : ui('question', { i: Math.min(rs.asked.length + (cur.answered ? 0 : 1), rs.size), n: rs.size })
     )
-    const prompt = cur.renderer.ownsPrompt ? null : h('h2', { class: 'prompt', testid: 'prompt', tabindex: '-1' }, this.text.t(item.prompt))
+    // every screen has exactly one h1: the question (a flashcard draws its question on the card, so the round's name is the hidden h1)
+    const prompt = cur.renderer.ownsPrompt ? h('h1', { class: 'sr-only' }, this.roundTitle()) : h('h1', { class: 'prompt', testid: 'prompt', tabindex: '-1' }, this.text.t(item.prompt))
     const image = NO_IMAGE_KINDS.has(item.kind) ? null : itemImage(this.itemContext(item))
     const hintKey = item.hint
     const hintText = hintKey && this.text.hasText(hintKey) ? this.text.t(hintKey) : null
@@ -806,7 +822,7 @@ class QuizArena {
     return h(
       'section',
       { class: 'summary-screen' },
-      this.heading('h2', accuracy === 100 && rated ? ui('summary.perfect') : ui('summary.title'), 'summary-title'),
+      this.heading('h1', accuracy === 100 && rated ? ui('summary.perfect') : ui('summary.title'), 'summary-title'),
       h('p', { class: 'subject' }, this.roundTitle()),
       rated ? this.starsEl(this.roundStars, 'summary-stars') : null,
       h('p', { class: 'big-number', testid: 'summary-accuracy' }, ui('summary.accuracy', { n: accuracy })),
@@ -840,7 +856,7 @@ class QuizArena {
       'section',
       { class: 'review-screen' },
       h('div', { class: 'topbar' }, button('to-map', `‹ ${ui('review.back')}`, () => this.leaveRound(), { class: 'btn btn-small btn-ghost' })),
-      this.heading('h2', ui('review.title'), 'review-title'),
+      this.heading('h1', ui('review.title'), 'review-title'),
       items.length === 0
         ? h('p', { class: 'message', testid: 'review-empty' }, ui('review.empty'))
         : h(
@@ -882,7 +898,7 @@ class QuizArena {
       'section',
       { class: 'end-screen' },
       h('p', { class: 'eyebrow' }, this.courseTitle()),
-      this.heading('h2', ui('end.title'), 'end-title'),
+      this.heading('h1', ui('end.title'), 'end-title'),
       h('p', { class: 'subject' }, ui('end.sub')),
       h(
         'ul',

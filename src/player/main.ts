@@ -1,6 +1,10 @@
-import './style/theme.css'
-import './style/arena.css'
+// the design system: tokens, the chalkboard theme (Kalam + Atkinson, inlined by Vite) and motion; then the page, the widgets, the screens
+import '../design/tokens.css'
+import '../design/themes/chalkboard.css'
+import '../design/motion.css'
+import './style/base.css'
 import './style/items.css'
+import './style/arena.css'
 import { createEngine } from './engine'
 import { BUILTIN_RENDERERS } from './items'
 import { quizArenaShell } from './shells/quiz-arena'

@@ -7,7 +7,8 @@ import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The autoplay bot end to end: both golden fixtures are built into a game folder with the REAL player bundle (`out/player`, built by the
- * vitest global setup) and `scripts/play.mjs` plays each one in headless Chromium in all three modes. Skipped, with a message, only when
+ * vitest global setup) and `scripts/play.mjs` plays each one in headless Chromium in all three modes, with the keyboard only (`--keyboard`,
+ * no mouse click at all) and with axe-core on every distinct screen and item kind (`--axe`: no serious or critical violation). Skipped, with a message, only when
  * Chromium cannot be launched (`yarn playwright install chromium`).
  */
 
@@ -42,6 +43,8 @@ interface BotSummary {
   consoleErrors: number
   maxSteps: number
   checks: { whys: number; explanations: number; answers: number }
+  keyboard?: { presses: number; focusChecks: number; ringChecks: number; tabbableMax: number; mouseClicks: number }
+  axe?: { runs: number; violations: { critical: number; serious: number; moderate: number; minor: number }; rules: Record<string, number>; screens: string[] }
   ok: boolean
   failures: string[]
 }
@@ -60,6 +63,18 @@ function play(dir: string, args: string[]): Promise<{ code: number; summary: Bot
 }
 
 const FIXTURES = ['solar-system', 'hr-a1-greetings']
+
+/** axe ran on the screens that matter and found nothing serious or critical (the counts are in the bot's JSON summary). */
+function expectCleanAxe(summary: BotSummary): void {
+  expect(summary.axe, 'the bot ran no axe check').toBeDefined()
+  const axe = summary.axe as NonNullable<BotSummary['axe']>
+  expect(axe.runs).toBeGreaterThanOrEqual(8)
+  expect(axe.violations.critical).toBe(0)
+  expect(axe.violations.serious).toBe(0)
+  expect(axe.screens).toEqual(expect.arrayContaining(['title', 'map']))
+  expect(axe.screens.some((s) => s.startsWith('item-'))).toBe(true)
+  expect(axe.screens.some((s) => s.startsWith('feedback-'))).toBe(true)
+}
 
 describe.skipIf(!!unavailable)('autoplay bot on the golden fixtures', () => {
   for (const name of FIXTURES) {
@@ -85,6 +100,32 @@ describe.skipIf(!!unavailable)('autoplay bot on the golden fixtures', () => {
         expect(summary.correct).toBe(summary.steps)
         expect(summary.steps).toBeLessThanOrEqual(summary.maxSteps)
         expect(summary.screens).toEqual(expect.arrayContaining(['title', 'map', 'item', 'feedback', 'summary', 'end']))
+      })
+
+      it.concurrent('keyboard only: Tab, Enter, Space, arrows, digits and typing finish the game, no mouse click, axe is clean', { timeout: 300_000 }, async () => {
+        const { code, summary, stderr } = await play(await built(), ['--mode', 'perfect', '--seed', '1', '--keyboard', '--axe'])
+        expect(summary.failures, stderr).toEqual([])
+        expect(code).toBe(0)
+        expect(summary.consoleErrors).toBe(0)
+        expect(summary.finished).toBe(true)
+        expect(summary.wrong).toBe(0)
+        expect(summary.keyboard?.mouseClicks).toBe(0)
+        // the focus was checked after every screen change and a focus ring on every control reached with Tab
+        expect(summary.keyboard?.presses).toBeGreaterThan(100)
+        expect(summary.keyboard?.focusChecks).toBeGreaterThan(30)
+        expect(summary.keyboard?.ringChecks).toBeGreaterThan(50)
+        expectCleanAxe(summary)
+      })
+
+      it.concurrent('axe: no serious or critical violation on any screen, item kind or feedback of a wrong answer', { timeout: 300_000 }, async () => {
+        const right = await play(await built(), ['--mode', 'perfect', '--seed', '4', '--axe'])
+        expect(right.summary.failures, right.stderr).toEqual([])
+        expectCleanAxe(right.summary)
+        const wrong = await play(await built(), ['--mode', 'wrong', '--seed', '5', '--axe'])
+        expect(wrong.summary.failures, wrong.stderr).toEqual([])
+        expectCleanAxe(wrong.summary)
+        expect(wrong.summary.axe?.screens.some((s) => s.startsWith('feedback-wrong-'))).toBe(true)
+        expect(wrong.summary.axe?.screens).toContain('review')
       })
 
       it.concurrent('wrong: every feedback panel explains, the review queue fills and is offered', { timeout: 300_000 }, async () => {

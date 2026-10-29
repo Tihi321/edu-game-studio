@@ -19,7 +19,7 @@ The learning rules every shell follows (retrieval practice, spaced repetition, e
 
 ## Status
 
-**Phase 1 done (EGS-01 to EGS-04).** A course written by hand (or over MCP) builds into a playable quiz-arena game that lints clean and passes the autoplay bot. The content pipeline (roles that write a course from a topic), the studio UI and the other shells come ticket by ticket: see `ROADMAP.md`.
+**Phase 1 and the design pass done (EGS-01 to EGS-05).** A course written by hand (or over MCP) builds into a playable quiz-arena game that lints clean and passes the autoplay bot, also played with the keyboard only and checked with axe-core. The studio has its own look and pages for every part of a course. The content pipeline (roles that write a course from a topic) and the other shells come ticket by ticket: see `ROADMAP.md`.
 
 What works now:
 
@@ -29,7 +29,8 @@ What works now:
 - The player (`src/player/`, `docs/player.md`): our own DOM/CSS runtime with the chalkboard quiz arena; a built game works over `file://`.
 - `edu_lint` and the autoplay bot (`scripts/play.mjs`).
 - The generator clients (ComfyUI, Pixel Studio, Chiptune Studio, Google Flow) with their status tools; the course tools that use them come in the media tickets.
-- The desktop shell: a top bar with the engine state, a Courses page and the Models, Agents and Settings pages.
+- The design system (`src/design/`, `docs/design.md` "Look"): shared `--edu-*` tokens, a theme registry with four looks (chalkboard for the quiz arena, castle stone, parchment and brass, pixel quest) that later shells pick by id, bundled OFL fonts (no CDN), motion that stops under `prefers-reduced-motion`, and a contrast test for every theme.
+- The desktop studio: a Library of courses with covers in each course's look, a Course page with the tabs Brief, Curriculum (objectives and the prerequisite graph), Encyclopedia, Items (an editor per item kind with a live preview in the player's own look), Game, Assets, Voice, Editions, Build (build and lint with codes, open the game) and Playtest, plus Models, Agents, Generators and Settings. Light and dark.
 - `src/shared/puzzles/`: the seeded puzzle generator and solver (murdle, knights, testimony, logic, quiz) that the detective shell will reuse.
 
 ## Setup
@@ -53,6 +54,8 @@ yarn install
 | `yarn mcp [--port N]` | The engine without Electron, serving MCP over HTTP (= `node out/engine/index.js --mcp-only`) |
 | `yarn key:set <NAME>` | Stores an API key (for example `DEEPSEEK_API_KEY`) in the Windows credential store |
 | `yarn play <build-dir> --mode <perfect, wrong or random>` | The autoplay bot (`node scripts/play.mjs`): plays a built game in headless Chromium; see "Autoplay bot" |
+| `yarn previews` | Builds the static theme previews (chalkboard, castle, parchment, pixel) into `.claude/temp/theme-previews/`, screenshots them at 1280x800 and 390x844 and runs axe-core |
+| `yarn studio:shots` | Builds the studio renderer with a mocked `window.edustudio` (the golden fixtures), screenshots every page and Course tab at 1280x800 and 390x844 (light and dark, empty, loading and error states) into `.claude/temp/screens/phase2/studio/` and runs axe-core on each; fails on a serious or critical violation |
 | `yarn test` | Vitest |
 | `yarn typecheck` | `tsc` for the node and web projects |
 | `yarn lint` | ESLint |
@@ -75,9 +78,10 @@ yarn play .claude/temp/play-data/courses/solar-system/build --mode perfect      
 yarn play .claude/temp/play-data/courses/solar-system/build --mode wrong        # every item wrong: explanations shown, review queue fills (--rounds N per unit)
 yarn play .claude/temp/play-data/courses/solar-system/build --mode random --accuracy 0.75 --seed 7   # a seeded learner must finish within the step bound
 yarn play .claude/temp/play-data/courses/solar-system/build --mode perfect --shots shots --viewport 390x844 --json
+yarn play .claude/temp/play-data/courses/solar-system/build --mode perfect --keyboard --axe   # keyboard only (no mouse) and axe-core on every screen
 ```
 
-Options: `--seed N` (the game's `?seed=`, default 1, replayable), `--accuracy` (random mode), `--shots <dir>` (one PNG per distinct screen and item kind, `<mode>-<nn>-<screen>[-<kind>].png`), `--viewport WxH` (default 1280x800), `--max-steps N` (default: `ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)`), `--json` (compact summary). The summary on stdout has `mode, seed, steps, correct, wrong, screens, kinds, finished, consoleErrors, durationMs` plus `ok` and `failures`; exit 0 = success, 1 = a failed check, 2 = bad usage, 3 = Chromium cannot be launched. `tests/bot.e2e.test.ts` builds both golden fixtures and runs all three modes on each (skipped with a message when Chromium is missing).
+Options: `--seed N` (the game's `?seed=`, default 1, replayable), `--accuracy` (random mode), `--shots <dir>` (one PNG per distinct screen and item kind, `<mode>-<nn>-<screen>[-<kind>].png`), `--viewport WxH` (default 1280x800), `--max-steps N` (default: `ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)`), `--keyboard` (plays with the keyboard only: Tab, Shift+Tab, Enter, Space, arrows, digits and typing; it checks that the focus lands on the right control and that the focus ring shows), `--axe` (runs axe-core on every distinct screen and item kind and fails on a serious or critical violation), `--json` (compact summary). The summary on stdout has `mode, seed, steps, correct, wrong, screens, kinds, finished, consoleErrors, durationMs` plus `ok` and `failures`; exit 0 = success, 1 = a failed check, 2 = bad usage, 3 = Chromium cannot be launched. `tests/bot.e2e.test.ts` builds both golden fixtures and runs all three modes on each, plus keyboard-only and axe runs (skipped with a message when Chromium is missing).
 
 ## Data folder
 
@@ -110,12 +114,14 @@ The guide an agent should read first is the resource `edu-studio://guide` (`docs
 src/engine/    the headless engine: models, queue, budget, agents, MCP, generator clients, edu/ (the course service)
 src/main/      the Electron main process
 src/preload/   the bridge, window.edustudio
-src/renderer/  the React UI
+src/renderer/  the React UI (the studio)
+src/design/    design tokens, the theme registry and theme CSS, bundled fonts, theme previews
+src/player/    the browser player (game runtime)
 src/shared/    types and code shared by the engine and the UI (protocol, media settings, languages, puzzles)
 seed/          what a new data folder starts from
 themes/        theme files (colours, fonts) loaded by src/engine/themes
 docs/          design.md, mcp-guide.md, protocol.md
-scripts/       the autoplay bot (play.mjs) and the fixture audio generator
+scripts/       the autoplay bot (play.mjs), the theme previews, the studio screenshots and axe run (studio-shots.mjs), the fixture audio generator
 tests/         Vitest
 ```
 
@@ -123,4 +129,4 @@ tests/         Vitest
 
 The engine core (model router, job queue, agents, MCP server, generator clients, the Electron shell and the puzzle generator) is copied from VN Studio, which copied Scriptorium's. The plan is in the creative hub (`HUB-19`).
 
-MIT licence, see `LICENSE`. The bundled theme fonts have their own licence (OFL) next to them in `themes/`.
+MIT licence, see `LICENSE`. The bundled fonts have their own licence (SIL OFL 1.1) next to them in `themes/` and `src/design/fonts/`.

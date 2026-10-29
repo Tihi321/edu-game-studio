@@ -19,7 +19,9 @@ export const flashcardRenderer: ItemRenderer = {
     const backImg = item.backAsset && ctx.assetUrl(item.backAsset) ? h('img', { class: 'flash-img', src: ctx.assetUrl(item.backAsset) as string, alt: ctx.assetAlt(item.backAsset) }) : null
     const front = h('span', { class: 'flash-face flash-front', testid: 'flash-front' }, h('span', { class: 'flash-text' }, ctx.text.t(item.prompt)), frontImg)
     const back = h('span', { class: 'flash-face flash-back', testid: 'flash-back', 'aria-hidden': 'true' }, h('span', { class: 'flash-text' }, ctx.text.t(item.back)), backImg)
-    const card = button('flip', h('span', { class: 'flash-inner' }, front, back), () => flip(), { class: 'flash-card', 'aria-label': `${ctx.text.t(item.prompt)} — ${ctx.ui('flip')}` })
+    // the name of the card is its visible text (the face that is not hidden) plus the instruction; no aria-label that differs from what is seen
+    const flipHint = h('span', { class: 'sr-only' }, ` — ${ctx.ui('flip')}`)
+    const card = button('flip', [h('span', { class: 'flash-inner' }, front, back), flipHint], () => flip(), { class: 'flash-card' })
     const grades = new Map<Grade, HTMLButtonElement>()
     for (const g of GRADES) {
       grades.set(g, button(`grade-${g}`, [h('span', { class: 'grade-key', 'aria-hidden': 'true' }, String(GRADES.indexOf(g) + 1)), ctx.ui(`grade.${g}` as 'grade.again')], () => grade(g), { class: `btn grade grade-${g}` }))
@@ -33,7 +35,7 @@ export const flashcardRenderer: ItemRenderer = {
       card.classList.add('is-flipped')
       front.setAttribute('aria-hidden', 'true')
       back.removeAttribute('aria-hidden')
-      card.setAttribute('aria-label', ctx.text.t(item.back))
+      flipHint.textContent = ''
       gradeRow.hidden = false
       hint.textContent = ctx.ui('grade.ask')
       grades.get('good')?.focus()

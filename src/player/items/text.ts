@@ -125,6 +125,9 @@ export const clozeRenderer: ItemRenderer = {
       const slotText = gap.el.querySelector('.gap-text')
       if (slotText) slotText.textContent = word === '' ? ' ' : word
       gap.el.classList.toggle('is-filled', word !== '')
+      // the accessible name keeps the visible word in it (WCAG 2.5.3: label in name)
+      const label = ctx.ui('gap.n', { n: item.gaps.findIndex((g) => g.id === gapId) + 1 })
+      gap.el.setAttribute('aria-label', word === '' ? label : `${label}: ${word}`)
       for (const c of chips.get(gapId) ?? []) c.setAttribute('aria-pressed', String(c === chip))
       sync()
     }

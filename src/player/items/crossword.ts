@@ -70,6 +70,14 @@ export const crosswordRenderer: ItemRenderer = {
       focusCell(r + (dir === 'down' ? delta : 0), c + (dir === 'across' ? delta : 0))
     }
 
+    // the grid is ONE tab stop (the cell that was last focused, the first cell at the start); arrow keys move inside it
+    let roving: HTMLInputElement | undefined
+    const setRoving = (input: HTMLInputElement): void => {
+      if (roving && roving !== input) roving.tabIndex = -1
+      input.tabIndex = 0
+      roving = input
+    }
+
     // ---- the grid ----
     const gridEl = h('div', { class: 'cw-grid', role: 'group', 'aria-label': ctx.text.t(item.prompt), style: `--cols:${grid.width}` })
     for (let r = 0; r < grid.height; r++) {
@@ -134,9 +142,14 @@ export const crosswordRenderer: ItemRenderer = {
           }
         })
         inputs.set(key(r, c), input)
+        input.tabIndex = -1
+        input.addEventListener('focus', () => setRoving(input))
         gridEl.appendChild(h('span', { class: 'cw-cell' }, starts[0] ? h('span', { class: 'cw-num', 'aria-hidden': 'true' }, String(starts[0].number)) : null, input))
       }
     }
+
+    const firstCell = grid.entries[0] ? inputs.get(key(grid.entries[0].row, grid.entries[0].col)) : undefined
+    if (firstCell) setRoving(firstCell)
 
     // ---- the clues ----
     const clueItems = new Map<string, HTMLElement>()
@@ -145,7 +158,7 @@ export const crosswordRenderer: ItemRenderer = {
       h(
         'section',
         { class: 'cw-clues' },
-        h('h3', {}, title),
+        h('h2', {}, title),
         h(
           'ol',
           {},

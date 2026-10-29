@@ -1,0 +1,110 @@
+/*
+ * Edu Studio design tokens: the one vocabulary the studio UI and every game shell share (EGS-05).
+ *
+ * This file holds the structure tokens (type scale, space, radius, motion, focus, tap size) and the NAMES of the colour and font
+ * slots with neutral defaults. A theme (src/design/themes/<id>.css) fills the colour and font slots under its own scope
+ * (`[data-edu-theme="<id>"]`, the chalkboard also on `:root` inside the player), so a later shell picks its look by naming a
+ * theme id from the registry (src/design/themes/index.ts) and never defines its own variables.
+ *
+ * Rules every theme keeps:
+ *  - text on bg/surface >= 4.5:1, text-dim >= 4.5:1, accent-ink on accent >= 4.5:1, focus ring >= 3:1 against bg (WCAG AA);
+ *  - right and wrong are never colour alone (the player adds a mark and words);
+ *  - motion durations go to 0 under prefers-reduced-motion (below), so `transition: x var(--edu-dur-med)` is always safe.
+ */
+:root {
+  /* ---- colour slots (a theme overrides all of them) ---- */
+  --edu-bg: #f4f5f3; /* the page */
+  --edu-bg-2: #e9ece9; /* a band or well on the page */
+  --edu-surface: #ffffff; /* a card or panel */
+  --edu-surface-2: #f0f2f0; /* a raised control on a surface */
+  --edu-line: #c9d0d3; /* hairlines and borders that only group */
+  --edu-line-strong: #6b7480; /* borders of inputs and controls (>= 3:1) */
+  --edu-text: #1c2541;
+  --edu-text-dim: #47506a;
+  --edu-accent: #2747c9; /* primary actions */
+  --edu-accent-ink: #ffffff; /* text on the accent */
+  --edu-accent-2: #c8283f; /* the second voice: a highlight, a rule */
+  --edu-good: #1f7a4d;
+  --edu-good-ink: #ffffff;
+  --edu-bad: #b3263a;
+  --edu-bad-ink: #ffffff;
+  --edu-warn: #8a5a00;
+  --edu-warn-bg: #fff1c2;
+  --edu-mark: #ffe066; /* the highlighter: selection, the current place */
+  --edu-mark-ink: #1c2541;
+  --edu-focus: #2747c9;
+  --edu-shadow-1: 0 1px 0 rgb(28 37 65 / 0.08), 0 2px 6px rgb(28 37 65 / 0.08);
+  --edu-shadow-2: 0 2px 0 rgb(28 37 65 / 0.08), 0 12px 28px rgb(28 37 65 / 0.16);
+  /* series colours: six fills that tell things apart without a legend (paired items, sort groups, found words, tabs of a chart). Text on them is --edu-series-ink. */
+  --edu-series-1: #f2c94c;
+  --edu-series-2: #8fc4ec;
+  --edu-series-3: #eba3bd;
+  --edu-series-4: #9fd49a;
+  --edu-series-5: #f0a867;
+  --edu-series-6: #bfaaf0;
+  --edu-series-ink: #1c2541;
+
+  /* ---- font slots ---- */
+  --edu-font-display: 'Young Serif', Georgia, 'Times New Roman', serif;
+  --edu-font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  /* ---- type scale: a 1.2 ratio on a 16px body, 13px is the floor for any text ---- */
+  --edu-text-xs: 0.8125rem; /* 13 */
+  --edu-text-s: 0.875rem; /* 14 */
+  --edu-text-m: 1rem; /* 16 */
+  --edu-text-l: 1.2rem; /* 19 */
+  --edu-text-xl: 1.44rem; /* 23 */
+  --edu-text-2xl: clamp(1.5rem, 1.1rem + 1.6vw, 1.728rem); /* 28 */
+  --edu-text-3xl: clamp(1.75rem, 1.2rem + 2.4vw, 2.488rem); /* 40 */
+  --edu-text-4xl: clamp(2.1rem, 1.3rem + 4vw, 3.583rem); /* 57 */
+  --edu-leading-tight: 1.15;
+  --edu-leading: 1.5;
+  --edu-leading-loose: 1.65; /* serif body text */
+  --edu-measure: 68ch; /* the longest line of running text */
+
+  /* ---- space: a 4px base ---- */
+  --edu-space-1: 4px;
+  --edu-space-2: 8px;
+  --edu-space-3: 12px;
+  --edu-space-4: 16px;
+  --edu-space-5: 24px;
+  --edu-space-6: 32px;
+  --edu-space-7: 48px;
+  --edu-space-8: 64px;
+
+  /* ---- shape ---- */
+  --edu-radius-s: 4px;
+  --edu-radius-m: 8px;
+  --edu-radius-l: 14px;
+  --edu-radius-control: var(--edu-radius-m); /* buttons, choices, inputs: a theme may give them its own shape */
+  --edu-radius-pill: 999px;
+  --edu-border: 1px;
+  --edu-tap: 44px; /* the smallest touch target */
+
+  /* ---- focus ---- */
+  --edu-focus-width: 3px;
+  --edu-focus-offset: 2px;
+
+  /* ---- motion ---- */
+  --edu-dur-fast: 120ms;
+  --edu-dur-med: 240ms;
+  --edu-dur-slow: 520ms;
+  --edu-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --edu-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --edu-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---- layers ---- */
+  --edu-z-raised: 10;
+  --edu-z-overlay: 100;
+  --edu-z-toast: 200;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-edu-theme] {
+    --edu-dur-fast: 0ms;
+    --edu-dur-med: 0ms;
+    --edu-dur-slow: 0ms;
+  }
+}

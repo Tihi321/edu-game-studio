@@ -851,6 +851,10 @@ export class Engine {
       case 'listCustomWorkflows':
       case 'voiceStatus':
       case 'studiosStatus':
+      case 'getCourse':
+      case 'buildCourse':
+      case 'lintCourse':
+      case 'updateItem':
         await this.edu.handle(cmd)
         this.scheduler.kick()
         return

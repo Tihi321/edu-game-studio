@@ -1,0 +1,260 @@
+/*
+ * Edu Studio motion (EGS-05): every keyframe of the design system in one place.
+ *
+ * Rule: motion shows what changed (a new screen, a streak, a right or wrong answer, a card turning), never decoration that keeps
+ * running. The one exception is the castle's torch flicker, which only changes opacity, slowly, and is off for reduced motion like the rest.
+ *
+ * Reduced motion: the durations in tokens.css are 0 under `prefers-reduced-motion: reduce`, and this file also switches `animation`
+ * itself off for everything under `.edu-stage` / `[data-edu-theme]`, so nothing moves and nothing waits for an animation to end.
+ *
+ * A theme picks its screen entrance with `--edu-enter-name` (one of the `edu-enter-*` keyframes below), `--edu-enter-scale` (a factor of
+ * `--edu-dur-slow`) and `--edu-enter-ease`; the quiz arena applies it to the content of the board (`.board > *`).
+ */
+
+/* ---- screen entrances ---- */
+
+@keyframes edu-enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* the chalkboard: the new screen is written onto the board from the left, as if the old one had just been wiped off */
+@keyframes edu-enter-wipe {
+  from {
+    clip-path: inset(-24px 100% -24px -24px);
+  }
+  to {
+    clip-path: inset(-24px -24px -24px -24px);
+  }
+}
+
+/* the eraser that goes with the wipe: a pale smudge that crosses the board once */
+@keyframes edu-eraser {
+  0% {
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* the castle: a door that swings open towards you */
+@keyframes edu-enter-door {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateY(-24deg) scale(0.97);
+    transform-origin: left center;
+  }
+  to {
+    opacity: 1;
+    transform: perspective(900px) rotateY(0) scale(1);
+    transform-origin: left center;
+  }
+}
+
+/* parchment: a page turns over from the right edge */
+@keyframes edu-enter-page {
+  from {
+    opacity: 0.2;
+    transform: perspective(1200px) rotateY(-62deg);
+    transform-origin: left center;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1200px) rotateY(0);
+    transform-origin: left center;
+  }
+}
+
+/* pixel: the screen builds up in a few hard steps (use with steps()) */
+@keyframes edu-enter-steps {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- answers and streaks ---- */
+
+@keyframes edu-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes edu-glow {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--edu-good) 0%, transparent);
+  }
+  35% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--edu-good) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--edu-good) 0%, transparent);
+  }
+}
+
+@keyframes edu-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* the feedback panel slides up into place */
+@keyframes edu-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes edu-starpop {
+  0% {
+    transform: scale(0) rotate(-40deg);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.35) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+/* the combo burst: the lettering stamps in, holds, and floats away */
+@keyframes edu-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-8deg);
+  }
+  22% {
+    opacity: 1;
+    transform: scale(1.18) rotate(-4deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1) rotate(-4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06) translateY(-30px) rotate(-4deg);
+  }
+}
+
+/* chalk dust: each speck flies out along its own --dx / --dy and fades (set on the element) */
+@keyframes edu-dust {
+  0% {
+    opacity: 0.95;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.3);
+  }
+}
+
+/* the same burst for the pixel theme: coins that hop */
+@keyframes edu-hop {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0), calc(var(--dy, 0) - 24px));
+  }
+}
+
+/* ---- ambience ---- */
+
+/* torch flicker: opacity only, never a movement */
+@keyframes edu-torch {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  18% {
+    opacity: 1;
+  }
+  34% {
+    opacity: 0.78;
+  }
+  52% {
+    opacity: 0.95;
+  }
+  71% {
+    opacity: 0.82;
+  }
+  86% {
+    opacity: 1;
+  }
+}
+
+/* pixel step: a 2-frame bob for a marker, with steps() so it never glides */
+@keyframes edu-pixel-step {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+/* ---- reduced motion: nothing animates ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-stage,
+  .edu-stage *,
+  .edu-stage *::before,
+  .edu-stage *::after,
+  [data-edu-theme],
+  [data-edu-theme] *,
+  [data-edu-theme] *::before,
+  [data-edu-theme] *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

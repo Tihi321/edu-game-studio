@@ -4,6 +4,7 @@
  */
 
 
+import type { CoursePack, TextCatalog } from './course'
 import type { EngineTask } from './media'
 
 export type AgentState = 'working' | 'reviewing' | 'waiting-provider' | 'waiting-research' | 'idle' | 'error' | 'paused'
@@ -220,6 +221,14 @@ export type EngineEvent =
   | { type: 'command.error'; command: string; message: string; slug?: string }
   /** The answer to `listCourses`. */
   | { type: 'courses.listed'; courses: CourseSummaryView[] }
+  /** The answer to `getCourse` (also sent after a build, a lint or an item edit): the whole course as the studio shows it. */
+  | ({ type: 'course.loaded' } & CourseLoadedView)
+  /** The answer to `buildCourse`. `ok` false: the course has problems (listed) and nothing was built, unless `forced`. */
+  | { type: 'course.built'; slug: string; ok: boolean; forced: boolean; problems: ProblemView[]; files: number; at: string }
+  /** The answer to `lintCourse`: the pedagogy and integrity check of the built game. `built` says a build was made for this call. */
+  | { type: 'course.linted'; slug: string; ok: boolean; errors: number; warnings: number; problems: LintProblemView[]; built: boolean; stale?: boolean; at: string }
+  /** The answer to `updateItem`: saved. `pending` lists what the course still lacks around the item (texts to write ...). */
+  | { type: 'item.updated'; slug: string; id: string; pendingCount: number; pending: ProblemView[]; at: string }
   | {
       type: 'comfy.status'
       ok: boolean
@@ -308,6 +317,34 @@ export interface VoiceEngineView {
   missing: string[]
 }
 
+/** A problem of the course (validation, build, item edit). */
+export interface ProblemView {
+  code: string
+  path: string
+  message: string
+}
+
+/** A problem the lint found in a built game. */
+export interface LintProblemView {
+  code: string
+  severity: 'error' | 'warning'
+  path: string
+  message: string
+}
+
+/** What the studio needs to show a course: the validated pack, the text catalogs, counts and the build state. */
+export interface CourseLoadedView {
+  slug: string
+  pack: CoursePack
+  /** Catalog per language (the editions and the target language). */
+  text: Record<string, TextCatalog>
+  stats: { units: number; objectives: number; items: number; byKind: Record<string, number> }
+  build: { built: boolean; builtAt?: string; stale?: boolean }
+}
+
+/** The text of an item edit: strings and accepted answers per language (a merge into the catalogs). */
+export type TextPatchView = Record<string, { strings?: Record<string, string>; accepted?: Record<string, string[]> }>
+
 /** One line of the course list. */
 export interface CourseSummaryView {
   slug: string
@@ -359,6 +396,14 @@ export type Command =
   // ---- courses ----
   /** The courses in the data folder. Answers with `courses.listed`. */
   | { type: 'listCourses' }
+  /** Reads one course (pack, texts, counts, build state). Answers with `course.loaded`, or `command.error` with the `slug`. */
+  | { type: 'getCourse'; slug: string }
+  /** Builds the game of a course. Answers with `course.built` and then `course.loaded` (the new build state). */
+  | { type: 'buildCourse'; slug: string; force?: boolean }
+  /** Lints the built game (building first when there is no build, or with `rebuild`). Answers with `course.linted` and then `course.loaded`. */
+  | { type: 'lintCourse'; slug: string; rebuild?: boolean }
+  /** Changes one item with a JSON merge patch (arrays replace whole arrays) and merges `text` into the catalogs, as `edu_item_update` does. Answers with `item.updated` and then `course.loaded`. */
+  | { type: 'updateItem'; slug: string; id: string; patch: Record<string, unknown>; text?: TextPatchView }
   | { type: 'comfyStatus' }
   | { type: 'comfyFree' }
   | { type: 'listEngines' }
@@ -372,7 +417,9 @@ export type Command =
   /** Writes config/mcp.md and restarts the server when enabled, port or token changed. `token` left out keeps the old one, `''` clears it. Answers with `mcp.status`. */
   | { type: 'saveMcpConfig'; enabled: boolean; port: number; token?: string }
 /** The commands about courses and generators (handled by `EduService`). */
-export type EduCommand = Extract<Command, { type: 'listCourses' | 'comfyStatus' | 'comfyFree' | 'listEngines' | 'listCustomWorkflows' | 'voiceStatus' | 'studiosStatus' }>
+export type EduCommand = Extract<Command, { type: 'listCourses' | 'comfyStatus' | 'comfyFree' | 'listEngines' | 'listCustomWorkflows' | 'voiceStatus' | 'studiosStatus' | 'getCourse' | 'buildCourse' | 'lintCourse' | 'updateItem' }>
+/** The commands of the studio's Course page (handled in `src/engine/edu/studio-commands.ts`). */
+export type StudioCommand = Extract<Command, { type: 'getCourse' | 'buildCourse' | 'lintCourse' | 'updateItem' }>
 
 export type CommandType = Command['type']
 
@@ -389,6 +436,10 @@ const COMMAND_TYPE_SET: Record<CommandType, true> = {
   setModel: true,
   checkServers: true,
   listCourses: true,
+  getCourse: true,
+  buildCourse: true,
+  lintCourse: true,
+  updateItem: true,
   comfyStatus: true,
   comfyFree: true,
   listEngines: true,

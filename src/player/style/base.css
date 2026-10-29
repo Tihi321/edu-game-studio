@@ -1,0 +1,21 @@
+/*
+ * The global part of the player page: reset and the page behind the stage. Only the player bundle imports this file (src/player/main.ts);
+ * the studio never does (it would restyle the whole studio), it uses embed.css instead.
+ * The wall colour is fixed here on purpose: the page behind the board exists before the theme attribute is set by the shell.
+ */
+html {
+  background: #101b16;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at 50% 0%, #1c2c24, #101b16 70%);
+}
+
+#edu-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}

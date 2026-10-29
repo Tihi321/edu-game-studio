@@ -19,6 +19,8 @@
     "mcp": "yarn build:engine && node out/engine/index.js --mcp-only",
     "key:set": "yarn build:engine && node out/engine/index.js key-set",
     "play": "node scripts/play.mjs",
+    "studio:shots": "node scripts/studio-shots.mjs",
+    "previews": "node scripts/theme-previews.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.player.json",
     "lint": "eslint ."
@@ -37,6 +39,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "axe-core": "^4.14.0",
     "electron": "^44.7.0",
     "electron-vite": "^5.0.0",
     "eslint": "^10.12.0",

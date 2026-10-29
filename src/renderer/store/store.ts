@@ -1,16 +1,36 @@
 import { createStore } from 'zustand/vanilla'
 import { initialMcp, reduceMcp, type McpData } from './mcp'
 import { initialCourses, reduceCourses, type CoursesData } from './courses'
+import { initialCourseDocs, emptyDoc, reduceCourseDocs, type CourseDoc, type CourseDocsData } from './course'
+import { initialGenerators, reduceGenerators, type GeneratorsData } from './generators'
+import { initialPipeline, type PipelineData } from './pipeline'
+import { applyScheme, readScheme, type Scheme } from '../lib/scheme'
 import type { AgentProblem, AgentState, AgentSummary, CatalogModel, EngineEvent, ModelSummary, ProviderSummary, ServerStatus, SettingsSummary } from '../../shared/protocol'
 
-export type Page = 'courses' | 'models' | 'agents' | 'settings'
+export type Page = 'courses' | 'models' | 'agents' | 'generators' | 'settings'
 
 export const PAGES: { id: Page; label: string }[] = [
-  { id: 'courses', label: 'Courses' },
+  { id: 'courses', label: 'Library' },
   { id: 'models', label: 'Models' },
   { id: 'agents', label: 'Agents' },
+  { id: 'generators', label: 'Generators' },
   { id: 'settings', label: 'Settings' }
 ]
+
+/** The tabs of the Course page, in the order the course is made. */
+export const COURSE_TABS = [
+  { id: 'brief', label: 'Brief' },
+  { id: 'curriculum', label: 'Curriculum' },
+  { id: 'encyclopedia', label: 'Encyclopedia' },
+  { id: 'items', label: 'Items' },
+  { id: 'game', label: 'Game' },
+  { id: 'assets', label: 'Assets' },
+  { id: 'voice', label: 'Voice' },
+  { id: 'editions', label: 'Editions' },
+  { id: 'build', label: 'Build' },
+  { id: 'playtest', label: 'Playtest' }
+] as const
+export type CourseTab = (typeof COURSE_TABS)[number]['id']
 
 export interface AgentView {
   id: string
@@ -29,7 +49,7 @@ export interface AgentView {
   problem?: AgentProblem
 }
 
-export interface EduState extends CoursesData, McpData {
+export interface EduState extends CoursesData, McpData, CourseDocsData, GeneratorsData, PipelineData {
   connected: boolean
   dataDir: string
   paused: boolean
@@ -54,11 +74,23 @@ export interface EduState extends CoursesData, McpData {
   /** The last answer to `saveCustomProvider` / `removeCustomProvider`: `at` changes with every answer. */
   providerSaved: { ok: boolean; id?: string; removed?: boolean; error?: string; at: number } | null
   page: Page
+  /** The course open on the Library page (its slug), or null for the list. */
+  openCourse: string | null
+  courseTab: CourseTab
+  scheme: Scheme
 }
 
 export interface EduActions {
   applyEvents(events: EngineEvent[]): void
   setPage(page: Page): void
+  /** Opens a course on the Library page, on a tab. */
+  showCourse(slug: string, tab?: CourseTab): void
+  setCourseTab(tab: CourseTab): void
+  setScheme(scheme: Scheme): void
+  /** Changes what the studio waits for on a course (`loading`, `building` ...): set when a command is sent, cleared by its answer. */
+  markCourse(slug: string, patch: Partial<CourseDoc>): void
+  /** A generator check was sent: show it as running until its answer comes. */
+  markChecking(which: keyof GeneratorsData['checking']): void
   /** The Models page asked a provider for its models: show it as loading until `models.catalog` comes. */
   markCatalogLoading(provider: string): void
   /** The Add provider form pressed Test: show it as pending until `provider.tested` comes. `null` clears the result. */
@@ -87,8 +119,14 @@ function initial(): EduState {
     providerTest: null,
     providerSaved: null,
     page: 'courses',
+    openCourse: null,
+    courseTab: 'brief',
+    scheme: readScheme(),
     ...initialCourses(),
-    ...initialMcp()
+    ...initialMcp(),
+    ...initialCourseDocs(),
+    ...initialGenerators(),
+    ...initialPipeline()
   }
 }
 
@@ -168,11 +206,11 @@ export function reduceEvent(s: EduState, e: EngineEvent): Partial<EduState> {
     case 'mcp.status':
       return reduceMcp(s, e)
     default:
-      return reduceCourses(s, e)
+      return { ...reduceCourses(s, e), ...reduceCourseDocs(s, e), ...reduceGenerators(s, e) }
   }
 }
 
-const ACTION_KEYS = ['applyEvents', 'setPage', 'markCatalogLoading', 'markProviderTesting'] as const
+const ACTION_KEYS = ['applyEvents', 'setPage', 'showCourse', 'setCourseTab', 'setScheme', 'markCourse', 'markChecking', 'markCatalogLoading', 'markProviderTesting'] as const
 
 export const eduStore = createStore<EduStore>()((set, get) => ({
   ...initial(),
@@ -185,7 +223,25 @@ export const eduStore = createStore<EduStore>()((set, get) => ({
     set(state as unknown as EduState)
   },
   setPage(page) {
-    set({ page })
+    // the Library item always goes back to the list of courses
+    set(page === 'courses' ? { page, openCourse: null } : { page })
+  },
+  showCourse(slug, tab = 'brief') {
+    set({ page: 'courses', openCourse: slug, courseTab: tab })
+  },
+  setCourseTab(tab) {
+    set({ courseTab: tab })
+  },
+  setScheme(scheme) {
+    applyScheme(scheme)
+    set({ scheme })
+  },
+  markCourse(slug, patch) {
+    const docs = get().docs
+    set({ docs: { ...docs, [slug]: { ...(docs[slug] ?? emptyDoc()), ...patch } } })
+  },
+  markChecking(which) {
+    set({ checking: { ...get().checking, [which]: true } })
   },
   markProviderTesting(pending) {
     set({ providerTest: pending ? { pending: true } : null })

@@ -20,17 +20,19 @@ export function AgentsPage() {
   const defaults = useEdu((s) => s.roleDefaults)
   const [hiring, setHiring] = useState(false)
   return (
-    <div className="stack" style={{ maxWidth: 980 }} data-testid="page-agents">
-      <div className="row spread">
-        <div className="panel-title">Agents</div>
-        <button onClick={() => setHiring(!hiring)} data-testid="hire-open">
-          Hire
-        </button>
-      </div>
+    <div className="page-body" data-testid="page-agents">
+      <header className="page-head">
+        <h1>Agents</h1>
+        <div className="head-actions">
+          <button onClick={() => setHiring(!hiring)} aria-expanded={hiring} data-testid="hire-open">
+            Hire
+          </button>
+        </div>
+      </header>
       {hiring && <HireForm onClose={() => setHiring(false)} />}
-      <div className="dim">
+      <p className="lede dim">
         Each agent can have its own model. Empty means the role default below. The art-critic needs a vision model (one with <code>vision: true</code>).
-      </div>
+      </p>
       <div className="stack" data-testid="agent-list">
         {agents.map((a) => {
           const vision = VISION_ROLES.has(a.role)
@@ -38,7 +40,7 @@ export function AgentsPage() {
           const roleDefault = defaults[a.role]
           const paused = a.paused || a.state === 'paused'
           return (
-            <div className="card" key={a.id} data-testid={`agent-${a.id}`}>
+            <div className="sheet panel" key={a.id} data-testid={`agent-${a.id}`}>
               <div className="row spread">
                 <div>
                   <b>{a.name}</b> <span className="dim">{a.role}</span>
@@ -51,6 +53,7 @@ export function AgentsPage() {
               <div className="row" style={{ gap: 8, marginTop: 6 }}>
                 <select
                   style={{ flex: 1 }}
+                  aria-label={`Model for ${a.name}`}
                   value={a.override ?? ''}
                   onChange={(e) => sendCommand({ type: 'setModel', model: e.target.value || null, agent: a.id })}
                   data-testid={`agent-model-${a.id}`}
@@ -62,11 +65,11 @@ export function AgentsPage() {
                     </option>
                   ))}
                 </select>
-                <button onClick={() => sendCommand({ type: paused ? 'resume' : 'pause', agent: a.id })}>{paused ? 'Resume' : 'Pause'}</button>
-                <button onClick={() => sendCommand({ type: 'stop', agent: a.id })} disabled={!a.jobId && a.state === 'idle'}>
+                <button onClick={() => sendCommand({ type: paused ? 'resume' : 'pause', agent: a.id })} data-testid={`agent-pause-${a.id}`}>{paused ? 'Resume' : 'Pause'}</button>
+                <button onClick={() => sendCommand({ type: 'stop', agent: a.id })} disabled={!a.jobId && a.state === 'idle'} data-testid={`agent-stop-${a.id}`}>
                   Stop job
                 </button>
-                <button onClick={() => sendCommand({ type: 'fire', agent: a.id })} title="Finishes the current job, then leaves">
+                <button onClick={() => sendCommand({ type: 'fire', agent: a.id })} title="Finishes the current job, then leaves" data-testid={`agent-fire-${a.id}`}>
                   Fire
                 </button>
               </div>
@@ -78,7 +81,12 @@ export function AgentsPage() {
             </div>
           )
         })}
-        {!agents.length && <div className="dim">No agents yet. Hire one, or start the engine so the seed agents are copied into the data folder.</div>}
+        {!agents.length && (
+          <div className="state empty" data-testid="agents-empty">
+            <h3 className="state-title">No agents yet</h3>
+            <p className="state-body">Hire one, or start the engine so the seed agents are copied into the data folder.</p>
+          </div>
+        )}
       </div>
       <RoleDefaults />
     </div>
@@ -92,14 +100,15 @@ function RoleDefaults() {
   const defaults = useEdu((s) => s.roleDefaults)
   const roles = [...new Set<string>([...KNOWN_ROLES, ...Object.keys(defaults)])]
   return (
-    <div className="card" data-testid="role-defaults">
-      <h3>Role defaults</h3>
+    <div className="sheet panel" data-testid="role-defaults">
+      <h2 className="panel-title">Role defaults</h2>
       <div className="stack">
         {roles.map((role) => (
           <div className="row" key={role} style={{ gap: 8 }}>
             <span style={{ width: 150 }}>{role}</span>
             <select
               style={{ flex: 1 }}
+              aria-label={`Default model for the ${role} role`}
               data-testid={`role-model-${role}`}
               value={defaults[role] ?? ''}
               onChange={(e) => e.target.value && sendCommand({ type: 'setModel', model: e.target.value, role })}
@@ -132,17 +141,17 @@ function HireForm({ onClose }: { onClose(): void }) {
   const [name, setName] = useState('')
   const [model, setModel] = useState('')
   return (
-    <div className="card" data-testid="hire-form">
+    <div className="sheet panel" data-testid="hire-form">
       <div className="row" style={{ gap: 8 }}>
-        <select value={role} onChange={(e) => setRole(e.target.value)} data-testid="hire-role">
+        <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)} data-testid="hire-role">
           {KNOWN_ROLES.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>
           ))}
         </select>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name (the engine picks one)" style={{ flex: 1 }} data-testid="hire-name" />
-        <select value={model} onChange={(e) => setModel(e.target.value)} data-testid="hire-model">
+        <input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="name (the engine picks one)" style={{ flex: 1 }} data-testid="hire-name" />
+        <select aria-label="Model" value={model} onChange={(e) => setModel(e.target.value)} data-testid="hire-model">
           <option value="">Role default</option>
           {modelOptions(known, null, VISION_ROLES.has(role)).map((m) => (
             <option key={m} value={m}>
@@ -150,7 +159,9 @@ function HireForm({ onClose }: { onClose(): void }) {
             </option>
           ))}
         </select>
-        <button onClick={onClose}>Cancel</button>
+        <button onClick={onClose} data-testid="hire-cancel">
+          Cancel
+        </button>
         <button
           className="primary"
           data-testid="hire-submit"

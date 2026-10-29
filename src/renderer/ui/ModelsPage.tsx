@@ -217,12 +217,13 @@ export function ModelsPage() {
           {alias}
         </span>
         <select
+          aria-label={`Kind of fallback row ${i + 1}`}
           value={kind}
           onChange={(e) => {
             const first = ticked.find((m) => m.kind === e.target.value)
             if (first) save(fallbacks.map((r, j) => (j === i ? first.ref : r)))
           }}
-          style={{ width: 90 }}
+          style={{ width: 130 }}
           data-testid={`fallback-kind-${i}`}
         >
           {kindsFor(kind).map((k) => (
@@ -231,20 +232,20 @@ export function ModelsPage() {
             </option>
           ))}
         </select>
-        <select value={ref} onChange={(e) => save(fallbacks.map((r, j) => (j === i ? e.target.value : r)))} style={{ flex: 1, minWidth: 0 }} data-testid={`fallback-model-${i}`}>
+        <select aria-label={`Model of fallback row ${i + 1}`} value={ref} onChange={(e) => save(fallbacks.map((r, j) => (j === i ? e.target.value : r)))} style={{ flex: 1, minWidth: 0 }} data-testid={`fallback-model-${i}`}>
           {refs.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>
           ))}
         </select>
-        <button disabled={i === 0} onClick={() => move(i, -1)} title="Try this row earlier" data-testid={`fallback-up-${i}`}>
+        <button disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move fallback row ${i + 1} earlier`} title="Try this row earlier" data-testid={`fallback-up-${i}`}>
           ↑
         </button>
-        <button disabled={i === fallbacks.length - 1} onClick={() => move(i, 1)} title="Try this row later" data-testid={`fallback-down-${i}`}>
+        <button disabled={i === fallbacks.length - 1} onClick={() => move(i, 1)} aria-label={`Move fallback row ${i + 1} later`} title="Try this row later" data-testid={`fallback-down-${i}`}>
           ↓
         </button>
-        <button disabled={fallbacks.length <= 1} onClick={() => save(fallbacks.filter((_, j) => j !== i))} title="Remove this row" data-testid={`fallback-remove-${i}`}>
+        <button disabled={fallbacks.length <= 1} onClick={() => save(fallbacks.filter((_, j) => j !== i))} aria-label={`Remove fallback row ${i + 1}`} title="Remove this row" data-testid={`fallback-remove-${i}`}>
           ×
         </button>
       </div>
@@ -281,21 +282,21 @@ export function ModelsPage() {
     if (!form) return null
     const set = (change: Partial<ProviderForm>) => setForm({ ...form, ...change })
     return (
-      <div className="stack panel" style={{ gap: 6 }} data-testid="provider-form">
-        <div className="panel-title">{form.id ? `Edit ${form.id}` : 'Add provider'}</div>
+      <div className="stack sheet panel" style={{ gap: 6 }} data-testid="provider-form">
+        <h2 className="panel-title">{form.id ? `Edit ${form.id}` : 'Add provider'}</h2>
         <div className="dim">Any OpenAI-compatible server. Saved in config/providers.md; the key goes to the Windows credential store.</div>
-        <label>Name</label>
-        <input value={form.name} placeholder="ACP proxy (home)" onChange={(e) => set({ name: e.target.value })} data-testid="pf-name" />
-        <label>Base URL</label>
-        <input value={form.baseUrl} placeholder="http://127.0.0.1:7461/v1" onChange={(e) => set({ baseUrl: e.target.value })} data-testid="pf-url" />
-        <label>API key (optional)</label>
+        <label htmlFor="pf-name">Name</label>
+        <input value={form.name} placeholder="ACP proxy (home)" onChange={(e) => set({ name: e.target.value })} id="pf-name" data-testid="pf-name" />
+        <label htmlFor="pf-url">Base URL</label>
+        <input value={form.baseUrl} placeholder="http://127.0.0.1:7461/v1" onChange={(e) => set({ baseUrl: e.target.value })} id="pf-url" data-testid="pf-url" />
+        <label htmlFor="pf-key">API key (optional)</label>
         <input
           type="password"
           autoComplete="off"
           value={form.apiKey}
           placeholder={form.id && providers.find((p) => p.id === form.id)?.keySet ? 'Key is set. Type to replace' : 'Paste the key'}
           onChange={(e) => set({ apiKey: e.target.value })}
-          data-testid="pf-key"
+          id="pf-key" data-testid="pf-key"
         />
         <div className="row" style={{ gap: 12 }}>
           <label className="inline" title="A local or free server: no key needed, no budget, never paid. Off: its models need a price">
@@ -311,8 +312,8 @@ export function ModelsPage() {
             Enabled
           </label>
         </div>
-        <label>Parallel (a number, or auto)</label>
-        <input value={form.concurrency} onChange={(e) => set({ concurrency: e.target.value })} data-testid="pf-concurrency" />
+        <label htmlFor="pf-concurrency">Parallel (a number, or auto)</label>
+        <input value={form.concurrency} onChange={(e) => set({ concurrency: e.target.value })} id="pf-concurrency" data-testid="pf-concurrency" />
         {form.error && (
           <div className="warn" data-testid="pf-error">
             {form.error}
@@ -356,8 +357,9 @@ export function ModelsPage() {
   }
   const limitField = (label: string, key: LimitKey, title: string) => (
     <div style={{ flex: 1 }} title={title}>
-      <label>{label}</label>
+      <label htmlFor={`limit-${key}`}>{label}</label>
       <input
+        id={`limit-${key}`}
         type="number"
         min={key === 'concurrency' ? 1 : 0}
         value={limits?.values[key] ?? ''}
@@ -372,8 +374,9 @@ export function ModelsPage() {
   )
   const loadField = (label: string, key: LoadKey) => (
     <div style={{ flex: 1 }}>
-      <label>{label}</label>
+      <label htmlFor={`set-${key}`}>{label}</label>
       <input
+        id={`set-${key}`}
         type="number"
         value={load?.[key] ?? ''}
         onChange={(e) => load && setLoad({ ...load, [key]: Number(e.target.value) })}
@@ -386,7 +389,9 @@ export function ModelsPage() {
   return (
     <div className="stack models-page" data-testid="models-page">
       <div className="models" style={{ display: 'contents' }}>
-        <div className="panel-title">Models</div>
+        <header className="page-head">
+          <h1>Models</h1>
+        </header>
         <div className="dim">Fallback models: each row is a kind (API, Strata, LM Studio ...) and its model. roles.md names a kind for its first row (paid, strata, lmstudio ...) and kind-2, kind-3 for the next ones.</div>
         <label className="inline">
           <input
@@ -467,7 +472,7 @@ export function ModelsPage() {
                 </>
               )}
               <div className="row">
-                <input value={filter} placeholder="Filter, e.g. qwen" onChange={(e) => setFilter(e.target.value)} style={{ flex: 1 }} data-testid="models-filter" />
+                <input aria-label="Filter models" value={filter} placeholder="Filter, e.g. qwen" onChange={(e) => setFilter(e.target.value)} style={{ flex: 1 }} data-testid="models-filter" />
                 <button
                   disabled={!current.available || !current.canList || catalog?.loading}
                   onClick={() => detect(current.id)}
@@ -485,7 +490,7 @@ export function ModelsPage() {
                   </label>
                 )}
                 <label className="inline">
-                  <input type="checkbox" checked={shownOnly} onChange={(e) => setShownOnly(e.target.checked)} />
+                  <input type="checkbox" checked={shownOnly} onChange={(e) => setShownOnly(e.target.checked)} data-testid="models-shown-only" />
                   ticked only
                 </label>
                 <span className="dim" style={{ marginLeft: 'auto' }} data-testid="models-status">
@@ -511,7 +516,7 @@ export function ModelsPage() {
                 </button>
                 <span className="dim">of the ones listed below</span>
               </div>
-              <div className="models-list" data-testid="models-list">
+              <div className="models-list sheet" data-testid="models-list">
                 {visible.map((r) => (
                   <label
                     key={r.ref}
@@ -519,7 +524,7 @@ export function ModelsPage() {
                     title={r.pickable ? r.ref : 'No listed price, so the budget could not count it: add it by id below with its price'}
                     data-testid={`model-row-${r.ref}`}
                   >
-                    <input type="checkbox" checked={r.shown} disabled={!r.pickable} onChange={(e) => sendCommand({ type: 'showModels', refs: [r.ref], shown: e.target.checked })} />
+                    <input type="checkbox" checked={r.shown} disabled={!r.pickable} data-testid={`model-tick-${r.ref}`} onChange={(e) => sendCommand({ type: 'showModels', refs: [r.ref], shown: e.target.checked })} />
                     <span className="model-id">{r.id}</span>
                     <span className="dim">{formatContext(r.context)}</span>
                     <span className={r.vision ? 'free' : 'dim'} title="Accepts images (vision: true in providers.md or models.md)">{r.vision ? 'vision' : ''}</span>
@@ -532,6 +537,7 @@ export function ModelsPage() {
               <div className="dim">Add a model by its id{local ? '' : ', with its price in USD per 1M tokens (0 and 0 for a free one)'}:</div>
               <div className="row" style={{ gap: 6 }}>
                 <input
+                  aria-label="Model id"
                   value={add.id}
                   placeholder={current.id === 'openrouter' ? 'e.g. qwen/qwen3-235b-a22b:free' : 'model id'}
                   onChange={(e) => setAdd({ ...add, id: e.target.value })}
@@ -541,11 +547,11 @@ export function ModelsPage() {
                 />
                 {!local && (
                   <>
-                    <input type="number" min={0} step="any" value={add.priceIn} placeholder="$ in" onChange={(e) => setAdd({ ...add, priceIn: e.target.value })} style={{ flex: 1 }} data-testid="models-add-in" />
-                    <input type="number" min={0} step="any" value={add.priceOut} placeholder="$ out" onChange={(e) => setAdd({ ...add, priceOut: e.target.value })} style={{ flex: 1 }} data-testid="models-add-out" />
+                    <input aria-label="Price in, USD per million tokens" type="number" min={0} step="any" value={add.priceIn} placeholder="$ in" onChange={(e) => setAdd({ ...add, priceIn: e.target.value })} style={{ flex: 1 }} data-testid="models-add-in" />
+                    <input aria-label="Price out, USD per million tokens" type="number" min={0} step="any" value={add.priceOut} placeholder="$ out" onChange={(e) => setAdd({ ...add, priceOut: e.target.value })} style={{ flex: 1 }} data-testid="models-add-out" />
                   </>
                 )}
-                <input type="number" min={0} value={add.context} placeholder="context" onChange={(e) => setAdd({ ...add, context: e.target.value })} style={{ flex: 1 }} data-testid="models-add-context" />
+                <input aria-label="Context size" type="number" min={0} value={add.context} placeholder="context" onChange={(e) => setAdd({ ...add, context: e.target.value })} style={{ flex: 1 }} data-testid="models-add-context" />
                 <label className="inline" title="The model accepts images: the art-critic is offered it">
                   <input type="checkbox" checked={add.vision} onChange={(e) => setAdd({ ...add, vision: e.target.checked })} data-testid="models-add-vision" />
                   vision

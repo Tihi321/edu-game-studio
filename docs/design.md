@@ -69,6 +69,31 @@ Each role maps to models in `config/roles.md`, with fallbacks and budget caps. W
 | accessibility- and child-safety-reviewer | Contrast, keyboard play, reading level; child safety for kids' courses. **Must pass** |
 | publisher | Scores against the threshold and builds the game |
 
+## Look
+
+The design system (EGS-05) lives in `src/design/` and is shared by the studio and every game shell.
+
+**Tokens** (`src/design/tokens.css`). One vocabulary of CSS variables, `--edu-*`: colour slots (`bg`, `bg-2`, `surface`, `surface-2`, `line`, `line-strong`, `text`, `text-dim`, `accent`, `accent-ink`, `accent-2`, `good`/`good-ink`, `bad`/`bad-ink`, `warn`/`warn-bg`, `mark`/`mark-ink`, `focus`, two shadows, six `series-*` fills with `series-ink`), font slots (`font-display`, `font-body`, `font-mono`) and the structure tokens that a theme does not own: a type scale on a 16 px body with a 13 px floor, a 4 px space scale, radii, a 44 px tap size, a 3 px focus ring, durations and easings, z-layers. The slot names are the contract; a theme only fills them.
+
+**Themes** (`src/design/themes/<id>.css`, registry in `src/design/themes/index.ts`). Each theme fills every colour and font slot under `[data-edu-theme="<id>"]`, imports its own fonts and adds the dressing of the shell frame (`.frame`, `.board`):
+
+| Id | For | Look | Type | Motion |
+|---|---|---|---|---|
+| `chalkboard` | quiz arena | green board in a wooden frame, chalk white, coloured chalk | Kalam over Atkinson Hyperlegible Next | the new screen is written onto the board behind an eraser smudge; a combo throws chalk dust |
+| `castle` | MindMaze | dressed stone, torch amber, ember | Cinzel (titles) over Alegreya | doors that swing open; the torch glow flickers (opacity only) |
+| `parchment` | encyclopedia | vellum, sepia ink, brass, oxblood | EB Garamond | a page turns |
+| `pixel` | RPG | night blue, gold, grass green, stepped corners and hard shadows | Pixelify Sans | `steps()` only, `image-rendering: pixelated` |
+
+A shell picks its look by id: `themeForShell('mindmaze')` (or the theme named in `shells.config[shell].theme`) returns the `ThemeInfo` (label, scheme, fonts, a `swatch` of five colours and the display and body families, so the studio can paint a Library cover or a theme picker without loading the CSS). The shell then imports `<id>.css` and puts `data-edu-theme="<id>"` and the class `edu-stage` on its root element; it never defines colours of its own. The player bundle loads the chalkboard only (`player.css`: about 200 KB with the Kalam and Atkinson fonts inlined as base64, one file that works over `file://`); the studio loads all four.
+
+**Fonts and licences.** Atkinson Hyperlegible Next, Young Serif (studio titles), Kalam, Cinzel, Alegreya, EB Garamond and Pixelify Sans, latin and latin-ext subsets (Croatian: č ć đ š ž) as woff2 from Fontsource, in `src/design/fonts/<family>/` with a `font.css` (the `@font-face` rules) and the OFL 1.1 text. They are bundled, never loaded from a CDN (a test checks the CSS for remote URLs).
+
+**Motion** (`src/design/motion.css`). Motion shows what changed (a new screen, a streak, a right or wrong answer, a card turning), never decoration. A theme picks its entrance with `--edu-enter-name` and `--edu-enter-scale`; it must not override the duration tokens. Under `prefers-reduced-motion: reduce` the durations are 0 *and* `animation` is switched off for everything under `.edu-stage` and `[data-edu-theme]`, so nothing moves and nothing waits for an animation to end (the combo burst still shows its words, without the dust).
+
+**Contrast and accessibility.** WCAG AA for every pair the UI draws, checked for every theme by `tests/design-tokens.test.ts`: text, dim text, accent ink on accent, good/bad/mark ink on their fills and the coloured text on the board and the feedback panel at 4.5:1; the focus ring and the borders of controls at 3:1. Right and wrong are a symbol and words as well as a colour. No all-caps eyebrow labels (the castle's Cinzel is a capitals face, so only its titles use it). `yarn previews` builds a static page per theme (a title, a progress strip, a question card with a right and a wrong choice, a feedback panel) into `.claude/temp/theme-previews/`, screenshots it at 1280x800 and 390x844 and runs axe-core on it; the bot's `--axe` does the same on the built quiz arena.
+
+**The studio** ("the squared exercise book") sits on the same tokens: light paper with a faint square grid, royal-blue ink, a red margin rule beside the nav, a yellow highlighter for the current place; Young Serif titles over Atkinson Hyperlegible Next; dark with `prefers-color-scheme: dark` or the Settings switch. The boldness goes into the games' themes and the way the studio shows them (Library covers, the live preview in the Game tab), not into the chrome.
+
 ## Architecture
 
 - **Data folder** `~/EduGames`: `config/`, `agents/`, `prompts/<role>/<task>.md`, `courses/<slug>/`, `jobs/`, `logs/`.
@@ -78,7 +103,7 @@ Each role maps to models in `config/roles.md`, with fallbacks and budget caps. W
 - **Player runtime** (EGS-03): our own DOM/CSS + Canvas 2D code that emits `index.html`, `player.js`, `player.css` and `game-data.js` and works over `file://`. Shells are plugins on a `window.EduEngine` hook (`registerShell`, `registerItemKind`). Progress and the review queue live in localStorage, with export and import. Every interactive element has a `data-testid`, so the bot and Playwright can drive it.
 - **MCP** on port 7463, tools prefixed `edu_`, the guide served as `edu-studio://guide`.
 - **Generators**: ComfyUI (images, music, text-to-speech), Pixel Studio (pixel art), Chiptune Studio (music), Google Flow (images, voices, songs), local and cloud text-to-speech. Reached through the clients in `src/engine/studios/` and `src/engine/comfy/`.
-- **Look**: a design pass up front (EGS-05). Every shell gets its own theme on top of shared tokens; motion respects `prefers-reduced-motion`.
+- **Look**: a design system up front (EGS-05, see "Look" above): shared tokens, a theme per shell, bundled fonts, motion that respects `prefers-reduced-motion`.
 
 ## How it is checked
 
@@ -87,5 +112,6 @@ Each role maps to models in `config/roles.md`, with fallbacks and budget caps. W
 | Code | Vitest, typecheck, ESLint, on every ticket |
 | Content | The answer-key lint, the fact-checker (must pass, with citations), proved puzzles |
 | Playability | The autoplay bot: perfect, all-wrong and random-learner runs, with no console errors |
-| Looks | Screenshot sets at desktop and mobile width, an axe-core contrast run |
+| Looks | Screenshot sets at desktop and mobile width, an axe-core run (the bot's `--axe`, `yarn previews`), the contrast test of every theme (`tests/design-tokens.test.ts`) |
+| Keyboard | The bot's `--keyboard` mode plays a whole game with Tab, Enter, Space, arrows, digits and typing only |
 | Real use | The user plays the pilot and each new shell |
