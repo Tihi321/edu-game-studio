@@ -22,6 +22,8 @@ import type { StudioId, StudiosConfig } from '../studios/config'
 import { findAppDirs } from './appdirs'
 import type { AppDirs } from './appdirs'
 import { assertSlug, coursesDir, dataFolders, loadComfyConfigFor } from './paths'
+import { CourseStore, listCourses } from './store'
+import type { CourseSummary } from './store'
 
 /** What the course pipeline gets from the engine. */
 export interface EduDeps {
@@ -54,12 +56,7 @@ export interface JobCounts {
   failed: number
 }
 
-/** One line of the course list. */
-export interface CourseSummary {
-  slug: string
-  title: string
-  updatedAt: string
-}
+export type { CourseSummary } from './store'
 
 const runOf = (id: string): number => {
   const m = /--r(\d+)$/.exec(id)
@@ -73,6 +70,7 @@ const runOf = (id: string): number => {
 export class EduService {
   readonly dirs: AppDirs
   private readonly comfyOverride: EduDeps['comfy']
+  private store: CourseStore | undefined
 
   constructor(readonly deps: EduDeps) {
     this.dirs = { ...findAppDirs(), ...(deps.dirs ?? {}) }
@@ -107,26 +105,13 @@ export class EduService {
   }
 
   /** The courses in `<data>/courses/`: a folder with a `course.md` or a `course/pack.json`. */
-  async listCourses(): Promise<CourseSummary[]> {
-    const root = coursesDir(this.dataDir)
-    let names: string[]
-    try {
-      names = (await fs.readdir(root, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name)
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return []
-      throw err
-    }
-    const out: CourseSummary[] = []
-    for (const slug of names.sort()) {
-      const dir = path.join(root, slug)
-      let at = 0
-      for (const marker of [path.join(dir, 'course.md'), path.join(dir, 'course', 'pack.json')]) {
-        const st = await fs.stat(marker).catch(() => null)
-        if (st) at = Math.max(at, st.mtimeMs)
-      }
-      if (at) out.push({ slug, title: slug, updatedAt: new Date(at).toISOString() })
-    }
-    return out
+  listCourses(): Promise<CourseSummary[]> {
+    return listCourses(this.dataDir)
+  }
+
+  /** The course files (create, edit, import, validate, build, lint): the same code the CLI uses. */
+  get courses(): CourseStore {
+    return (this.store ??= new CourseStore(this.dataDir))
   }
 
   async courseExists(slug: string): Promise<boolean> {

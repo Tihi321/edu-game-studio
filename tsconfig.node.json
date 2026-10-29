@@ -14,5 +14,6 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/shared", "src/engine", "src/main", "src/preload", "tests", "*.config.ts"]
+  "include": ["src/shared", "src/engine", "src/main", "src/preload", "tests", "*.config.ts"],
+  "exclude": ["tests/player-*.test.ts"]
 }

@@ -2,7 +2,7 @@
 
 Edu Studio turns a topic into a playable educational game: a course (objectives, articles, items with answer keys, game shells) that a self-contained web player plays. This server lets an agent such as Claude Code drive the studio: see the courses and the job queue, and do the model work of the jobs itself, at no cost.
 
-**Status: skeleton (EGS-01).** The course store, the player, the build and the content pipeline arrive in later tickets (see `ROADMAP.md`), so the tools below are the generic ones. Each later ticket adds its tools to this guide.
+**Status: EGS-03.** The course tools (create, edit, items, text, import, validate, build, lint) and the generic ones below work. The content pipeline (research, curriculum, items written by roles) arrives in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
 
 ## Connect
 
@@ -21,12 +21,77 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 
 | Group | Tools |
 |---|---|
-| Courses | `edu_list_courses` (the courses in `courses/`), `edu_status {slug?}` (the job counts of a course, or of every course; `clientTasks`), `edu_wait {slug, timeoutSeconds?}` (waits until the course has nothing left to run), `edu_languages` |
+| Courses | `edu_list_courses` (the courses in `courses/`), `edu_create_course`, `edu_get_course {slug, text?, lang?}`, `edu_course_edit {slug, patch, text?}`, `edu_import_course {folder, slug?, overwrite?}`, `edu_status {slug?}` (the job counts of a course, or of every course; with a slug also `course`: counts, editions, build state; `clientTasks`), `edu_wait {slug, timeoutSeconds?}` (waits until the course has nothing left to run), `edu_languages` |
+| Items and text | `edu_item_add {slug, item, text?}`, `edu_item_update {slug, id, patch, text?}`, `edu_item_remove {slug, id}`, `edu_text_set {slug, lang, strings?, accepted?, remove?}` |
+| Build and check | `edu_validate {slug}`, `edu_build {slug, force?}`, `edu_lint {slug, rebuild?}` |
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
 | Generators | `edu_studios_status` (Pixel Studio, Chiptune Studio, flow-music-mcp), `edu_comfy_status`, `edu_comfy_free`, `edu_voice_status` |
 
 A job id is `<slug>--<task>--<unit>--r<run>`, so `edu_status {slug}` finds the jobs of a course by their prefix.
+
+## Build a course
+
+A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral template) and `text/<lang>.json` (every visible string, per language), plus `assets/` (images and audio). `edu_build` writes `courses/<slug>/build/`, a folder that opens from `file://`.
+
+**The loop.** `edu_create_course` (or `edu_import_course` from a folder) -> `edu_course_edit` (units, objectives, shells, fact base) -> `edu_item_add` for each item, with its text -> `edu_validate` -> `edu_build` -> `edu_lint` -> fix what the lint says -> repeat. Open `courses/<slug>/build/index.html` to play it. The same steps are the CLI: `yarn engine -- import-course <folder>`, `validate <slug>`, `build <slug> [--force]`, `lint <slug> [--json]`, `courses` (they work on the data folder without starting an engine). `yarn build:player` must have run once (it makes `out/player/`; `EDU_PLAYER_DIR` points at another folder with `player.js` and `player.css`).
+
+### The contract
+
+- **Pack** (`pack.json`): `schema: 1`, `id`, `slug`, `sourceLang`, `languages` (the editions; the source is one of them), optional `targetLang` (a language course: the taught language, whose catalog holds the taught phrases and their accepted answers), `subject`, `audience`, optional `cefr`, `matching {diacritics: ignore|warn|strict, typos}`, `units`, `objectives`, `items`, `shells {enabled: ["quiz-arena"], config}`, `assets`, `cues`, `encyclopedia.articles`, `factbase`, `extensions`. The pack is strict: an unknown field is an error.
+- **Units** `{id, title, summary?, requires: [unit ids]}`: `requires` is the prerequisite graph; a unit unlocks when the units it requires are mastered. **Objectives** `{id, unit, bloom: remember|understand|apply|analyze|evaluate|create, text, facts: [fact ids]}` (the unit lists no objectives: the link is `objective.unit`).
+- **Every visible string is a key** into the text catalog (`unit.u1.title`, `q-sun.prompt` ...: letters, digits, `. : - _`). `text/<lang>.json` is `{schema: 1, lang, strings: {key: text}, accepted: {key: [answers]}}`. **The course title is the string `course.title`** (index.html uses it; the subject is the fallback). A typed answer, a cloze gap, a typed listening answer and a crossword or word-search word point to a key that has an `accepted` list per language (first entry = the canonical answer). In a language course the taught phrases and their accepted answers live in the target-language catalog; every edition falls back to it.
+- **Answer keys are language-neutral**: option ids, `true`/`false`, group ids, region ids, pair ids, an id list for an order.
+- **Assets** `{id, kind: image|audio, file: "assets/x.png", alt: key}`: put the file in `course/assets/` (import a folder that has it), then add the asset with `edu_course_edit {patch: {assets: [...]}}` (an array replaces the whole array, so send the full list).
+- **Every item**: `id`, `objective`, `kind`, `prompt` (key), `explanation` (key, shown after the answer), optional `didYouKnow`, `hint`, `asset`, `difficulty` 1-5 (default 3), `tags`, `extensions`. Kind fields:
+
+| kind | fields |
+|---|---|
+| `mcq` | `options: [{id, text, why?}]` (2-8), `answer: <option id>`, `shuffle` |
+| `true-false` | `answer: true/false`, optional `why` (the misconception behind the wrong choice) |
+| `multi-select` | `options`, `answers: [option ids]` (at least 1), `shuffle` |
+| `cloze` | `text` (a key whose string holds `{{gapId}}` markers), `gaps: [{id, answer: <accepted key>, bank?: [keys]}]`, `strictDiacritics?` |
+| `typed` | `answer: <accepted key>`, `strictDiacritics?` |
+| `match-pairs` | `pairs: [{id, left, right}]` (2-8) |
+| `order` | `items: [{id, text, when?}]` in the CORRECT order (2-10), `timeline` |
+| `sort-groups` | `groups: [{id, title}]` (2-5), `items: [{id, text, group, why?}]` |
+| `hotspot` | `asset` (image), `width`, `height`, `regions: [{id, label, shape: {type: circle, cx, cy, r} / {rect, x, y, w, h} / {poly, points}, why?}]`, `answer: <region id>` |
+| `listening` | `asset` (audio), `transcript`, `mode: choose` (`options`, `answer: <option id>`) or `type` (`answer: <accepted key>`) |
+| `flashcard` | `back` (key), `backAsset?` (self-graded) |
+| `crossword` | `words: [{id, answer: <accepted key>, clue}]` (3-20), `seed`, `maxSize` (the grid is generated per language) |
+| `word-search` | `words: [{id, answer: <accepted key>}]`, `seed`, `size?`, `directions: forward|diagonal|all` |
+
+**Writing items well** (the lint checks the checkable ones): ask each objective in two or more different forms; every wrong choice of an mcq, multi-select or listening-choose item has a `why` (the misconception it stands for); one fact per item; a typed answer lists its synonyms; keep the explanation short and add a `didYouKnow` hook.
+
+### Editing
+
+- `edu_item_add` parses the item with its kind's schema (defaults filled in), and refuses an item that does not fit, an unknown objective, asset or option, a duplicate id. Pass `text` (`{en: {strings: {...}, accepted: {...}}, hr: {...}}`) to write its strings in the same call; strings still missing come back as `pending` (the item is saved, the course is just not finished). `edu_text_set` writes strings and accepted lists and removes keys (`remove`) in one language; the language must be an edition or the target language.
+- `edu_course_edit` and `edu_item_update` take a JSON merge patch (RFC 7396): objects merge, `null` deletes a key, an array replaces the whole array. A result that is structurally invalid (schema, unknown ids, duplicate ids) is refused and nothing is written; missing texts, `why` keys, gap markers and asset files are reported as `pending`, not refused. Editable pack fields: `sourceLang languages targetLang subject audience cefr matching units objectives shells assets cues encyclopedia factbase extensions` (items have their own tools; `id`, `slug` and `schema` never change). To add an edition, add it to `languages` and send its strings with `text`.
+- Writes are atomic (a temp file renamed over the target) and the writes of one course run one after another.
+
+### Validate, build and lint
+
+- `edu_validate` checks the schema, every reference, the text keys in every edition, the puzzles (every crossword and word-search word must be placeable) and the asset files. Codes: `SCHEMA`, `UNKNOWN_KIND`, `DUPLICATE_ID`, `UNKNOWN_UNIT|OBJECTIVE|ASSET|FACT|ARTICLE|OPTION|GROUP|REGION`, `MISSING_TEXT`, `MISSING_WHY`, `MISSING_GAP_MARKER`, `ASSET_KIND`, `PUZZLE_UNPLACED`, `PUZZLE_INVALID`, `MISSING_CATALOG`, `CATALOG_LANG`, `UNKNOWN_LANGUAGE`, `SOURCE_LANG_NOT_LISTED`, `PARSE`, `MISSING_ASSET_FILE`.
+- `edu_build` refuses a course with validation problems (and returns them); `force: true` builds anyway when the files parse (for testing the lint). The build folder holds `index.html`, `player.js`, `player.css`, `game-data.json` (what the lint and the autoplay bot read), `game-data.js` (`window.EDU_GAME_DATA = ...`, so it works from `file://`) and `assets/`. Only `courses/<slug>/build/` is ever cleaned.
+- `edu_lint` reads the built `game-data.json` and its asset files (and builds first when there is no build; `rebuild: true` builds again; `stale: true` says a course file changed after the build). The result is `{ok, errors, warnings, problems: [{code, severity, path, message}]}`; **errors fail the lint** (CLI exit 1), warnings alone pass (exit 0). It also reports everything `edu_validate` finds, as errors.
+
+| Lint code | Severity | Meaning |
+|---|---|---|
+| `ITEM_NO_KEY` | error | the answer key is empty or unsolvable: it points to no option, region or answer, or the item's own solution does not check right |
+| `ITEM_MULTI_KEY` | error | an mcq, true-false or listening-choose item names more than one right answer (use multi-select) |
+| `ACCEPTED_INCOMPLETE` | error | a typed answer, cloze gap, typed listening answer or crossword/word-search word has no accepted list in an edition, or an accepted entry is empty |
+| `DISTRACTOR_DUPLICATE` | error | two options (or two bank words of a gap) read the same after normalising case, accents and punctuation, in an edition |
+| `DISTRACTOR_IS_KEY` | error | a distractor reads like a right option; a bank word is an accepted answer of its gap; a typed item's `extensions.nearMisses` list holds an accepted answer |
+| `OBJECTIVE_ONE_FORM` | error | an objective is asked in fewer than two distinct forms |
+| `OBJECTIVE_NO_ITEMS` | error | an objective has no items |
+| `UNIT_NO_OBJECTIVES` | error | a unit has no objectives |
+| `ASSET_MISSING` | error | an asset file is not in the build folder |
+| `TEXT_MISSING` | error | a text key the pack or an item uses is missing or empty in an edition |
+| `PREREQ_CYCLE` | error | the unit prerequisites form a cycle |
+| `UNIT_UNREACHABLE` | error | no learner can reach the unit from the units without prerequisites |
+| `PLACEHOLDER` | error | a text says TODO, TBD, FIXME (upper case, or lower case with a colon), lorem ipsum, XXX, `[[`, "placeholder", or has a `{{` that is not a gap marker of its own cloze item |
+| `PLACEHOLDER_ASSET` | warning | an asset (or an item's text that uses it) says it is a placeholder, such as a test tone standing in for speech: replace it before publishing |
+| `GAME_DATA_INVALID` | error | `game-data.json` is missing or is not a game |
 
 ## Do the model work yourself
 
@@ -71,7 +136,7 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 
 ## Languages
 
-`edu_languages` lists the 37 built-in course languages (code, English name, native name, right-to-left, script) and the ones added in `config/languages.md`. Player menu strings exist for Croatian so far; other languages keep the English menus until the player (EGS-03) extends the table.
+`edu_languages` lists the 37 built-in course languages (code, English name, native name, right-to-left, script) and the ones added in `config/languages.md`. Player menu strings exist for Croatian so far; other languages keep the English menus until the player extends the table.
 
 ## Notes
 

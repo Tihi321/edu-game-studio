@@ -1,0 +1,354 @@
+{
+  "schema": 1,
+  "id": "broken",
+  "slug": "broken",
+  "sourceLang": "en",
+  "languages": [
+    "en"
+  ],
+  "subject": "A deliberately broken course that the lint must reject",
+  "audience": "tests",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-start",
+      "title": "unit.u-start.title",
+      "requires": []
+    },
+    {
+      "id": "u-loop-a",
+      "title": "unit.u-loop-a.title",
+      "requires": [
+        "u-loop-b"
+      ]
+    },
+    {
+      "id": "u-loop-b",
+      "title": "unit.u-loop-b.title",
+      "requires": [
+        "u-loop-a"
+      ]
+    },
+    {
+      "id": "u-empty",
+      "title": "unit.u-empty.title",
+      "requires": [
+        "u-start"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-multi",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-multi.text",
+      "facts": []
+    },
+    {
+      "id": "obj-dist",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-dist.text",
+      "facts": []
+    },
+    {
+      "id": "obj-one-form",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-one-form.text",
+      "facts": []
+    },
+    {
+      "id": "obj-text",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-text.text",
+      "facts": []
+    },
+    {
+      "id": "obj-typed",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-typed.text",
+      "facts": []
+    },
+    {
+      "id": "obj-empty",
+      "unit": "u-start",
+      "bloom": "remember",
+      "text": "obj.obj-empty.text",
+      "facts": []
+    },
+    {
+      "id": "obj-loop",
+      "unit": "u-loop-a",
+      "bloom": "remember",
+      "text": "obj.obj-loop.text",
+      "facts": []
+    },
+    {
+      "id": "obj-loop-b",
+      "unit": "u-loop-b",
+      "bloom": "remember",
+      "text": "obj.obj-loop-b.text",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "i-multi",
+      "objective": "obj-multi",
+      "kind": "mcq",
+      "prompt": "i-multi.prompt",
+      "explanation": "i-multi.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "paris",
+          "text": "i-multi.o.paris"
+        },
+        {
+          "id": "lyon",
+          "text": "i-multi.o.lyon",
+          "why": "i-multi.o.lyon.why"
+        },
+        {
+          "id": "nice",
+          "text": "i-multi.o.nice",
+          "why": "i-multi.o.nice.why"
+        }
+      ],
+      "answers": [
+        "paris",
+        "lyon"
+      ],
+      "shuffle": true
+    },
+    {
+      "id": "i-multi-tf",
+      "objective": "obj-multi",
+      "kind": "true-false",
+      "prompt": "i-multi-tf.prompt",
+      "explanation": "i-multi-tf.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true
+    },
+    {
+      "id": "i-dup",
+      "objective": "obj-dist",
+      "kind": "mcq",
+      "prompt": "i-dup.prompt",
+      "explanation": "i-dup.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "mercury",
+          "text": "i-dup.o.mercury"
+        },
+        {
+          "id": "venus",
+          "text": "i-dup.o.venus",
+          "why": "i-dup.o.venus.why"
+        },
+        {
+          "id": "venus2",
+          "text": "i-dup.o.venus2",
+          "why": "i-dup.o.venus2.why"
+        }
+      ],
+      "answer": "mercury",
+      "shuffle": true
+    },
+    {
+      "id": "i-iskey",
+      "objective": "obj-dist",
+      "kind": "multi-select",
+      "prompt": "i-iskey.prompt",
+      "explanation": "i-iskey.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "mars",
+          "text": "i-iskey.o.mars"
+        },
+        {
+          "id": "mars2",
+          "text": "i-iskey.o.mars2",
+          "why": "i-iskey.o.mars2.why"
+        },
+        {
+          "id": "earth",
+          "text": "i-iskey.o.earth",
+          "why": "i-iskey.o.earth.why"
+        }
+      ],
+      "answers": [
+        "mars"
+      ],
+      "shuffle": true
+    },
+    {
+      "id": "i-one-a",
+      "objective": "obj-one-form",
+      "kind": "mcq",
+      "prompt": "i-one-a.prompt",
+      "explanation": "i-one-a.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "blue",
+          "text": "i-one-a.o.blue"
+        },
+        {
+          "id": "green",
+          "text": "i-one-a.o.green",
+          "why": "i-one-a.o.green.why"
+        }
+      ],
+      "answer": "blue",
+      "shuffle": true
+    },
+    {
+      "id": "i-one-b",
+      "objective": "obj-one-form",
+      "kind": "mcq",
+      "prompt": "i-one-b.prompt",
+      "explanation": "i-one-b.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "blue",
+          "text": "i-one-b.o.blue"
+        },
+        {
+          "id": "red",
+          "text": "i-one-b.o.red",
+          "why": "i-one-b.o.red.why"
+        }
+      ],
+      "answer": "blue",
+      "shuffle": true
+    },
+    {
+      "id": "i-nokey",
+      "objective": "obj-text",
+      "kind": "mcq",
+      "prompt": "i-nokey.prompt",
+      "explanation": "i-nokey.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "pacific",
+          "text": "i-nokey.o.pacific",
+          "why": "i-nokey.o.pacific.why"
+        },
+        {
+          "id": "atlantic",
+          "text": "i-nokey.o.atlantic",
+          "why": "i-nokey.o.atlantic.why"
+        }
+      ],
+      "answer": "indian",
+      "shuffle": true
+    },
+    {
+      "id": "i-missing",
+      "objective": "obj-text",
+      "kind": "true-false",
+      "prompt": "i-missing.prompt",
+      "explanation": "i-missing.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true
+    },
+    {
+      "id": "i-typed-none",
+      "objective": "obj-typed",
+      "kind": "typed",
+      "prompt": "i-typed-none.prompt",
+      "explanation": "i-typed-none.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": "i-typed-none.answer"
+    },
+    {
+      "id": "i-cloze-blank",
+      "objective": "obj-typed",
+      "kind": "cloze",
+      "prompt": "i-cloze-blank.prompt",
+      "explanation": "i-cloze-blank.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "text": "i-cloze-blank.text",
+      "gaps": [
+        {
+          "id": "g1",
+          "answer": "i-cloze-blank.g1"
+        }
+      ]
+    },
+    {
+      "id": "i-loop-1",
+      "objective": "obj-loop",
+      "kind": "mcq",
+      "prompt": "i-loop-1.prompt",
+      "explanation": "i-loop-1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "two",
+          "text": "i-loop-1.o.two"
+        },
+        {
+          "id": "three",
+          "text": "i-loop-1.o.three",
+          "why": "i-loop-1.o.three.why"
+        }
+      ],
+      "answer": "two",
+      "shuffle": true
+    },
+    {
+      "id": "i-loop-2",
+      "objective": "obj-loop",
+      "kind": "true-false",
+      "prompt": "i-loop-2.prompt",
+      "explanation": "i-loop-2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena"
+    ],
+    "config": {}
+  },
+  "assets": [
+    {
+      "id": "a-gone",
+      "kind": "image",
+      "file": "assets/gone.png",
+      "alt": "a-gone.alt"
+    }
+  ],
+  "cues": [],
+  "encyclopedia": {
+    "articles": []
+  },
+  "factbase": [],
+  "extensions": {}
+}

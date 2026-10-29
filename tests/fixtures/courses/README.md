@@ -17,3 +17,7 @@ Two hand-written courses in the course contract (`src/shared/course.ts`). Tests,
 - Every visible string is a key into the catalog. In `solar-system` both editions hold all the text. In `hr-a1-greetings` the English edition holds the instructions and explanations, and `text/hr.json` is the target-language catalog (the Croatian phrases and the accepted answers), shared by every edition.
 - `accepted` lists: the first entry is the canonical answer; later entries are synonyms. Typo, accent and case tolerance is applied on top (`src/shared/edu/match.ts`).
 - Fact-base URLs are NASA pages (checked to answer HTTP 200 on 2026-10-29).
+
+## The broken fixture
+
+`broken/` is wrong on purpose and is NOT a golden fixture: the validator refuses it, so it is built with `--force` and the lint must report the codes listed in `broken/EXPECTED.md` (`tests/edu-lint.test.ts` asserts them). The golden fixtures above must lint with exit 0.

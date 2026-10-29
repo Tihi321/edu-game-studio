@@ -31,24 +31,29 @@ export function loadCourseFolder(root: string): Promise<LoadedCourse> {
 
 export type FolderValidation = ValidationResult & { problems: Problem[] }
 
+/** `MISSING_ASSET_FILE` for every asset of a raw pack whose file is not in `<root>/course/` (or points outside it). */
+export async function assetFileProblems(root: string, rawPack: unknown): Promise<Problem[]> {
+  const problems: Problem[] = []
+  const assets = (rawPack as { assets?: { id?: unknown; file?: unknown }[] } | undefined)?.assets
+  if (!Array.isArray(assets)) return problems
+  for (const [i, a] of assets.entries()) {
+    if (typeof a?.file !== 'string') continue
+    const file = path.join(root, 'course', ...a.file.split('/'))
+    if (path.relative(path.join(root, 'course'), file).startsWith('..')) {
+      problems.push({ code: 'MISSING_ASSET_FILE', path: `assets[${i}].file`, message: `"${a.file}" is outside the course folder` })
+      continue
+    }
+    const ok = await stat(file).then((s) => s.isFile(), () => false)
+    if (!ok) problems.push({ code: 'MISSING_ASSET_FILE', path: `assets[${i}].file`, message: `the file "${a.file}" does not exist` })
+  }
+  return problems
+}
+
 /** Loads and validates a course folder: the schema and the references (`validateCourse`) plus `MISSING_ASSET_FILE` for assets whose file is not on disk. */
 export async function validateCourseFolder(root: string): Promise<FolderValidation> {
   const loaded = await loadCourseFolder(root)
   const res = validateCourse(loaded.pack, loaded.catalogs)
-  const problems = [...loaded.problems, ...res.problems]
-  const assets = (loaded.pack as { assets?: { id?: unknown; file?: unknown }[] } | undefined)?.assets
-  if (Array.isArray(assets)) {
-    for (const [i, a] of assets.entries()) {
-      if (typeof a?.file !== 'string') continue
-      const file = path.join(root, 'course', ...a.file.split('/'))
-      if (path.relative(path.join(root, 'course'), file).startsWith('..')) {
-        problems.push({ code: 'MISSING_ASSET_FILE', path: `assets[${i}].file`, message: `"${a.file}" is outside the course folder` })
-        continue
-      }
-      const ok = await stat(file).then((s) => s.isFile(), () => false)
-      if (!ok) problems.push({ code: 'MISSING_ASSET_FILE', path: `assets[${i}].file`, message: `the file "${a.file}" does not exist` })
-    }
-  }
+  const problems = [...loaded.problems, ...res.problems, ...(await assetFileProblems(root, loaded.pack))]
   const ok = problems.length === 0
   return { ...res, ok, problems, ...(ok ? {} : { pack: undefined, catalogs: undefined }) }
 }

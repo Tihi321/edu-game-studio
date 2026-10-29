@@ -11,14 +11,15 @@
   },
   "scripts": {
     "postinstall": "install-electron",
-    "build:engine": "vite build --config vite.engine.config.ts --logLevel warn",
+    "build:player": "vite build --config vite.player.config.ts --logLevel warn",
+    "build:engine": "yarn build:player && vite build --config vite.engine.config.ts --logLevel warn",
     "dev": "yarn build:engine && electron-vite dev",
     "build": "yarn build:engine && electron-vite build",
     "engine": "yarn build:engine && node out/engine/index.js",
     "mcp": "yarn build:engine && node out/engine/index.js --mcp-only",
     "key:set": "yarn build:engine && node out/engine/index.js key-set",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.player.json",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "electron-vite": "^5.0.0",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
+    "playwright": "^1.64.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tsx": "^4.23.15",

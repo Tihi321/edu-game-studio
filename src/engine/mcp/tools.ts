@@ -4,6 +4,7 @@ import { jsonSchemaOf } from '../pipeline/llm'
 import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
 import { clientTools } from './tools-client'
+import { courseTools } from './tools-course'
 
 /**
  * The MCP tools. They drive the same `EduService` as the app and the CLI, so a shared engine shows what an agent does in the UI
@@ -70,10 +71,13 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
     def('edu_list_courses', 'List the courses in the data folder (slug and when they last changed).', z.object({}), async () => ({ courses: await svc.listCourses() })),
     def(
       'edu_status',
-      'The state of the job queue: with a course slug, the jobs of that course (queued, running, done, failed, and the failures); without one, the courses with their job counts. clientTasks: the model calls waiting for you or leased (see edu_get_task).',
+      'The state of the job queue: with a course slug, the jobs of that course (queued, running, done, failed, and the failures) and `course` (counts of units, objectives and items, the editions, whether the game is built and whether it is stale); without one, the courses with their job counts. clientTasks: the model calls waiting for you or leased (see edu_get_task).',
       z.object({ slug: slug.optional() }),
       async (a) => {
-        if (a.slug) return { slug: a.slug, ...(await svc.status(a.slug)), clientTasks: queue().counts() }
+        if (a.slug) {
+          const course = await svc.courses.summary(a.slug)
+          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), clientTasks: queue().counts() }
+        }
         const courses = await svc.listCourses()
         return { dataDir: svc.dataDir, courses: await Promise.all(courses.map(async (c) => ({ slug: c.slug, jobs: await svc.jobCounts(c.slug) }))), clientTasks: queue().counts() }
       }
@@ -93,6 +97,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
       z.object({}),
       async () => ({ languages: languages().map((l) => ({ code: l.code, name: l.name, native: l.native, rtl: !!l.rtl, script: l.script, uiStrings: !!l.ui })) })
     ),
+
+    // ---- the course files: create, edit, build, lint ----
+    ...courseTools(svc, def),
 
     // ---- generators ----
     def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not.', z.object({}), async () => ({ studios: await svc.studiosStatus() })),
