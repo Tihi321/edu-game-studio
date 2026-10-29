@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { briefSchema } from '../../shared/brief'
 import { langSchema } from '../../shared/media'
 import type { EduService } from '../edu/service'
 import type { Tool, ToolDef } from './tools'
@@ -26,18 +27,28 @@ export function courseTools(svc: EduService, def: ToolDef): Tool[] {
   return [
     def(
       'edu_create_course',
-      'Create a course: courses/<slug>/course/pack.json with one unit (u1) and one objective (u1-o1), and a text catalog per language. The course title is the string "course.title" of each catalog. Then add units, objectives and items.',
+      'Create a course: courses/<slug>/course/pack.json with one unit (u1) and one objective (u1-o1), and a text catalog per language. The course title is the string "course.title" of each catalog. Then add units, objectives and items. Or pass a `brief` (the same brief as edu_run_pipeline): the slug is made from the topic, the course.md gets the brief and the model, and edu_run_pipeline {slug} makes the course from it.',
       z.object({
-        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lower-case letters, digits and -').describe('Folder name and course id, for example solar-system'),
-        title: z.string().min(1).describe('The course title (written into every edition; translate it with edu_text_set)'),
-        languages: z.array(langSchema).min(1).describe('The editions (UI languages), for example ["en", "hr"]'),
-        sourceLang: langSchema.describe('The language the course is written in; one of languages'),
-        subject: z.string().min(1).describe('What the course teaches'),
-        audience: z.string().min(1).describe('Who it is for'),
+        slug: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lower-case letters, digits and -').optional().describe('Folder name and course id, for example solar-system (default with a brief: made from the topic)'),
+        title: z.string().min(1).optional().describe('The course title (written into every edition; translate it with edu_text_set)'),
+        languages: z.array(langSchema).min(1).optional().describe('The editions (UI languages), for example ["en", "hr"]'),
+        sourceLang: langSchema.optional().describe('The language the course is written in; one of languages'),
+        subject: z.string().min(1).optional().describe('What the course teaches'),
+        audience: z.string().min(1).optional().describe('Who it is for'),
+        brief: briefSchema.optional().describe('A course brief (see edu_run_pipeline): creates the course from it'),
         targetLang: langSchema.optional().describe('A language course: the language that is taught. Its catalog holds the taught phrases and their accepted answers'),
         cefr: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional()
       }),
-      (a) => svc.courses.create(a)
+      async (a) => {
+        if (a.brief) {
+          const r = await svc.createFromBrief(a.brief, a.slug)
+          if (!r.created) throw new Error(`the course "${r.slug}" already exists`)
+          return { slug: r.slug, created: true, stage: 'draft', next: 'edu_run_pipeline {slug} makes the course from its brief' }
+        }
+        const { slug, title, languages, sourceLang, subject, audience } = a
+        if (!slug || !title || !languages || !sourceLang || !subject || !audience) throw new Error('give a brief, or slug, title, languages, sourceLang, subject and audience')
+        return svc.courses.create({ slug, title, languages, sourceLang, subject, audience, targetLang: a.targetLang, cefr: a.cefr })
+      }
     ),
     def(
       'edu_get_course',

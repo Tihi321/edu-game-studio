@@ -8,7 +8,7 @@ Write the questions (items) of one unit of a learning game. A learner answers th
 Course: "{{title}}". Unit {{unit_id}}: {{unit_title}}.
 Audience: {{audience}} (age: {{age}}; level: {{level}})
 Language of the questions: {{language}}
-Language being taught (a language course only, otherwise empty): {{target_language}}
+Language being taught (a language course only; empty otherwise): {{target_language}}
 
 The objectives of this unit (each with the facts it rests on). Write items for EVERY objective:
 {{objectives}}
@@ -26,7 +26,7 @@ How many and which kinds:
 - At least {{items_per_objective}} items for each objective, in AT LEAST TWO DIFFERENT KINDS per objective (the same fact asked in a second form is the point). The kinds you may use: {{item_kinds}}.
 - Ids: {{item_id_prefix}}1, {{item_id_prefix}}2 ... (letters, digits, - and _ only). Option, gap, pair, step, group and entry ids are short and unique inside their item (a, b, c ...; g1 ...).
 - Every item has: `id`, `objective` (an id from the objectives above), `kind`, `prompt` (the question or the statement), `explanation` (one or two sentences: why the right answer is right), `facts` (the fact ids it rests on, at least one, copied exactly), and optionally `difficulty` (1 easy to 5 hard; most are 2 to 4) and `hint`.
-- A language course: set `"taught": true` on an item whose answers (options, gaps, typed answers, pair sides, steps, back of a card) are phrases in {{target_language}}; leave it out when the answers are in {{language}}. The prompt and the explanation are always in {{language}}.
+- A language course: set `"taught": true` on an item whose answers (options, gaps, typed answers, pair sides, steps, back of a card) are phrases in the language being taught; leave it out when the answers are in {{language}}. The prompt and the explanation are always in {{language}}.
 
 The shapes (use the fields exactly; one JSON object per item):
 - mcq: `"options": [{"id": "a", "text": "..."}, ...]` (3 or 4 options, exactly one right), `"answer": "a"` (the id of the right option). Give each WRONG option a plausible reason to be chosen; a later step adds the reason text.

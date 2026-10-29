@@ -73,11 +73,19 @@ export interface ResearchHandlerDeps {
   log: (message: string) => void
   search: SearchService
   research: ResearchService
+  /** Called after a research job finished its work (a note written, or none needed): the pipeline marks the step and goes on. */
+  after?: (slug: string, jobId: string) => Promise<void>
 }
 
 /** The `research` job: the researcher answers one question with sourced facts and writes them into the course's notes. */
 export function registerResearchHandlers(sched: Scheduler, d: ResearchHandlerDeps): void {
   sched.register('research', async (ctx) => {
+    const out = await research(ctx)
+    if (ctx.job.book) await d.after?.(ctx.job.book, ctx.job.id)
+    return out
+  })
+
+  const research = async (ctx: JobContext): Promise<{ result: string; resultPath?: string }> => {
     const question = String(ctx.job.question ?? '').replace(/\s+/g, ' ').trim()
     if (!question) throw new Error('a research job without a question')
     const slug = ctx.job.book
@@ -166,7 +174,7 @@ export function registerResearchHandlers(sched: Scheduler, d: ResearchHandlerDep
       result: `${facts.length} fact(s) ${unverified ? "from the model's own knowledge (unverified)" : `from ${provider}, ${new Set(facts.map((f) => f.source?.url)).size} source(s)`}`,
       resultPath: note.file
     }
-  })
+  }
 
   async function pageText(question: string, res: SearchResult, signal: AbortSignal): Promise<string> {
     let text = res.content?.trim() ?? ''

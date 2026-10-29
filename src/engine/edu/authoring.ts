@@ -138,6 +138,8 @@ export interface CurriculumContext {
   factIds: Iterable<string>
   /** The units the course has (the plan's number). */
   units?: number
+  /** Exactly this many objectives in each unit. */
+  objectivesPerUnit?: number
 }
 
 /** Ids valid and unique, `requires` known and acyclic, every objective in a known unit with existing facts, every unit with at least one objective. */
@@ -154,7 +156,9 @@ export function checkCurriculum(c: Curriculum, o: CurriculumContext): Problem[] 
       if (!known.has(r)) out.push(problem(u.id, `requires the unit "${r}", which does not exist`, `use one of: ${unitIds.join(', ')}`))
       else if (r === u.id) out.push(problem(u.id, 'requires itself'))
     }
-    if (!c.objectives.some((x) => x.unit === u.id)) out.push(problem(u.id, 'this unit has no objective', 'every unit needs at least one objective'))
+    const n = c.objectives.filter((x) => x.unit === u.id).length
+    if (n === 0) out.push(problem(u.id, 'this unit has no objective', 'every unit needs at least one objective'))
+    else if (o.objectivesPerUnit !== undefined && n !== o.objectivesPerUnit) out.push(problem(u.id, `${n} objective(s), each unit has exactly ${o.objectivesPerUnit}`, `give exactly ${o.objectivesPerUnit}`))
   }
   const cycle = findUnitCycle(c.units.map((u) => ({ id: u.id, title: u.title, requires: u.requires.filter((r) => known.has(r)) })))
   if (cycle) out.push(problem('', `the prerequisites form a cycle: ${cycle.join(' -> ')}`, 'a unit may only require units before it'))

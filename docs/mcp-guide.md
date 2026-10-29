@@ -2,7 +2,7 @@
 
 Edu Studio turns a topic into a playable educational game: a course (objectives, articles, items with answer keys, game shells) that a self-contained web player plays. This server lets an agent such as Claude Code drive the studio: see the courses and the job queue, and do the model work of the jobs itself, at no cost.
 
-**Status: EGS-07.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts, output contracts, the assembly of a course and the playtest runner (EGS-07) exist as engine code; the pipeline that runs them (`edu_run_pipeline`) arrives in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
+**Status: EGS-08.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts, output contracts, the assembly of a course and the playtest runner (EGS-07) exist as engine code; `edu_run_pipeline` runs them from a brief to a published course (EGS-08, see "Make a course from a brief"); the generators (art, music, voices) arrive in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
 
 ## Connect
 
@@ -24,6 +24,7 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 | Courses | `edu_list_courses` (the courses in `courses/`), `edu_create_course`, `edu_get_course {slug, text?, lang?}`, `edu_course_edit {slug, patch, text?}`, `edu_import_course {folder, slug?, overwrite?}`, `edu_status {slug?}` (the job counts of a course, or of every course; with a slug also `course`: counts, editions, build state; `clientTasks`), `edu_wait {slug, timeoutSeconds?}` (waits until the course has nothing left to run), `edu_languages` |
 | Items and text | `edu_item_add {slug, item, text?}`, `edu_item_update {slug, id, patch, text?}`, `edu_item_remove {slug, id}`, `edu_text_set {slug, lang, strings?, accepted?, remove?}` |
 | Build and check | `edu_validate {slug}`, `edu_build {slug, force?}`, `edu_lint {slug, rebuild?}` |
+| Pipeline | `edu_run_pipeline {slug?, brief?, restart?, from?, retry?}` (make a course from a brief; `edu_status` and `edu_wait` carry a `pipeline` block), `edu_create_course {brief}` (create the course and its `course.md` only) |
 | Research | `edu_ask_researcher {slug, question, purpose?, wait?}` (the researcher answers with sourced facts; `wait` seconds returns the note's facts), `edu_factbase_get {slug, merge?}` (the course's facts with stable ids and numbered sources) |
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
@@ -95,6 +96,35 @@ A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral te
 | `PLACEHOLDER` | error | a text says TODO, TBD, FIXME (upper case, or lower case with a colon), lorem ipsum, XXX, `[[`, "placeholder", or has a `{{` that is not a gap marker of its own cloze item |
 | `PLACEHOLDER_ASSET` | warning | an asset (or an item's text that uses it) says it is a placeholder, such as a test tone standing in for speech: replace it before publishing |
 | `GAME_DATA_INVALID` | error | `game-data.json` is missing or is not a game |
+
+## Make a course from a brief
+
+`edu_run_pipeline` turns a brief into a published, playable course with the team of roles, as file jobs in the queue. One call creates the course and starts the run:
+
+```
+edu_run_pipeline {brief: {topic: "The Roman Empire", audience: "teenagers", age: 14, sourceLang: "en", units: 2, model: "client/claude-code", story: "none"}}
+```
+
+**The brief** (`src/shared/brief.ts`; it is saved in `courses/<slug>/course.md`). Required: `topic`, `audience`. Optional: `age` (years; `kids` defaults to age < 13), `level` (free text), `cefr` (a language course), `sourceLang` (default `en`), `languages` (editions; only the source language is built now, the others are recorded and the step `editions` is skipped until Book Translator, EGS-18), `targetLang` (the language that is taught: a language course), `shells` (default `["quiz-arena"]`), `format` (an id of `config/formats.md`: `quick` is 2 units, `standard` 4, `deep` 6, `language-a1`; default `quick`, or `language-a1` with a `targetLang`), `units`, `objectivesPerUnit`, `itemsPerObjective` (override the format), `kids` (the child-safety reviewer must pass it), `story` (`none`, `frame`: a frame story written by the narrative designer, or `scriptorium`: the story idea is handed to Scriptorium, which is never started from here; when it is down the step is skipped), `model` (`provider/model` for every role of this course, written to `course.md` as `models["*"]`: `client/claude-code` makes you the team), `notes`. The slug is made from the topic (`the-roman-empire`) unless you pass `slug`. `edu_create_course {brief}` only creates the course and `course.md`; `edu_run_pipeline {slug}` then starts the run.
+
+**The steps** (the job id is `<slug>--<task>[-k<round>]--<unit|all>--r<run>`; a research job is `<slug>--research--q<hash>--r0`):
+
+```
+plan -> research x N -> factbase -> curriculum -> scope (language courses)
+  -> per unit, in parallel: articles -> items -> distractors -> fact_check -> explain -> accepted (language courses)
+  -> design -> story -> art, music, voice (skipped until phase 6) -> assemble
+  -> accessibility review (+ child-safety review for kids) -> build -> lint -> playtest -> playtest_report -> publish -> summarize
+```
+
+Each step writes its output to `courses/<slug>/pipeline/` (`plan.json`, `curriculum.json`, `units/<unit>/{articles,items,distractors,explain,accepted}.json`, `reviews/*.json`, `design.json`, `story.json`, `polish.json`, `lint.json`, `playtest.json`, `report.json`, `publish.json`, and `steps.json` = the state), then calls `advance`, which enqueues what can run next from those files. The assemble step writes `course/pack.json` and `course/text/<lang>.json`; build and lint are the ones of `edu_build` / `edu_lint`; the playtest step plays the built game with the autoplay bot as simulated learners (needs Chromium: `yarn playwright install chromium`).
+
+**Gates and loops.** The fact-checker must pass (`config/quality.md`, `must_pass`): a `revise` sends the unit to `articles_revise` / `items_revise` (only the flagged ids change), then `distractors` and `fact_check` again, as round 2 (`-k2` in the job ids), up to `max_rounds`; after the last round a reviewer that still says revise blocks the run. The accessibility reviewer (and the child-safety reviewer for kids) review the assembled course; a revise goes through `polish` (the explainer corrects only the flagged text keys) and `assemble` again. The publisher decides in code: must-pass reviewers, the weighted score against `threshold`, and two hard gates, lint errors and a failed autoplay bot; only a course that passes gets its blurb. `courses/<slug>/course.md` says `stage: running | blocked | published | failed` and its body is the run log the director's summary is appended to.
+
+**Looking.** `edu_status {slug}` has a `pipeline` block: `run`, `stage`, every step with its status (`queued`, `running`, `done`, `skipped`, `blocked`, `failed`) and note, `failed` (the failure text of a job that failed for good), `blockedBy` (why a run is blocked: the must-pass role, the gate) and `next` (what to do). `edu_wait {slug}` returns the same block when the course has nothing left to run.
+
+**Resume, retry, restart.** `edu_run_pipeline {slug}` on a course with a run in progress advances it (finished steps are not redone, also after the engine restarted). `{slug, retry: true}` puts the failed jobs of the run back in the queue. `{slug, restart: true, from: "<stage>"}` starts run n+1 and clears the outputs from that stage on (`plan`, `research`, `factbase`, `curriculum`, `scope`, `articles`, `items`, `distractors`, `fact_check`, `explain`, `accepted`, `design`, `story`, `assemble`, `review`, `build`, `lint`, `playtest`, `publish`); the research notes are kept. A job of an older run does nothing.
+
+**Doing it all yourself (`model: "client/claude-code"`).** Every model call of the run waits for you (see "Do the model work yourself"); the steps that need no model (factbase, assemble, build, lint, playtest) run on their own in between. The loop: `edu_run_pipeline {brief}`, then `edu_wait {slug}` (it returns as soon as a call waits, with `clientTasks`), `edu_get_task` and `edu_submit_task` until `none`, `edu_wait` again, until `stage` is `published` or `blocked`. Every task's `user` text is the whole prompt (the course, the unit, the objectives, the fact base, the rules, the JSON shape) and `schema` is the shape of the answer. The researcher's web search is also yours when `search_order` in `config/providers.md` has only `client-search` (`search_order: [client-search]`): those tasks have role `searcher` and the answer shape `{results: [{title, url, content}]}` (see "Research and the fact base"). About 30 to 40 tasks make a 2-unit quick course (plan, 4 research notes and searches, curriculum, 5 per unit, design, review, playtest report, publish, summary).
 
 ## Research and the fact base
 

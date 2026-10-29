@@ -5,6 +5,7 @@ import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
 import { clientTools } from './tools-client'
 import { courseTools } from './tools-course'
+import { pipelineTools } from './tools-pipeline'
 import { researchTools } from './tools-research'
 
 /**
@@ -77,7 +78,8 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
       async (a) => {
         if (a.slug) {
           const course = await svc.courses.summary(a.slug)
-          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), clientTasks: queue().counts() }
+          const pipeline = await svc.pipeline.status(a.slug)
+          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), clientTasks: queue().counts() }
         }
         const courses = await svc.listCourses()
         return { dataDir: svc.dataDir, courses: await Promise.all(courses.map(async (c) => ({ slug: c.slug, jobs: await svc.jobCounts(c.slug) }))), clientTasks: queue().counts() }
@@ -89,7 +91,8 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
       z.object({ slug, timeoutSeconds: z.number().positive().optional().describe('Default: 600') }),
       async (a) => {
         const r = await svc.waitIdle(a.slug, { timeoutMs: Math.min(a.timeoutSeconds ? a.timeoutSeconds * 1000 : 600_000, timeoutMs) })
-        return { timedOut: r.timedOut, failedJobs: r.failed, ...clientHint(r.clientTasks), status: await svc.status(a.slug) }
+        const pipeline = await svc.pipeline.status(a.slug)
+        return { timedOut: r.timedOut, failedJobs: r.failed, ...clientHint(r.clientTasks), status: await svc.status(a.slug), ...(pipeline ? { pipeline } : {}) }
       }
     ),
     def(
@@ -104,6 +107,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
 
     // ---- research and the fact base ----
     ...researchTools(svc, def, { waitTimeoutMs: timeoutMs }),
+
+    // ---- the content pipeline ----
+    ...pipelineTools(svc, def),
 
     // ---- generators ----
     def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not.', z.object({}), async () => ({ studios: await svc.studiosStatus() })),

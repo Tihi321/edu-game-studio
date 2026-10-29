@@ -3,6 +3,7 @@ import { waitFor } from './helpers'
 import type { TestEnv } from './helpers'
 import type { JobContext } from '../src/engine/queue/scheduler'
 import type { EduEnv } from './edu-helpers'
+import type { EngineOptions } from '../src/engine/engine'
 import type { SearchProvider } from '../src/engine/research/web'
 import type { MockProvider } from '../src/engine/models/mock'
 import type { ChatRequest } from '../src/engine/models/types'
@@ -29,6 +30,10 @@ export interface ResearchEnvOptions {
   knowledge?: string[]
   /** Price of one search request (USD). */
   price?: number
+  /** More engine options (a fake playtest runner, a fake Scriptorium ...). */
+  engine?: Partial<EngineOptions>
+  /** The client provider (`client/claude-code`) next to the local one, so a course can name it as its model. */
+  mixed?: boolean
 }
 
 export interface ResearchEnv extends EduEnv {
@@ -65,7 +70,7 @@ export async function makeResearchEnv(o: ResearchEnvOptions = {}): Promise<Resea
     counters.fetches.push(url)
     return byUrl.get(url)?.content ?? ''
   }
-  const env = await makeEduEnv({ engine: { searchProviders: [provider], search: { fetchPage } } })
+  const env = await makeEduEnv({ ...(o.mixed ? { mixed: true } : {}), engine: { searchProviders: [provider], search: { fetchPage }, ...(o.engine ?? {}) } })
   const mock: MockProvider = env.mock
   const count = (k: string) => (counters.calls[k] = (counters.calls[k] ?? 0) + 1)
   mock.on({ task: 'research' }, (req) => {

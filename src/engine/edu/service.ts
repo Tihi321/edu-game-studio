@@ -34,7 +34,12 @@ import type { AppDirs } from './appdirs'
 import { courseMdPath, modelFor, patchCourseMeta, patchCourseModels, readCourseMeta } from './course-meta'
 import type { CourseMeta, CourseMetaFile } from './course-meta'
 import { FactBase } from './factbase'
-import { assertSlug, coursesDir, dataFolders, loadComfyConfigFor } from './paths'
+import { briefSchema, resolveBrief } from '../../shared/brief'
+import type { BriefInput } from '../../shared/brief'
+import { Pipeline } from './pipeline'
+import type { RunResult } from './pipeline'
+import { registerPipelineHandlers } from './pipeline-handlers'
+import { assertSlug, courseSlug, coursesDir, dataFolders, loadComfyConfigFor } from './paths'
 import { CourseStore, listCourses } from './store'
 import { handleStudioCommand } from './studio-commands'
 import type { CourseSummary } from './store'
@@ -105,6 +110,10 @@ export class EduService {
   readonly research: ResearchService
   /** The fact base of each course (`courses/<slug>/factbase/`). */
   readonly factbase: FactBase
+  /** The content pipeline: its state, `advance` and the run controls (EGS-08). */
+  readonly pipeline: Pipeline
+  /** Set by the pipeline handlers: called when a research job finished its work. */
+  afterResearch?: (slug: string, jobId: string) => Promise<void>
   /** `course.md` models by course: the cache `courseModel` answers from (see there). */
   private readonly models = new Map<string, { models: Record<string, string>; mtime: number }>()
 
@@ -112,12 +121,14 @@ export class EduService {
     this.dirs = { ...findAppDirs(), ...(deps.dirs ?? {}) }
     this.comfyOverride = deps.comfy
     this.research = new ResearchService({ dataDir: deps.dataDir, jobs: deps.jobs, agents: deps.agents, getFactory: deps.getFactory, log: (m) => this.log(m), kick: () => deps.kick?.(), emit: deps.emit })
+    this.pipeline = new Pipeline(this)
     this.factbase = new FactBase(deps.dataDir, this.research.store, { allowUnverified: () => deps.getFactory().allow_unverified_facts })
   }
 
   /** Registers the job handlers of the service's own tasks on the scheduler: `research` now, the content pipeline in EGS-08. */
   registerHandlers(scheduler: Scheduler): void {
-    registerResearchHandlers(scheduler, { dataDir: this.deps.dataDir, log: (m) => this.log(m), search: this.deps.search, research: this.research })
+    registerResearchHandlers(scheduler, { dataDir: this.deps.dataDir, log: (m) => this.log(m), search: this.deps.search, research: this.research, after: (slug, jobId) => this.afterResearch?.(slug, jobId) ?? Promise.resolve() })
+    registerPipelineHandlers(scheduler, this)
   }
 
   get dataDir(): string {
@@ -272,6 +283,46 @@ export class EduService {
   /** The courses in `<data>/courses/`: a folder with a `course.md` or a `course/pack.json`. */
   listCourses(): Promise<CourseSummary[]> {
     return listCourses(this.dataDir)
+  }
+
+  /**
+   * Creates the course of a brief (its files, and `course.md` with the brief and the model) when it does not exist yet. The slug defaults to the
+   * topic's. A course that exists keeps its files; its `course.md` gets the brief only when no run has started (or `overwriteBrief`). Returns the slug.
+   */
+  async createFromBrief(input: BriefInput, slug?: string, o: { overwriteBrief?: boolean } = {}): Promise<{ slug: string; created: boolean }> {
+    const brief = briefSchema.parse(input)
+    resolveBrief(brief, this.deps.getFormats()) // an unknown format is refused here
+    if (brief.model && !this.deps.registry.getModel(brief.model)) throw new Error(`unknown model "${brief.model}" (the Models page lists provider/model refs; client/claude-code lets an MCP client do the work)`)
+    const s = slug ?? courseSlug(brief.topic)
+    let created = false
+    if (!(await fs.stat(path.join(coursesDir(this.dataDir), assertSlug(s), 'course', 'pack.json')).then(() => true, () => false))) {
+      await this.courses.create({ slug: s, title: brief.topic, languages: [brief.sourceLang], sourceLang: brief.sourceLang, subject: brief.topic, audience: brief.audience, ...(brief.targetLang ? { targetLang: brief.targetLang } : {}), ...(brief.cefr ? { cefr: brief.cefr } : {}) })
+      created = true
+    }
+    const hasRun = !!(await this.pipeline.readSteps(s))
+    if (created || !hasRun || o.overwriteBrief) {
+      await this.setCourseMeta(s, { brief, stage: 'draft' })
+      if (brief.model) await this.setCourseModels(s, { '*': brief.model })
+    }
+    return { slug: s, created }
+  }
+
+  /**
+   * `edu_run_pipeline`: creates the course from a brief when it does not exist, then starts the run, resumes the one in progress, retries the
+   * failed jobs or restarts from a stage (see `Pipeline.start`).
+   */
+  async runPipeline(a: { slug?: string; brief?: BriefInput; restart?: boolean; from?: string; retry?: boolean }): Promise<RunResult & { created?: boolean }> {
+    let slug = a.slug
+    let created: boolean | undefined
+    if (a.brief) {
+      const r = await this.createFromBrief(a.brief, slug, { overwriteBrief: a.restart === true })
+      slug = r.slug
+      created = r.created
+    }
+    if (!slug) throw new Error('give a slug (an existing course with a brief) or a brief')
+    if (!(await this.courseExists(slug))) throw new Error(`no course "${slug}": pass a brief to create it`)
+    const out = await this.pipeline.start(slug, { restart: a.restart, from: a.from, retry: a.retry })
+    return created === undefined ? out : { ...out, created }
   }
 
   /** The course files (create, edit, import, validate, build, lint): the same code the CLI uses. */

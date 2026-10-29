@@ -11,7 +11,7 @@ import { fakeBundle, useTemp } from './edu-build-helpers'
 useTemp()
 
 const COURSE_TOOLS = ['edu_list_courses', 'edu_create_course', 'edu_get_course', 'edu_course_edit', 'edu_item_add', 'edu_item_update', 'edu_item_remove', 'edu_text_set', 'edu_import_course', 'edu_validate', 'edu_build', 'edu_lint', 'edu_status']
-const RESEARCH_TOOLS = ['edu_ask_researcher', 'edu_factbase_get']
+const RESEARCH_TOOLS = ['edu_ask_researcher', 'edu_factbase_get', 'edu_run_pipeline']
 
 let env: EduEnv
 let tools: Tool[]
