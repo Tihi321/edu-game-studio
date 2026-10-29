@@ -7,6 +7,8 @@ import { ToolOutput } from './tools'
 import type { McpOptions, Tool, ToolDef } from './tools'
 
 const JSON_OUTPUT = 'Reply with one JSON object that matches `schema`. No prose, no code fence.'
+const WEB_SEARCH_OUTPUT =
+  'This is a web search: do it yourself with your own web search and fetch tools, read the pages, and prefer primary, official and recent sources. Reply with one JSON object that matches `schema`: {results: [{title, url, content, published?}]}, where content is a verbatim excerpt of the page (at most 1500 characters) and url is a page you really read. Never invent a URL. An empty results list is fine when you find nothing. No prose, no code fence.'
 const TEXT_OUTPUT = 'Reply with the text only: no preamble, no notes, no code fence.'
 
 /** A message's text, with `[image n]` where an image sat. `seen` counts the images across the messages. */
@@ -33,7 +35,7 @@ export function taskView(t: ClientTask): { view: Record<string, unknown>; images
     ...(multi ? { messages: turns } : { user: turns.map((m) => m.content).join('\n\n') }),
     ...(t.schema ? { schema: t.schema } : {}),
     ...(t.maxTokens ? { maxTokens: t.maxTokens } : {}),
-    output: t.schema ? JSON_OUTPUT : TEXT_OUTPUT,
+    output: t.task === 'web_search' ? WEB_SEARCH_OUTPUT : t.schema ? JSON_OUTPUT : TEXT_OUTPUT,
     leaseMinutes: DEFAULT_LEASE_MS / 60_000
   }
   if (t.images?.length) view.images = `${t.images.length} image(s) follow as image content, in order ([image 1] ...)`

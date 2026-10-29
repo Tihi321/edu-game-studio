@@ -9,9 +9,11 @@ export type { EduDeps } from './service'
 sharp.cache(false)
 
 /**
- * The hook for the course pipeline: later tickets register their job handlers here (`scheduler.register('edu.<task>', ...)`), EGS-08 the
- * content pipeline and EGS-03 the build and lint. Nothing is registered yet, so the engine only serves its queue, models and MCP tools.
+ * The hook for the course pipeline: the job handlers are registered here. The researcher's `research` job is registered now (EGS-06);
+ * EGS-08 adds the content pipeline's handlers, EGS-03 the build and lint ones.
  */
-export function registerEduHandlers(_scheduler: Scheduler, deps: EduDeps): EduService {
-  return new EduService(deps)
+export function registerEduHandlers(scheduler: Scheduler, deps: EduDeps): EduService {
+  const svc = new EduService(deps)
+  svc.registerHandlers(scheduler)
+  return svc
 }

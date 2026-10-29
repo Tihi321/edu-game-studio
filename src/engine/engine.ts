@@ -2,8 +2,8 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { Command, EngineEvent, SettingsSummary, SnapshotEvent } from '../shared/protocol'
 import { parseMdWith } from '../shared/md'
-import { factorySchema, groupDefaultsOf, ROLES, settingsSchema } from '../shared/schemas'
-import type { FactoryConfig, SettingsConfig } from '../shared/schemas'
+import { factorySchema, formatsSchema, groupDefaultsOf, qualitySchema, ROLES, settingsSchema } from '../shared/schemas'
+import type { FactoryConfig, FormatEntry, QualityConfig, SettingsConfig } from '../shared/schemas'
 import { AgentStore } from './agents/agents'
 import { Budget } from './budget/spend'
 import { LogWriter } from './logs/logs'
@@ -27,6 +27,9 @@ import type { PixelClient } from './studios/pixel'
 import type { ChiptuneClient } from './studios/chiptune'
 import type { FlowClient } from './studios/flow'
 import { ServiceStarter } from './studios/autostart'
+import { SearchService } from './research/service'
+import type { SearchServiceOptions } from './research/service'
+import type { SearchProvider } from './research/web'
 import { readSeedNotes } from './store/seedRefresh'
 import { loadLanguageConfig } from './edu/languages-config'
 import type { AppDirs } from './edu/appdirs'
@@ -52,6 +55,10 @@ export interface EngineOptions {
   flow?: FlowClient
   /** Starts Pixel Studio, Chiptune Studio and ComfyUI when a job needs them (`config/autostart.md`). Default: one made here (tests pass a fake). */
   starter?: ServiceStarter
+  /** Tests: these search providers serve the researcher instead of the ones in `config/providers.md` (nothing reaches the network). */
+  searchProviders?: SearchProvider[]
+  /** Tests: the page download of the researcher (`fetchPage`) and the `fetch` the search providers use. */
+  search?: Pick<SearchServiceOptions, 'fetchPage' | 'fetchImpl'>
   /** The folders that ship with the app (themes, the seed). Default: found relative to the engine code. */
   dirs?: Partial<AppDirs>
   /** The data-folder lock this engine holds (`store/lock.ts`): released by `stop()`. Tests leave it out. */
@@ -81,6 +88,12 @@ export class Engine {
   /** The MCP HTTP server (`config/mcp.md`), once `startMcp` ran. */
   mcp: McpController | null = null
   factory: FactoryConfig = factorySchema.parse({ kind: 'factory' })
+  /** `config/quality.md`: how the publisher judges reviews. */
+  quality: QualityConfig = qualitySchema.parse({ kind: 'quality' })
+  /** `config/formats.md`: the course formats. */
+  formats: FormatEntry[] = []
+  /** The web search providers of `config/providers.md` (the researcher's search). */
+  readonly search: SearchService
   /** `start()` finished: snapshots from now on are complete. */
   private started = false
   /** The last model list each provider gave the Models page (`detectModels`), for the prices of the models picked from it. */
@@ -135,6 +148,7 @@ export class Engine {
       projectModel: (book, role) => this.edu.courseModel(book, role)
     })
     this.starter = opts.starter ?? new ServiceStarter({ dataDir: dir, log: (m) => this.log(m) })
+    this.search = new SearchService({ registry: this.registry, budget: this.budget, emit: this.emit, log: this.log, keys: opts.registry?.keys, clientQueue: this.clientQueue, ...(opts.searchProviders ? { providers: opts.searchProviders } : {}), ...opts.search })
     this.edu = registerEduHandlers(this.scheduler, {
       dataDir: dir,
       log: this.log,
@@ -143,6 +157,12 @@ export class Engine {
       router: this.router,
       jobs: this.jobs,
       getSettings: () => this.settings,
+      getFactory: () => this.factory,
+      getQuality: () => this.getQuality(),
+      getFormats: () => this.getFormats(),
+      agents: this.agents,
+      search: this.search,
+      changeModel: () => this.scheduler.changeModel(),
       kick: () => this.scheduler.kick(),
       stopBook: (slug, reason) => this.scheduler.stopBook(slug, reason),
       comfy: opts.comfy,
@@ -160,6 +180,7 @@ export class Engine {
 
   async start(): Promise<void> {
     await this.loadFactory()
+    await this.loadQualityAndFormats()
     await this.loadSettings()
     await loadLanguageConfig(this.opts.dataDir, (m) => this.log(`languages: ${m}`))
     await this.registry.load()
@@ -281,6 +302,31 @@ export class Engine {
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') this.log(`config/factory.md: ${(err as Error).message}`)
     }
+  }
+
+  /** Reads `config/quality.md` and `config/formats.md` (a missing or invalid file keeps what was loaded, with a log line). */
+  async loadQualityAndFormats(): Promise<void> {
+    for (const [name, apply] of [
+      ['quality', (t: string, f: string) => (this.quality = parseMdWith(t, qualitySchema, f).data)],
+      ['formats', (t: string, f: string) => (this.formats = parseMdWith(t, formatsSchema, f).data.formats)]
+    ] as const) {
+      const file = path.join(this.dataDir, 'config', `${name}.md`)
+      try {
+        apply(await fs.readFile(file, 'utf8'), file)
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') this.log(`config/${name}.md: ${(err as Error).message}`)
+      }
+    }
+  }
+
+  /** `config/quality.md`. */
+  getQuality(): QualityConfig {
+    return this.quality
+  }
+
+  /** The enabled course formats of `config/formats.md`. */
+  getFormats(): FormatEntry[] {
+    return this.formats.filter((f) => f.enabled)
   }
 
   /**
@@ -575,6 +621,7 @@ export class Engine {
           if (name === 'providers') void this.discoverModels()
         } else if (name === 'mcp') await this.mcp?.reload()
         else if (name === 'budget') await this.budget.loadCaps()
+        else if (name === 'quality' || name === 'formats') await this.loadQualityAndFormats()
         else if (name === 'factory') {
           const before = this.factory.paused
           await this.loadFactory()

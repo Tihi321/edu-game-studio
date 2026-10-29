@@ -45,6 +45,8 @@ export interface ProviderInfo {
   /** `kind: search`: the service (tavily, wikipedia ...) and the price of one request. */
   searchEngine?: string
   pricePerRequest: number
+  /** `engine: client` search: minutes a web search task waits for an MCP client (`wait_minutes`). */
+  waitMinutes?: number
   /** Enabled and (local, mock or has a key). */
   available: boolean
   unavailableReason?: string
@@ -184,6 +186,7 @@ export class ModelRegistry {
         loadModels: p.load_models,
         searchEngine: p.engine ?? p.id,
         pricePerRequest: p.price_per_request,
+        waitMinutes: p.wait_minutes,
         available: false
       }
       this.setupClient(info, keys)

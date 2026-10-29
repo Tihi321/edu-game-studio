@@ -18,6 +18,7 @@ import { ProviderLimiter } from '../src/engine/models/limiter'
 import { ModelRegistry, computeCost, isPaidModel } from '../src/engine/models/registry'
 import type { ProviderInfo } from '../src/engine/models/registry'
 import { ModelRouter, isDailyLimitError, problemKind } from '../src/engine/models/router'
+import { ROLES } from '../src/shared/schemas'
 import type { RoutedEvent } from '../src/engine/models/router'
 import { BudgetError, collect, ProviderError } from '../src/engine/models/types'
 import type { ChatEvent } from '../src/engine/models/types'
@@ -77,7 +78,7 @@ describe('seed configs', () => {
     expect(registry.getModel('lmstudio/gemma-4-e4b-it')?.context).toBe(16384)
     expect(registry.getModel('lmstudio/nail-qwen3.6-35b-a3b-mtp')?.context).toBe(65536) // its own load_context wins
     expect(new ModelRouter(registry, undefined).candidates('director', { agentModel: 'lmstudio' })[0]?.ref).toBe('lmstudio/nail-qwen3.6-35b-a3b-mtp')
-    expect(Object.keys(registry.roles.roles)).toHaveLength(1)
+    expect(Object.keys(registry.roles.roles).sort()).toEqual([...ROLES].sort()) // every role of the team has a model list (EGS-06)
     expect(registry.embeddingModel()).toBeUndefined() // Edu Studio has no embedding model
   })
 

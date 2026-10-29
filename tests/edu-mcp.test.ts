@@ -11,6 +11,7 @@ import { fakeBundle, useTemp } from './edu-build-helpers'
 useTemp()
 
 const COURSE_TOOLS = ['edu_list_courses', 'edu_create_course', 'edu_get_course', 'edu_course_edit', 'edu_item_add', 'edu_item_update', 'edu_item_remove', 'edu_text_set', 'edu_import_course', 'edu_validate', 'edu_build', 'edu_lint', 'edu_status']
+const RESEARCH_TOOLS = ['edu_ask_researcher', 'edu_factbase_get']
 
 let env: EduEnv
 let tools: Tool[]
@@ -80,14 +81,14 @@ describe('the course tools: the registry', () => {
   it('lists every course tool with a JSON schema, all named edu_*', () => {
     const list = toolList(tools)
     const names = list.map((t) => t.name)
-    for (const t of COURSE_TOOLS) expect(names, t).toContain(t)
+    for (const t of [...COURSE_TOOLS, ...RESEARCH_TOOLS]) expect(names, t).toContain(t)
     expect(names.every((x) => x.startsWith('edu_'))).toBe(true)
     expect(new Set(names).size).toBe(names.length)
     for (const t of list) expect(t.inputSchema.type).toBe('object')
   })
 
   it('the server instructions name the course tools', () => {
-    for (const t of ['edu_create_course', 'edu_item_add', 'edu_text_set', 'edu_validate', 'edu_build', 'edu_lint']) expect(INSTRUCTIONS, t).toContain(t)
+    for (const t of ['edu_create_course', 'edu_item_add', 'edu_text_set', 'edu_validate', 'edu_build', 'edu_lint', ...RESEARCH_TOOLS]) expect(INSTRUCTIONS, t).toContain(t)
   })
 })
 

@@ -5,6 +5,7 @@ import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
 import { clientTools } from './tools-client'
 import { courseTools } from './tools-course'
+import { researchTools } from './tools-research'
 
 /**
  * The MCP tools. They drive the same `EduService` as the app and the CLI, so a shared engine shows what an agent does in the UI
@@ -100,6 +101,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
 
     // ---- the course files: create, edit, build, lint ----
     ...courseTools(svc, def),
+
+    // ---- research and the fact base ----
+    ...researchTools(svc, def, { waitTimeoutMs: timeoutMs }),
 
     // ---- generators ----
     def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not.', z.object({}), async () => ({ studios: await svc.studiosStatus() })),

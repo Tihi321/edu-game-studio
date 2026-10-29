@@ -2,7 +2,7 @@
 
 Edu Studio turns a topic into a playable educational game: a course (objectives, articles, items with answer keys, game shells) that a self-contained web player plays. This server lets an agent such as Claude Code drive the studio: see the courses and the job queue, and do the model work of the jobs itself, at no cost.
 
-**Status: EGS-03.** The course tools (create, edit, items, text, import, validate, build, lint) and the generic ones below work. The content pipeline (research, curriculum, items written by roles) arrives in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
+**Status: EGS-06.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts and outputs arrive in EGS-07, the pipeline that runs it (`edu_run_pipeline`) in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
 
 ## Connect
 
@@ -24,11 +24,12 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 | Courses | `edu_list_courses` (the courses in `courses/`), `edu_create_course`, `edu_get_course {slug, text?, lang?}`, `edu_course_edit {slug, patch, text?}`, `edu_import_course {folder, slug?, overwrite?}`, `edu_status {slug?}` (the job counts of a course, or of every course; with a slug also `course`: counts, editions, build state; `clientTasks`), `edu_wait {slug, timeoutSeconds?}` (waits until the course has nothing left to run), `edu_languages` |
 | Items and text | `edu_item_add {slug, item, text?}`, `edu_item_update {slug, id, patch, text?}`, `edu_item_remove {slug, id}`, `edu_text_set {slug, lang, strings?, accepted?, remove?}` |
 | Build and check | `edu_validate {slug}`, `edu_build {slug, force?}`, `edu_lint {slug, rebuild?}` |
+| Research | `edu_ask_researcher {slug, question, purpose?, wait?}` (the researcher answers with sourced facts; `wait` seconds returns the note's facts), `edu_factbase_get {slug, merge?}` (the course's facts with stable ids and numbered sources) |
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
 | Generators | `edu_studios_status` (Pixel Studio, Chiptune Studio, flow-music-mcp), `edu_comfy_status`, `edu_comfy_free`, `edu_voice_status` |
 
-A job id is `<slug>--<task>--<unit>--r<run>`, so `edu_status {slug}` finds the jobs of a course by their prefix.
+A job id is `<slug>--<task>--<unit>--r<run>`, so `edu_status {slug}` finds the jobs of a course by their prefix. A research job is `<slug>--research--q<hash>--r0` (the hash is of the question's words, so the same question is never asked twice for a course).
 
 ## Build a course
 
@@ -93,6 +94,24 @@ A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral te
 | `PLACEHOLDER_ASSET` | warning | an asset (or an item's text that uses it) says it is a placeholder, such as a test tone standing in for speech: replace it before publishing |
 | `GAME_DATA_INVALID` | error | `game-data.json` is missing or is not a game |
 
+## Research and the fact base
+
+A course teaches only what its **fact base** says. The researcher (a role, `config/roles.md`) answers questions with short sourced facts; the fact base turns them into numbered, citable facts that the writers of articles and items rest on and the fact-checker checks against.
+
+- **`edu_ask_researcher {slug, question, purpose?, wait?}`** creates the research job `<slug>--research--q<hash>--r0`. The researcher looks in the course's notes first (an exact match, or notes that share words with the question), then searches the web, reads the best three pages, and writes a note of facts (one claim each, in its own words, with the source URL and date) to `courses/<slug>/research/<n>-<question>.md`. When the pages answer nothing it asks the model for better search words once; as a last resort it writes facts from the model's own knowledge, marked **unverified**. A note that already answers the question is not searched again (a shared note in `research/` is copied into the course). With `wait: <seconds>` the call waits for the job and returns the note's facts (`note.facts: [{fact, source}]`); it returns early with `clientTasks > 0` when the research waits for you (a model call, or the web search below), and with `timedOut: true` when the time ran out. Statuses: `created`, `exists` (the same question was asked before), `limit` (the course reached `research_limit_per_course`, 40 by default, in `config/factory.md`), `no-researcher` (no researcher agent in `agents/`: nothing is queued) and an error for an empty question or an unknown course.
+- **`edu_factbase_get {slug, merge?}`** reads `courses/<slug>/factbase/`: `facts` (`{id, fact, sources: [n], note, topic?, unverified?}`), the numbered `sources` (`{n, url, title, retrieved}`), the number of research `notes` and the `pendingNotes` not merged yet. `merge: true` merges the new notes first: each new fact gets the next id (`f1`, `f2` ...), each new source the next number; a fact that repeats one already there (the same words, ignoring case and punctuation) adds its source to it. Ids and numbers never change once given, so a citation stays right. Facts of an unverified note are only merged when `allow_unverified_facts: true` in `config/factory.md`; until then that note stays pending.
+- **The files** (a person can read and edit them): `factbase/sources.md` (the numbered sources), `factbase/facts.md` (the facts with their ids and source numbers) and `factbase/merged.md` (the notes already merged). Text cites a fact as `[f3]` (also `[f3, f5]` and `[f3][f5]`); `[3]` is a source number. The pack's `factbase` takes one source per fact, the first.
+- **Reviews.** Every reviewer answers `{verdict: pass|revise, scores: {<dimension>: 1-10}, notes, problems: [{ref, issue, fix?, severity?}]}`; `ref` is the id of the item or article at fault. The fact-checker's dimension is `accuracy`; its pass is required (`must_pass` in `config/quality.md`, with `threshold`, `max_rounds` and `revise_below`). A script runs first: every item must name facts that exist, every article must cite facts that exist; a problem there forces `revise` whatever the model says. The unit-level fact-check job arrives with the pipeline (EGS-08).
+- **Search providers** (`config/providers.md`, `kind: search`, tried in `search_order`: `tavily`, `client-search`, `wikipedia`, then the switched-off `brave`, `serpapi`, `serphouse`, `duckduckgo`). A provider without its key is skipped; each answered paid request is a spend row; a paid one is skipped while a budget cap is reached. When no provider gives results the researcher writes unverified facts from the model.
+
+**Do the web search yourself (`client-search`).** The `client-search` provider (on in the seed, free, no key) makes each search a task for you instead of calling a search service. The research job waits (`edu_wait` returns with `clientTasks`, as for any model call, and `edu_status` shows it):
+1. `edu_get_task {role: "searcher"}` leases the oldest search task (`meta.task` is `web_search`, `meta.unit` is the query). `system` and `user` say what to find; the schema is the answer's shape.
+2. Search the web yourself with your own search and fetch tools, read the pages, and prefer primary and recent sources. Answer `{"results": [{"title": "...", "url": "https://...", "content": "<a verbatim excerpt of the page, at most 1500 characters>", "published": "2026-10-14"}]}`: only URLs you really read, `published` optional, an empty list when you find nothing.
+3. `edu_submit_task {taskId, text}`. A bad shape comes back as `{accepted: false, problems}` and the task stays yours.
+4. A task nobody takes within `wait_minutes` (10 by default) gives no results and the next provider is tried, so a course never stalls without a session. Once you have taken it, the answer is waited for.
+
+A course can also set its own models in `courses/<slug>/course.md` (`models: {<role> or "*": provider/model}`): they go before the agent's model and the role's list, so a course can run on `client/claude-code` while the others keep their models. A change takes effect at the next request, with no restart.
+
 ## Do the model work yourself
 
 The roles of the studio (the director now, the content team from EGS-06) ask a model for most of their work. Instead of LM Studio, Strata or a paid API you can answer them yourself, with nothing spent. Set a role (or one agent) to the model `client/claude-code`; its jobs then wait until you take them over MCP.
@@ -112,7 +131,7 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 
 **Named clients.** Each model of the `client` provider is one named client: `client/claude-code` (what an `edu_get_task` without `client` takes) and `client/antigravity` (for Antigravity CLI). A task made for `client/antigravity` is never handed to a call without `client`, and the other way round; `edu_client_tasks` shows each task's `client`, and `edu_get_task` puts it in `meta.client`. Add another client with "Add a model by its id" on the `client` provider (Models page), and take its tasks with `client: "<id>"`.
 
-**Choosing what the client does.** Put `client/claude-code` first in a role's `models` list in `config/roles.md` (for example `director: {models: [client/claude-code, strata]}`); it is reloaded at once, and a request that is already waiting is asked again on the new model. One agent: `model: client/claude-code` in `agents/<agent>.md`. Put things back when you are done: a role left on `client` with nobody answering stalls every job that uses it.
+**Choosing what the client does.** For one course, set `models: {"*": client/claude-code}` (or one role) in `courses/<slug>/course.md`. Or put `client/claude-code` first in a role's `models` list in `config/roles.md` (for example `director: {models: [client/claude-code, strata]}`); it is reloaded at once, and a request that is already waiting is asked again on the new model. One agent: `model: client/claude-code` in `agents/<agent>.md`. Put things back when you are done: a role left on `client` with nobody answering stalls every job that uses it.
 
 **The loop.**
 1. Start the work (the pipeline tools come in EGS-08), then `edu_wait {slug}`. It returns as soon as nothing runs except jobs that wait for you, with `clientTasks: n` and a hint (it does not block until the timeout). `edu_status` shows `clientTasks: {waiting, leased}` too, and `edu_client_tasks` lists the tasks (id, role, task, course, age).

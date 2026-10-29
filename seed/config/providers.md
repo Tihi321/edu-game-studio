@@ -150,6 +150,59 @@ providers:
       - id: antigravity           # Antigravity CLI takes these with edu_get_task {client: "antigravity"}
         vision: true
         context: 1000000
+  # Search services for the researcher (kind: search). They have no models. The order is search_order at the end of the list.
+  # price_per_request is logged to the spend files for every answered request (USD, to verify on the provider's pricing page).
+  - id: tavily
+    kind: search
+    engine: tavily
+    base_url: https://api.tavily.com
+    api_key_env: TAVILY_API_KEY
+    price_per_request: 0.008
+    concurrency: 2
+  # Web search done by Claude Code (or any MCP client): each query is a `searcher` task in the client queue (see "Search providers" below). It costs
+  # nothing and waits for a client: a task nobody takes within wait_minutes gives no results, and the next provider is tried.
+  - id: client-search
+    kind: search
+    engine: client
+    enabled: true
+    wait_minutes: 10
+    price_per_request: 0
+    concurrency: 2
+  - id: wikipedia
+    kind: search
+    engine: wikipedia
+    base_url: https://en.wikipedia.org
+    price_per_request: 0
+    concurrency: 2
+  - id: brave
+    kind: search
+    engine: brave
+    enabled: false
+    api_key_env: BRAVE_API_KEY
+    price_per_request: 0.005
+    concurrency: 2
+  - id: serpapi
+    kind: search
+    engine: serpapi
+    enabled: false
+    api_key_env: SERPAPI_API_KEY
+    price_per_request: 0.01
+    concurrency: 2
+  - id: serphouse
+    kind: search
+    engine: serphouse
+    enabled: false
+    api_key_env: SERPHOUSE_API_KEY
+    price_per_request: 0.01
+    concurrency: 2
+  - id: duckduckgo
+    kind: search
+    engine: duckduckgo
+    enabled: false
+    price_per_request: 0
+    concurrency: 1
+# The researcher tries these search providers in this order: the first one that gives results wins. One without a key is skipped.
+search_order: [tavily, client-search, wikipedia, brave, serpapi, serphouse, duckduckgo]
 ---
 # Providers
 
@@ -160,7 +213,7 @@ Prices were checked 2026-10-08 from third-party listings; the DeepSeek ones were
 ## Fields of a provider
 
 - `id`: the name used in model references. A model is written `provider/model`, for example `lmstudio/nail-qwen3.6-35b-a3b-mtp`.
-- `kind`: `openai-compat` (any OpenAI-style API), `anthropic`, `gemini`, `client` (an MCP client answers, see below), or `mock` (scripted answers, only for the tests: the app's own config has none, so the model pickers never offer one).
+- `kind`: `openai-compat` (any OpenAI-style API), `anthropic`, `gemini`, `client` (an MCP client answers, see below), `search` (web search for the researcher: `engine` names the service, see "Search providers") or `mock` (scripted answers, only for the tests: the app's own config has none, so the model pickers never offer one).
 - `enabled`: `false` switches the provider off. A provider whose key can't be found is skipped automatically.
 - `name`: the name shown in the app (the id when missing).
 - `custom`: `true` for a provider added in the app's **Models** page (Add provider). The app can edit and remove those entries, and only those: it never touches the others or the comments here. A custom provider is its own group in the fallback order, named by its id, and can be written in `roles.md` as `acp-home` (the id) like `strata`. Its key is stored under `CUSTOM_<ID>_API_KEY`; removing the provider deletes that key.
@@ -212,6 +265,17 @@ One key (`OPENROUTER_API_KEY`, stored in the app's settings) gives many models. 
 ## DeepSeek
 
 - `json_schema: false`: DeepSeek answers `response_format: json_schema` with HTTP 400 ("This response_format type is unavailable now"), so every structured job failed there at once. The prompt asks for the JSON shape instead, and the engine checks and repairs the answer. Checked 2026-10-12.
+
+## Search providers (`kind: search`)
+
+Used only by the researcher (the `research` job: it searches, reads the pages and writes a note of sourced facts into `courses/<slug>/research/`). A search provider has no models. `engine` is `tavily`, `client`, `wikipedia`, `brave`, `serpapi`, `serphouse` or `duckduckgo` (it defaults to the id). `search_order` (the last line of the frontmatter) is the order they are tried in: the first one that gives results wins, a provider that fails or finds nothing falls through to the next. Each answered request is written to the spend files with `price_per_request`, and a paid provider is skipped while a budget cap is reached. When no provider gives results, the researcher writes a note from the model's own knowledge, marked unverified (the fact base drops those unless `allow_unverified_facts: true` in `config/factory.md`).
+
+- **Tavily** (`TAVILY_API_KEY`): returns cleaned page text with the results. Written, but not yet checked against the real service.
+- **Client search** (`engine: client`, id `client-search`; the id `client` is the model provider above): the web research is done by Claude Code, or any MCP client. Each query becomes a client task (role `searcher`, task `web_search`) that the client takes with `edu_get_task {role: "searcher"}`, answers by searching the web itself, and submits as `{results: [{title, url, content, published?}]}` with `edu_submit_task`. Free, no key. `wait_minutes` (default 10): a task nobody has taken by then gives no results (logged) and the next provider is tried, so a course never stalls without a session. Once a client has taken it, the answer is waited for. It sits after Tavily and before Wikipedia in `search_order`.
+- **Wikipedia**: the MediaWiki API, no key, free. Sends a descriptive User-Agent. Good for basics, weak for specialist facts.
+- **Brave, SerpApi, SERPHouse, DuckDuckGo**: stubs. They sit behind the same interface and are switched off. Switching one on today only makes it fail and fall through to the next provider.
+
+Set a key with `yarn key:set TAVILY_API_KEY` (or the environment variable).
 
 ## Fields of a model
 

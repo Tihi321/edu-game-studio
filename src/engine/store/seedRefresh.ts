@@ -21,10 +21,13 @@ export const seedHash = (content: string | Buffer): string => createHash('sha1')
 
 /**
  * The hashes of earlier seed versions, per file, for data folders made before the hashes were recorded (a file whose hash is in here was never
- * edited, so a newer seed version may replace it). Empty: Edu Studio has no earlier seed. A release that changes a seed file adds the hash of
- * the old version here.
+ * edited, so a newer seed version may replace it). A release that changes a seed file adds the hash of the old version here.
+ * EGS-06: the skeleton's roles.md (the director only) and providers.md (no search providers).
  */
-export const SEED_HISTORY: Record<string, string[]> = {}
+export const SEED_HISTORY: Record<string, string[]> = {
+  'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88'],
+  'config/providers.md': ['5aecc02009ddbba887510a274691d7b79d068af0']
+}
 
 export interface SeedState {
   version: 1

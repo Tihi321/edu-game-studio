@@ -1,8 +1,12 @@
-import { promises as fs } from 'node:fs'
+import { promises as fs, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
+import { parseMd } from '../../shared/md'
+import type { Scheduler } from '../queue/scheduler'
+import { parseNoteFacts } from '../research/notes'
 import type { CustomWorkflowInfo, EduCommand, EngineEvent, EngineInfo, StudioStatusView } from '../../shared/protocol'
 import { DEFAULT_VOICE_ENGINE } from '../../shared/media'
-import type { SettingsConfig } from '../../shared/schemas'
+import type { FactoryConfig, FormatEntry, QualityConfig, SettingsConfig } from '../../shared/schemas'
+import type { AgentStore } from '../agents/agents'
 import type { ModelRegistry } from '../models/registry'
 import type { ModelRouter } from '../models/router'
 import type { JobState, JobStore } from '../queue/jobs'
@@ -19,8 +23,14 @@ import type { FlowClient } from '../studios/flow'
 import type { ServiceStarter } from '../studios/autostart'
 import { chiptuneClientFor, flowClientFor, flowStartHint, loadStudiosConfig, pixelClientFor, startHint, studioRepo, studioUrl, STUDIO_NAMES } from '../studios/config'
 import type { StudioId, StudiosConfig } from '../studios/config'
+import { ResearchService } from '../research/service'
+import type { SearchService } from '../research/service'
+import { registerResearchHandlers } from '../research/handlers'
 import { findAppDirs } from './appdirs'
 import type { AppDirs } from './appdirs'
+import { courseMdPath, modelFor, patchCourseMeta, patchCourseModels, readCourseMeta } from './course-meta'
+import type { CourseMeta, CourseMetaFile } from './course-meta'
+import { FactBase } from './factbase'
 import { assertSlug, coursesDir, dataFolders, loadComfyConfigFor } from './paths'
 import { CourseStore, listCourses } from './store'
 import { handleStudioCommand } from './studio-commands'
@@ -35,6 +45,18 @@ export interface EduDeps {
   router: ModelRouter
   jobs: JobStore
   getSettings: () => SettingsConfig
+  /** `config/factory.md` (the research limit, `allow_unverified_facts`). */
+  getFactory: () => FactoryConfig
+  /** `config/quality.md`: the thresholds the reviews are judged by. */
+  getQuality: () => QualityConfig
+  /** `config/formats.md`: the course formats. */
+  getFormats: () => FormatEntry[]
+  /** The agents (the research service asks whether there is a researcher). */
+  agents: Pick<AgentStore, 'list'>
+  /** The search providers of `config/providers.md` (tests inject fakes through the engine option `search`). */
+  search: SearchService
+  /** Running jobs follow a changed model list from their next request (called after a course's models changed). */
+  changeModel?: () => void
   /** Wakes the scheduler after jobs were enqueued. */
   kick?: () => void
   /** Aborts running jobs of a course in the scheduler and returns how many were aborted. */
@@ -72,10 +94,23 @@ export class EduService {
   readonly dirs: AppDirs
   private readonly comfyOverride: EduDeps['comfy']
   private store: CourseStore | undefined
+  /** The research jobs (the per-course limit, idempotent ids) and the notes the researcher writes. */
+  readonly research: ResearchService
+  /** The fact base of each course (`courses/<slug>/factbase/`). */
+  readonly factbase: FactBase
+  /** `course.md` models by course: the cache `courseModel` answers from (see there). */
+  private readonly models = new Map<string, { models: Record<string, string>; mtime: number }>()
 
   constructor(readonly deps: EduDeps) {
     this.dirs = { ...findAppDirs(), ...(deps.dirs ?? {}) }
     this.comfyOverride = deps.comfy
+    this.research = new ResearchService({ dataDir: deps.dataDir, jobs: deps.jobs, agents: deps.agents, getFactory: deps.getFactory, log: (m) => this.log(m), kick: () => deps.kick?.(), emit: deps.emit })
+    this.factbase = new FactBase(deps.dataDir, this.research.store, { allowUnverified: () => deps.getFactory().allow_unverified_facts })
+  }
+
+  /** Registers the job handlers of the service's own tasks on the scheduler: `research` now, the content pipeline in EGS-08. */
+  registerHandlers(scheduler: Scheduler): void {
+    registerResearchHandlers(scheduler, { dataDir: this.deps.dataDir, log: (m) => this.log(m), search: this.deps.search, research: this.research })
   }
 
   get dataDir(): string {
@@ -90,14 +125,136 @@ export class EduService {
     this.deps.emit(e)
   }
 
-  /** The model a course sets for a role (in its `course.md`), over the role's own list. None until the course store exists. */
-  courseModel(_slug: string, _role: string): string | undefined {
-    return undefined
+  /**
+   * The model a course sets for a role: `models[role]`, else `models['*']` of its `course.md`; it goes first in that course's model list
+   * (course, then agent, then the role's list). Synchronous: it answers from an in-memory cache that `warm()` fills and every write through
+   * the service refreshes. The cache also notices a changed file (one `stat` of `course.md`), so a hand edit or the CLI's takes effect
+   * without a restart: the file watcher does not cover `courses/`.
+   */
+  courseModel(slug: string, role: string): string | undefined {
+    let file: string
+    try {
+      file = courseMdPath(this.dataDir, slug)
+    } catch {
+      return undefined // not a course slug (a job of another kind)
+    }
+    let mtime: number
+    try {
+      mtime = statSync(file).mtimeMs
+    } catch {
+      this.models.delete(slug)
+      return undefined
+    }
+    let entry = this.models.get(slug)
+    if (!entry || entry.mtime !== mtime) {
+      entry = { models: this.readModelsSync(file), mtime }
+      this.models.set(slug, entry)
+    }
+    return modelFor(entry.models, role)
   }
 
-  /** Prepares what must be there before the first job runs. */
+  private readModelsSync(file: string): Record<string, string> {
+    try {
+      const doc = parseMd(readFileSync(file, 'utf8'), file)
+      const models = (doc.data as { models?: unknown }).models
+      if (!models || typeof models !== 'object' || Array.isArray(models)) return {}
+      return Object.fromEntries(
+        Object.entries(models as Record<string, unknown>)
+          .filter(([, v]) => typeof v === 'string' && v.trim())
+          .map(([k, v]) => [k, (v as string).trim()])
+      )
+    } catch (err) {
+      this.log(`${file}: ${(err as Error).message} (its models are ignored until it parses)`)
+      return {}
+    }
+  }
+
+  /** `course.md` of a course (null when it has none). */
+  getCourseMeta(slug: string): Promise<CourseMetaFile | null> {
+    return readCourseMeta(this.dataDir, slug)
+  }
+
+  /** Changes top-level fields of `course.md` (see `patchCourseMeta`), refreshes the model cache and tells running jobs when the models changed. */
+  async setCourseMeta(slug: string, patch: Record<string, unknown> | ((old: CourseMeta) => Record<string, unknown>), o: { body?: string | ((old: string) => string) } = {}): Promise<CourseMetaFile> {
+    const before = JSON.stringify(this.courseModelsOf(slug))
+    const out = await patchCourseMeta(this.dataDir, slug, patch, o)
+    this.afterMetaWrite(slug, before)
+    return out
+  }
+
+  /** Sets (or with `null` removes) course models by role (`*` for every role) in `course.md`. */
+  async setCourseModels(slug: string, models: Record<string, string | null>): Promise<CourseMetaFile> {
+    const before = JSON.stringify(this.courseModelsOf(slug))
+    const out = await patchCourseModels(this.dataDir, slug, models)
+    this.afterMetaWrite(slug, before)
+    return out
+  }
+
+  private courseModelsOf(slug: string): Record<string, string> {
+    this.courseModel(slug, '*') // refreshes the cache entry
+    return this.models.get(slug)?.models ?? {}
+  }
+
+  private afterMetaWrite(slug: string, before: string): void {
+    this.models.delete(slug)
+    this.courseModel(slug, '*') // fills the cache from the file just written
+    if (JSON.stringify(this.models.get(slug)?.models ?? {}) !== before) this.deps.changeModel?.()
+  }
+
+  /** Prepares what must be there before the first job runs: the course folder, and the course models of every `course.md`. */
   async warm(): Promise<void> {
     await fs.mkdir(coursesDir(this.dataDir), { recursive: true })
+    for (const c of await listCourses(this.dataDir)) this.courseModel(c.slug, '*')
+  }
+
+  /**
+   * Asks the researcher on behalf of a tool or the app (`you`): the answer is a note in `courses/<slug>/research/`. `waitSeconds`: waits for
+   * the job and returns the facts of its note. It returns early (`clientTasks > 0`) when the job waits for you to answer a model call or a
+   * web search (`edu_get_task`), and with `timedOut: true` when the time ran out.
+   */
+  async askResearcher(
+    slug: string,
+    question: string,
+    o: { purpose?: string; waitSeconds?: number; askedBy?: string } = {}
+  ): Promise<{
+    status: string
+    id: string | null
+    state?: JobState | 'missing'
+    timedOut?: boolean
+    clientTasks?: number
+    note?: { file: string; question: string; unverified: boolean; facts: { fact: string; source?: string }[] }
+  }> {
+    if (!(await this.courseExists(slug))) throw new Error(`no course "${slug}"`)
+    const asked = await this.research.ask({ slug, question, askedBy: o.askedBy ?? 'you', purpose: o.purpose, priority: 1 })
+    if (asked.status === 'empty') throw new Error('the question is empty (give a question of a few words)')
+    const out: Awaited<ReturnType<EduService['askResearcher']>> = { ...asked }
+    if (!asked.id || asked.status === 'no-researcher' || asked.status === 'limit') return out
+    if (o.waitSeconds && o.waitSeconds > 0) {
+      const w = await this.waitJob(asked.id, { timeoutMs: o.waitSeconds * 1000 })
+      out.state = w.state
+      if (w.timedOut) out.timedOut = true
+      if (w.clientTasks) out.clientTasks = w.clientTasks
+    }
+    const note = await this.research.store.findExact(question, slug)
+    if (note) {
+      const facts = parseNoteFacts(note).map((f) => ({ fact: f.fact, ...(f.url ? { source: f.url } : {}) }))
+      out.note = { file: note.file, question: note.question, unverified: note.unverified, facts }
+    }
+    return out
+  }
+
+  /** Waits until one job is done or failed. Returns early, with `clientTasks`, when it waits for a client to answer one of its model calls or searches. */
+  async waitJob(id: string, o: { timeoutMs?: number; pollMs?: number } = {}): Promise<{ state: JobState | 'missing'; timedOut: boolean; clientTasks: number }> {
+    const end = o.timeoutMs ? Date.now() + o.timeoutMs : Infinity
+    for (;;) {
+      const job = await this.deps.jobs.find(id)
+      const state = job?.state ?? 'missing'
+      if (state === 'done' || state === 'failed' || state === 'missing') return { state, timedOut: false, clientTasks: 0 }
+      const clientTasks = state === 'running' ? this.deps.registry.clientQueue.countFor((j) => j === id) : 0
+      if (clientTasks > 0) return { state, timedOut: false, clientTasks }
+      if (Date.now() > end) return { state, timedOut: true, clientTasks: 0 }
+      await new Promise((r) => setTimeout(r, o.pollMs ?? 100))
+    }
   }
 
   /** Stops what the service keeps running (the file watchers of the studio round trips, later). */

@@ -222,6 +222,13 @@ export class ClientTaskQueue {
     return true
   }
 
+  /** Where a task is: waiting for a client, held by one, or gone (answered, cancelled, or never there). The client web search asks it. */
+  state(id: string): 'waiting' | 'leased' | 'gone' {
+    this.expire()
+    const entry = this.entries.get(id)
+    return !entry ? 'gone' : entry.task.leaseUntil === undefined ? 'waiting' : 'leased'
+  }
+
   /** A lease that ran out puts the task back to waiting (checked when the queue is read, no timer). */
   private expire(): void {
     const t = this.now()

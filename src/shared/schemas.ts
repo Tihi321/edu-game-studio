@@ -62,6 +62,8 @@ export const providerEntrySchema = z.looseObject({
   engine: z.string().optional(),
   /** `kind: search` only: USD per request, logged to the spend files. */
   price_per_request: z.number().nonnegative().default(0),
+  /** `engine: client` only: minutes a web search task may wait for an MCP client to take it, before the next search provider is tried. Default 10. */
+  wait_minutes: z.number().positive().optional(),
   rpm: z.number().int().positive().optional(),
   tpm: z.number().int().positive().optional(),
   /**
@@ -108,7 +110,7 @@ export const modelsConfigSchema = configBase('models').extend({
 
 export const providersSchema = configBase('providers').extend({
   providers: z.array(providerEntrySchema).default([]),
-  /** Search providers order (ids); Edu Studio has no search, kept for the model layer. */
+  /** The researcher tries the `kind: search` providers in this order (ids). Providers not listed come after, in file order. */
   search_order: z.array(z.string()).default([])
 })
 
@@ -127,7 +129,56 @@ export const factorySchema = configBase('factory').extend({
   /** Persisted "pause all": no new jobs start while true. */
   paused: z.boolean().default(false),
   /** Attempts before a job moves to failed/. */
-  max_attempts: z.number().int().positive().default(3)
+  max_attempts: z.number().int().positive().default(3),
+  /** How many research questions one course may ask in total (0 = none). */
+  research_limit_per_course: z.number().int().nonnegative().default(40),
+  /** The fact base keeps facts from the researcher's own knowledge (marked unverified, no source) only when this is true. */
+  allow_unverified_facts: z.boolean().default(false)
+})
+
+// ---- quality and formats ----
+
+export const qualitySchema = configBase('quality').extend({
+  /** Weighted average score a course needs to be published (1-10). */
+  threshold: z.number().min(0).max(10).default(7),
+  /** Revise rounds (a reviewer sends content back to its writer) before the publisher decides. */
+  max_rounds: z.number().int().nonnegative().default(2),
+  /** A `revise` from a reviewer that is not in must_pass only counts when one of its scores is below this. */
+  revise_below: z.number().min(1).max(10).default(7),
+  /** Reviewer roles that must say `pass` (when they review the course at all). */
+  must_pass: z.array(z.string()).default(['fact-checker', 'accessibility-reviewer', 'child-safety-reviewer']),
+  /** Weight per score dimension. Missing dimensions count as 1. */
+  weights: z.record(z.string(), z.number().nonnegative()).default({})
+})
+
+/** The item forms the item-writer may write (the pack's kinds that the pipeline authors; hotspot, listening and the puzzles come later). */
+export const AUTHORED_ITEM_KINDS = ['mcq', 'true-false', 'multi-select', 'cloze', 'typed', 'match-pairs', 'order', 'sort-groups', 'flashcard'] as const
+
+/** A course format: how big a course is. The brief names one (`format`); its numbers size the pipeline's jobs. */
+export const formatEntrySchema = z.looseObject({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'lower-case letters, digits and -'),
+  label: z.string().min(1),
+  /** Shown beside the format in a picker. */
+  description: z.string().default(''),
+  enabled: z.boolean().default(true),
+  /** Units of the course (the brief's `units` overrides it). */
+  units: z.number().int().min(1).max(12),
+  objectives_per_unit: z.number().int().min(1).max(12).default(3),
+  /** Items asked for each objective (at least 2 distinct kinds each). */
+  items_per_objective: z.number().int().min(2).max(12).default(3),
+  articles_per_unit: z.number().int().min(0).max(8).default(1),
+  /** Questions the researcher is asked for each unit. */
+  research_questions_per_unit: z.number().int().min(0).max(8).default(2),
+  /** The item kinds the item-writer may use. */
+  item_kinds: z.array(z.string()).min(1).default([...AUTHORED_ITEM_KINDS]),
+  /** A language course: vocabulary and grammar scope by the language-coach, typed answers with accepted lists. */
+  language: z.boolean().default(false),
+  /** The CEFR level a language format teaches. */
+  cefr: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional()
+})
+
+export const formatsSchema = configBase('formats').extend({
+  formats: z.array(formatEntrySchema).default([])
 })
 
 // ---- settings ----
@@ -269,6 +320,8 @@ export const schemasByKind = {
   budget: budgetSchema,
   providers: providersSchema,
   roles: rolesSchema,
+  quality: qualitySchema,
+  formats: formatsSchema,
   factory: factorySchema,
   settings: settingsSchema,
   agent: agentSchema,
@@ -285,13 +338,35 @@ export type RolesConfig = z.output<typeof rolesSchema>
 export type SettingsConfig = z.output<typeof settingsSchema>
 export type ModelsConfig = z.output<typeof modelsConfigSchema>
 export type FactoryConfig = z.output<typeof factorySchema>
+export type QualityConfig = z.output<typeof qualitySchema>
+export type FormatEntry = z.output<typeof formatEntrySchema>
+export type FormatsConfig = z.output<typeof formatsSchema>
 export type AgentFrontmatter = z.output<typeof agentSchema>
 export type JobFrontmatter = z.output<typeof jobSchema>
 
 /** Config files in `config/`, by file name (without `.md`). */
-export const CONFIG_FILES = ['providers', 'roles', 'models', 'budget', 'factory', 'settings'] as const
+export const CONFIG_FILES = ['providers', 'roles', 'models', 'budget', 'quality', 'formats', 'factory', 'settings'] as const
 
-/** The agent roles of Edu Studio. Only the director exists in the skeleton; EGS-06 to EGS-08 add the content team (docs/design.md). */
-export const ROLES = ['director'] as const
+/**
+ * The agent roles of Edu Studio (docs/design.md). The art-director, art-critic, composer and voice-director join with the generators
+ * (phase 6). `src/renderer/ui/roles.ts` mirrors this list for the pickers (a test keeps the two equal).
+ */
+export const ROLES = [
+  'director',
+  'curriculum-designer',
+  'researcher',
+  'subject-expert',
+  'item-writer',
+  'misconception-designer',
+  'explainer',
+  'language-coach',
+  'fact-checker',
+  'game-designer',
+  'narrative-designer',
+  'playtester',
+  'accessibility-reviewer',
+  'child-safety-reviewer',
+  'publisher'
+] as const
 
 export type Role = (typeof ROLES)[number]
