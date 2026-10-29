@@ -4,6 +4,8 @@ import { normalizeText } from '../../shared/edu'
 import { applyExplain, citationsOf, mergeAccepted, numberCitations } from './authoring'
 import type { AcceptedOutput, Article, AuthoredItem, Curriculum, DesignData, ExplainOutput, Frame } from './authoring'
 import type { FactPack } from './factbase'
+import { applyMedia } from './media-link'
+import type { MediaMerge } from './media-link'
 
 /**
  * `assembleCourse`: the pure step that turns what the roles wrote into the course contract (EGS-02): `course/pack.json` and the text catalogs.
@@ -46,6 +48,8 @@ export interface AssembleInput {
   story?: Frame
   /** Corrected strings from the polish round: `key -> text`, applied to keys that exist. */
   polish?: Record<string, string>
+  /** The images of the course (EGS-15): the assets with files, and what each illustrates. Merged into ssets, the alt texts, rticle.asset, item.asset and shells.config[*].art. */
+  media?: MediaMerge
 }
 
 export interface AssembledCourse {
@@ -217,6 +221,7 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
     factbase: input.factbase.factbase,
     extensions
   }
+  if (input.media) applyMedia(pack, src, input.media)
   if (!Object.keys(src.accepted!).length) delete src.accepted
   const catalogs: Record<string, TextCatalog> = { [src.lang]: src }
   if (tgt) {

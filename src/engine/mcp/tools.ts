@@ -5,6 +5,7 @@ import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
 import { clientTools } from './tools-client'
 import { courseTools } from './tools-course'
+import { mediaTools } from './tools-media'
 import { pipelineTools } from './tools-pipeline'
 import { researchTools } from './tools-research'
 
@@ -79,7 +80,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
         if (a.slug) {
           const course = await svc.courses.summary(a.slug)
           const pipeline = await svc.pipeline.status(a.slug)
-          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), clientTasks: queue().counts() }
+          const media = await svc.media.summary(a.slug).catch(() => null)
+          const mediaNote = media && media.placeholders > 0 ? `${media.placeholders} picture(s) are placeholders: edu_lint warns PLACEHOLDER_ASSET until a real image replaces each (edu_asset_generate, edu_asset_replace)` : undefined
+          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), ...(media && media.images > 0 ? { media: { ...media, ...(mediaNote ? { note: mediaNote } : {}) } } : {}), clientTasks: queue().counts() }
         }
         const courses = await svc.listCourses()
         return { dataDir: svc.dataDir, courses: await Promise.all(courses.map(async (c) => ({ slug: c.slug, jobs: await svc.jobCounts(c.slug) }))), clientTasks: queue().counts() }
@@ -111,8 +114,11 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
     // ---- the content pipeline ----
     ...pipelineTools(svc, def),
 
+    // ---- the images of a course (EGS-15) ----
+    ...mediaTools(svc, def),
+
     // ---- generators ----
-    def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not.', z.object({}), async () => ({ studios: await svc.studiosStatus() })),
+    def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not. ComfyUI is not in this list: edu_comfy_status checks it (lanes, engines, background removal).', z.object({}), async () => ({ studios: await svc.studiosStatus(), comfy: 'ComfyUI makes the pictures and is checked by edu_comfy_status' })),
     def('edu_comfy_status', 'Is ComfyUI reachable: its lanes, the image and audio engines, custom workflows and background removal.', z.object({}), async () => {
       const { type: _type, ...status } = await svc.comfyStatus()
       return status

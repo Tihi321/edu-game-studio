@@ -25,7 +25,7 @@ engineSettings: {}
 ---
 # ComfyUI
 
-Edu Studio drives a local ComfyUI. The generated images and music are saved into each course's `assets/` folder, not into ComfyUI's output folder.
+Edu Studio drives a local ComfyUI. The generated images and music are saved into each course (`courses/<slug>/course/assets/<id>/v<n>.webp`, listed in `course/assets.json`), not into ComfyUI's output folder. A course makes its pictures with the engine in its `media.art.generator` (default `qwen-image-2.1`; `enabledEngines` below can narrow what is offered); when no lane answers (after the auto-start in `config/autostart.md`) the pictures get placeholder cards and the run goes on.
 
 - `lanes`: the ComfyUI endpoints (one per GPU). A lane that does not answer counts as busy.
 - `queuePolicy`: `refuse` fails when every lane is busy; `wait` queues behind the running job.

@@ -727,6 +727,8 @@ export const PROMPT_VARS = {
   'game-designer/design': ['title', 'audience', 'age', 'units', 'item_summary', 'shells_available', 'notes'],
   'narrative-designer/frame': ['title', 'topic', 'audience', 'age', 'language', 'units', 'notes'],
   'narrative-designer/scriptorium_brief': ['title', 'topic', 'audience', 'age', 'language', 'units', 'notes'],
+  'art-director/plan': ['title', 'subject', 'audience', 'age', 'language', 'style', 'style_words', 'units', 'articles', 'items', 'slots', 'max_item_images', 'characters', 'shells'],
+  'art-critic/review': ['title', 'asset_id', 'kind', 'target', 'prompt', 'alt', 'style', 'round', 'scores_example'],
   'playtester/report': ['title', 'audience', 'age', 'units', 'personas', 'lint', 'scores_example'],
   'accessibility-reviewer/review': ['title', 'round', 'audience', 'age', 'level', 'language', 'content', 'scores_example'],
   'child-safety-reviewer/review': ['title', 'round', 'audience', 'age', 'language', 'content', 'scores_example'],

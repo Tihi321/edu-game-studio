@@ -32,7 +32,9 @@ export const ROLE_DIMENSIONS: Record<string, string[]> = {
   'fact-checker': ['accuracy'],
   'accessibility-reviewer': ['accessibility', 'readability'],
   'child-safety-reviewer': ['age_fit'],
-  playtester: ['flow', 'difficulty']
+  playtester: ['flow', 'difficulty'],
+  /** relevance: the picture shows what its plan line says; clarity: readable, no garbled text or artefacts. */
+  'art-critic': ['relevance', 'clarity']
 }
 
 export function dimensionsFor(role: string): string[] {

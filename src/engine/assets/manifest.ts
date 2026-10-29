@@ -3,9 +3,9 @@ import path from 'node:path'
 import { assetManifestSchema, type AssetEntry, type AssetManifest, type AssetVersion } from '../../shared/media'
 import { atomicWrite } from '../store/atomic'
 
-/** `courses/<slug>/assets.json` */
+/** `courses/<slug>/course/assets.json` (`projectDir` is `courses/<slug>/course`; EGS-15 moved it into `course/`) */
 export const manifestPath = (projectDir: string) => path.join(projectDir, 'assets.json')
-/** `courses/<slug>/assets/<id>/` */
+/** `courses/<slug>/course/assets/<id>/` */
 export const assetDir = (projectDir: string, id: string) => path.join(projectDir, 'assets', id)
 
 /** Loads `assets.json`; a missing file is an empty manifest. */

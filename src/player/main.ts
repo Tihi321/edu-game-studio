@@ -21,6 +21,17 @@ import { rpgShell } from './shells/rpg'
  * and the game shells on it, and starts the game once the page is ready. Another shell or item kind loaded before or after this
  * script registers itself the same way (`EduEngine.registerShell`, `EduEngine.registerItemKind`).
  */
+// A picture or a sound that fails to load is a console error, so the autoplay bot (and anyone with the console open) sees it (EGS-15). A `load`
+// failure does not bubble, so this listens in the capture phase on the document.
+document.addEventListener(
+  'error',
+  (e) => {
+    const t = e.target
+    if (t instanceof HTMLImageElement || t instanceof HTMLMediaElement || t instanceof SVGImageElement) console.error(`media failed to load: ${(t as HTMLImageElement).currentSrc || t.getAttribute('src') || t.getAttribute('href') || '(no source)'}`)
+  },
+  true
+)
+
 const engine = createEngine()
 for (const r of BUILTIN_RENDERERS) engine.registerItemKind(r.kind, r)
 engine.registerShell(quizArenaShell.id, quizArenaShell)

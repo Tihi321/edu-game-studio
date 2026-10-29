@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 import { parseMd, serializeMd } from '../../shared/md'
+import { parseCourseMedia } from '../../shared/media'
+import type { CourseMedia } from '../../shared/media'
 import { atomicWrite } from '../store/atomic'
 import { assertSlug, coursesDir } from './paths'
 
@@ -89,6 +91,14 @@ export async function patchCourseModels(dataDir: string, slug: string, models: R
     }
     return { models: Object.keys(next).length ? next : undefined }
   })
+}
+
+/**
+ * The media settings of a course: `course.md` `media` (`art`, `music`, `voice`, `sound`) with the defaults of `courseMediaSchema`. A course with no
+ * `course.md`, or with no `media` block, gets the defaults: ComfyUI for the images, the art-critic on, Flow off.
+ */
+export function parseCourseMetaMedia(meta: CourseMetaFile | null): CourseMedia {
+  return parseCourseMedia((meta?.data as { media?: unknown } | undefined)?.media)
 }
 
 /** The model a course sets for a role: its entry for the role, else its `*` entry. */

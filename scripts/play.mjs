@@ -3,7 +3,7 @@
  * The autoplay bot: plays a BUILT game folder in headless Chromium over file:// and proves it is playable.
  *
  *   node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>]
- *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]
+ *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--no-media-check] [--json] [--verbose]
  *
  * It needs the folder alone (index.html, game-data.json, player.js ...) and `playwright` with Chromium; no TypeScript and no
  * source of this repository is imported. It drives the game ONLY through `data-testid`s and `window.EduEngine.getState()`, and asks
@@ -38,6 +38,9 @@
  * where roundLength and bossLength come from the pack's quiz-arena config (defaults 7 and 10). A round has roundLength fresh questions
  * plus at most two retries per miss; the factor 6 leaves room for retries and for repeating a unit or the boss a few times.
  *
+ * Media check (on by default, `--no-media-check` turns it off): every asset URL of game-data.json is loaded in the page. An image must decode, audio must reach
+ * `canplaythrough` or `loadedmetadata`. A failure is a `mediaErrors` entry of the summary and fails the run, like a console error.
+ *
  * Exit code: 0 success, 1 a failed check (JSON on stdout lists them), 2 bad usage, 3 Chromium cannot be launched.
  */
 import fs from 'node:fs'
@@ -46,13 +49,13 @@ import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import { DRIVERS } from './bot/index.mjs'
 
-const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]'
+const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--no-media-check] [--json] [--verbose]'
 const ACTION_TIMEOUT = 8000
 
 // ---------------------------------------------------------------- arguments
 
 function parseArgs(argv) {
-  const o = { dir: '', mode: '', shell: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, json: false, verbose: false }
+  const o = { dir: '', mode: '', shell: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, media: true, json: false, verbose: false }
   const rest = argv.slice()
   const take = (flag) => {
     const v = rest.shift()
@@ -74,6 +77,7 @@ function parseArgs(argv) {
       o.viewport = { width: Number(m[1]), height: Number(m[2]) }
     } else if (a === '--keyboard') o.keyboard = true
     else if (a === '--axe') o.axe = true
+    else if (a === '--no-media-check') o.media = false
     else if (a === '--json') o.json = true
     else if (a === '--verbose') o.verbose = true
     else if (a.startsWith('--')) throw new Error(`unknown option ${a}`)
@@ -136,7 +140,8 @@ async function run(opts) {
   }
   const consoleErrors = []
   let consoleWarnings = 0
-  const summary = { mode: opts.mode, shell: shellId, seed: opts.seed, steps: 0, correct: 0, wrong: 0, screens: [], kinds: {}, finished: false, consoleErrors: 0, durationMs: 0 }
+  const mediaErrors = []
+  const summary = { mode: opts.mode, shell: shellId, seed: opts.seed, steps: 0, correct: 0, wrong: 0, screens: [], kinds: {}, finished: false, consoleErrors: 0, mediaErrors: 0, media: { checked: opts.media, images: 0, audio: 0 }, durationMs: 0 }
   const screens = new Set()
   const checks = { whys: 0, explanations: 0, answers: 0 }
 
@@ -629,6 +634,55 @@ async function run(opts) {
     return state()
   }
 
+  // ------------------------------------------------------------ the media check
+
+  /** Loads every asset of the build in the page: an image must decode, audio must reach canplaythrough or loadedmetadata. */
+  async function checkMedia() {
+    const kindOf = new Map(pack.assets.map((a) => [a.id, a.kind]))
+    const list = Object.entries(data.assets ?? {}).map(([id, url]) => ({ id, url, kind: kindOf.get(id) ?? 'image' }))
+    summary.media.images = list.filter((a) => a.kind !== 'audio').length
+    summary.media.audio = list.filter((a) => a.kind === 'audio').length
+    if (list.length === 0) return
+    const bad = await page.evaluate(async (items) => {
+      const out = []
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+      await Promise.all(
+        items.map(async (a) => {
+          const url = new URL(a.url, document.baseURI).href
+          try {
+            if (a.kind === 'audio') {
+              const el = new Audio()
+              el.preload = 'auto'
+              await Promise.race([
+                new Promise((resolve, reject) => {
+                  el.addEventListener('canplaythrough', resolve, { once: true })
+                  el.addEventListener('loadedmetadata', resolve, { once: true })
+                  el.addEventListener('error', () => reject(new Error('the audio cannot be loaded' + (el.error ? ' (' + (el.error.message || 'code ' + el.error.code) + ')' : ''))), { once: true })
+                  el.src = url
+                  el.load()
+                }),
+                wait(8000).then(() => {
+                  throw new Error('the audio did not load within 8 s')
+                })
+              ])
+            } else {
+              const img = new Image()
+              img.src = url
+              await img.decode()
+            }
+          } catch (e) {
+            out.push({ id: a.id, url: a.url, error: e instanceof Error ? e.message : String(e) })
+          }
+        })
+      )
+      return out
+    }, list)
+    for (const b of bad) {
+      mediaErrors.push(b)
+      fail('media: ' + b.id + ' (' + b.url + '): ' + b.error)
+    }
+  }
+
   /** The shell's own bot helpers in the page (`EduEngine.debug.shell.<name>(...args)`): read-only, see docs/player.md. */
   const shellDebug = (name, ...args) => page.evaluate(([n, a]) => {
     const fn = window.EduEngine.debug.shell?.[n]
@@ -662,6 +716,7 @@ async function run(opts) {
     }
     summary.shell = st.shell
     screens.add('title')
+    if (opts.media) await checkMedia()
     await shot('title')
     await overflowCheck('title')
     await driver.play(bot)
@@ -689,6 +744,8 @@ async function run(opts) {
   summary.screens = [...screens]
   for (const e of consoleErrors) fail(e)
   summary.consoleErrors = consoleErrors.length
+  summary.mediaErrors = mediaErrors.length
+  if (mediaErrors.length) summary.mediaErrorList = mediaErrors
   summary.consoleWarnings = consoleWarnings
   summary.maxSteps = maxSteps
   summary.checks = checks

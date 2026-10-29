@@ -567,6 +567,70 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     return { note: `handed to Scriptorium as the story "${r.story}"`, path: 'pipeline/story.json' }
   })
 
+  // ---- art (EGS-15): plan, make, review ----
+
+  step('art_plan', async (h) => {
+    const src = await svc.media.artSourceFromPipeline(h.slug)
+    const r = await svc.media.planArt(h.ctx, h.slug, src)
+    return { note: `${r.plan.entries.length} picture(s) planned${r.plan.source === 'fallback' ? ' (from the course text: the art-director gave no usable answer)' : ''}, ${r.added.length} new, ${r.kept.length} kept from earlier`, path: 'pipeline/art.json' }
+  })
+
+  step(
+    'art_generate',
+    async (h) => {
+      const prev = h.round > 1 ? await P.readJson<{ revise: { id: string; note: string }[] }>(h.slug, `reviews/art_review-k${h.round - 1}.json`) : undefined
+      const again = prev?.revise ?? []
+      const rep = await svc.media.generate(h.slug, {
+        ...(again.length ? { ids: again.map((r) => r.id), force: true, extraPrompts: Object.fromEntries(again.map((r) => [r.id, `Correct this: ${r.note}`])) } : {}),
+        signal: h.ctx.signal,
+        log: (m) => h.ctx.log(m)
+      })
+      const bits = [
+        `${rep.generated.length} picture(s) made`,
+        ...(rep.placeholders.length ? [`${rep.placeholders.length} placeholder(s) stand in (${rep.down ? `the image provider is down: ${rep.down.slice(0, 140)}` : (rep.failed[0]?.error ?? 'failed').slice(0, 140)})`] : []),
+        ...(rep.skipped.length && !again.length ? [`${rep.skipped.length} already there`] : []),
+        ...(rep.warnings.length ? [`${rep.warnings.length} warning(s): ${rep.warnings.slice(0, 2).map((w) => `${w.id}: ${w.warning}`).join('; ').slice(0, 200)}`] : [])
+      ]
+      return { note: bits.join(', '), path: `courses/${h.slug}/course/assets.json` }
+    },
+    { noModel: true }
+  )
+
+  step(
+    'art_review',
+    async (h) => {
+      const r = await svc.media.reviewRound(h.ctx, h.slug, h.round, d.getQuality())
+      return {
+        note: `${r.reviewed} picture(s) reviewed, ${r.approved} approved${r.revise.length ? `, ${r.revise.length} sent back` : ''}${r.rejected.length ? `, ${r.rejected.length} still rejected after the last round (they stay in the course): ${r.rejected.slice(0, 5).join(', ')}` : ''}`,
+        path: `pipeline/reviews/art_review-k${h.round}.json`
+      }
+    },
+    { reviewing: true }
+  )
+
+  // the tools' own jobs (`edu_asset_plan`, `edu_asset_generate`): not steps of a run, so they work on a hand-made course too
+  sched.register('asset_plan', async (ctx) => {
+    const slug = ctx.job.book
+    if (!slug) throw new Error('the asset_plan job has no course')
+    const src = await svc.media.artSourceFromPack(slug)
+    const r = await svc.media.planArt(ctx, slug, src)
+    const linked = await svc.media.relink(slug)
+    return { result: `${r.plan.entries.length} picture(s) planned (${r.plan.source}), ${r.added.length} new, ${r.kept.length} kept${linked ? `, pack linked to ${linked.assets} asset(s)` : ''}`, resultPath: 'pipeline/art.json' }
+  })
+
+  sched.register(
+    'asset_generate',
+    async (ctx) => {
+      const slug = ctx.job.book
+      if (!slug) throw new Error('the asset_generate job has no course')
+      const p = (ctx.job as { params?: { ids?: string[]; force?: boolean; kind?: string } }).params ?? {}
+      const rep = await svc.media.generate(slug, { ids: p.ids, force: p.force, kind: p.kind, signal: ctx.signal, log: (m) => ctx.log(m) })
+      const linked = await svc.media.relink(slug)
+      return { result: `${rep.generated.length} made, ${rep.skipped.length} skipped, ${rep.placeholders.length} placeholder(s)${rep.down ? ` (down: ${rep.down.slice(0, 120)})` : ''}${linked ? `, pack linked (${linked.links} link(s))` : ''}`, resultPath: `courses/${slug}/course/assets.json` }
+    },
+    { noModel: true }
+  )
+
   const readText = async (slug: string, lang: string): Promise<TextCatalog | undefined> => {
     const loaded = await loadCourseFolder(svc.courses.root(slug))
     return loaded.catalogs[lang] as TextCatalog | undefined
@@ -607,7 +671,8 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         accepted,
         ...(design ? { design } : {}),
         ...(story?.frame ? { story: story.frame } : {}),
-        ...(polish ? { polish: polish.strings } : {})
+        ...(polish ? { polish: polish.strings } : {}),
+        media: await svc.media.mergeFor(h.slug)
       })
       await svc.courses.writeAssembled(h.slug, pack, catalogs)
       const content = renderCourseForReview(pack as never, catalogs, R.brief.sourceLang, R.brief.targetLang)

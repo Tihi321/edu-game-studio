@@ -36,6 +36,7 @@ import type { CourseMeta, CourseMetaFile } from './course-meta'
 import { FactBase } from './factbase'
 import { briefSchema, resolveBrief } from '../../shared/brief'
 import type { BriefInput } from '../../shared/brief'
+import { MediaService } from './media'
 import { Pipeline } from './pipeline'
 import type { RunResult } from './pipeline'
 import { registerPipelineHandlers } from './pipeline-handlers'
@@ -112,6 +113,8 @@ export class EduService {
   readonly factbase: FactBase
   /** The content pipeline: its state, `advance` and the run controls (EGS-08). */
   readonly pipeline: Pipeline
+  /** The media of a course: settings, the asset manifest, the art plan, generation, review and the merge into the pack (EGS-15). */
+  readonly media: MediaService
   /** Set by the pipeline handlers: called when a research job finished its work. */
   afterResearch?: (slug: string, jobId: string) => Promise<void>
   /** `course.md` models by course: the cache `courseModel` answers from (see there). */
@@ -122,6 +125,7 @@ export class EduService {
     this.comfyOverride = deps.comfy
     this.research = new ResearchService({ dataDir: deps.dataDir, jobs: deps.jobs, agents: deps.agents, getFactory: deps.getFactory, log: (m) => this.log(m), kick: () => deps.kick?.(), emit: deps.emit })
     this.pipeline = new Pipeline(this)
+    this.media = new MediaService(this)
     this.factbase = new FactBase(deps.dataDir, this.research.store, { allowUnverified: () => deps.getFactory().allow_unverified_facts })
   }
 
@@ -301,7 +305,7 @@ export class EduService {
     }
     const hasRun = !!(await this.pipeline.readSteps(s))
     if (created || !hasRun || o.overwriteBrief) {
-      await this.setCourseMeta(s, { brief, stage: 'draft' })
+      await this.setCourseMeta(s, { brief, stage: 'draft', ...(brief.media ? { media: brief.media } : {}) })
       if (brief.model) await this.setCourseModels(s, { '*': brief.model })
     }
     return { slug: s, created }

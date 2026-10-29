@@ -10,7 +10,8 @@ Every phase ends in something that can be checked: a command, a screenshot set, 
 - **Phase 5 is done** (EGS-10 to EGS-14, stacked on `EGS-05_design-system`, not merged yet): the encyclopedia explorer, MindMaze castle, RPG quest, language role-play and detective / escape room, each on the shared shell kit with its course section, its lint, a bot driver (perfect, wrong and random runs, keyboard-only and axe-core) and a broken fixture. No human has played them yet.
 - **Phase 3 is done** (EGS-06 to EGS-08, branches stacked on `EGS-14_detective`, not merged yet): the content team (15 roles with agents and prompts), research and the fact base, review gates, and `edu_run_pipeline` from a brief to a published course. A live run with the `client` provider made a 2-unit "Roman Empire" course for $0: lint clean, the bot's learners passed, every item cites the fact base (`.claude/tickets/EGS-08-pipeline/run-log.md`).
 - **Not checked yet:** `yarn dev` (the desktop window) has not been opened; the studio was checked in Chromium with a mocked engine. Real audio, touch devices and a human play-through are untested. The pipeline has not run with a real web search or a local model yet.
-- **Next:** the media (EGS-15 to EGS-17), then the pilot EGS-09.
+- **Phase 6 has started** (EGS-15 art, branch stacked on `EGS-08_pipeline`, itself on `EGS-14_detective`, not merged yet): the pipeline makes the pictures of a course, with the generators faked in the tests; no live ComfyUI, Pixel Studio or Flow run has been made yet. EGS-16 (music) and EGS-17 (voice) build on its media foundation.
+- **Next:** EGS-16 and EGS-17, then the pilot EGS-09.
 - **The pilot** (EGS-09) is a history and geography course; the exact topic is chosen then. It is done only when the user has played it.
 
 ## Tasks, in order
@@ -25,7 +26,6 @@ The phase numbers are the ones of the hub plan.
 
 ### Phase 6: media
 
-- **EGS-15** art: the art-director plans images, made by ComfyUI, Pixel Studio (RPG tiles and sprites) or Flow, and checked by the art-critic.
 - **EGS-16** music: Chiptune Studio (RPG and castle), ComfyUI ACE-Step or Flow Music.
 - **EGS-17** voice: narration and listening items in the target language; Gemini TTS for Croatian within the 10-a-day free quota, VibeTTS or ComfyUI TTS for the rest.
 
@@ -51,6 +51,7 @@ The phase numbers are the ones of the hub plan.
 - **EGS-12** the RPG quest (pixel quest: a Canvas 2D tile map from a seeded generator, quest givers, turn battles where the moves are answers with streaks and partial credit, an inn instead of game over, scrolls of learned facts, area bosses and a final boss; the frame story hand-written in the fixture, Scriptorium later). Plan `.claude/tickets/EGS-12-rpg/`.
 - **EGS-13** the language role-play (Adriatic postcard theme: dialogue scenes answered by choosing or typing in the target language, translations on demand, recovery lines, CEFR shown, a vocabulary garden that grows with SM-2 recall). Plan `.claude/tickets/EGS-13-roleplay/`.
 - **EGS-14** the detective / escape room (case file noir: cases from VN Studio's proved puzzle generator whose clue cards are turned by answering course items, a grid, hints, accusations that never dead-end, escape rooms per unit and a Carmen-Sandiego chase; every case proved unique at lint time, 200 seeds per kind and size in the tests). Plan `.claude/tickets/EGS-14-detective/`.
+- **EGS-15** art: the art-director plans the pictures (an article picture each, the art of every shell, hotspot pictures with their regions drawn over them), ComfyUI makes them (Pixel Studio for RPG tiles and sprites, Google Flow only when a course sets `art.provider: flow`), the art-critic reviews them with regenerate rounds (not must-pass), placeholders stand in when a provider is down (lint `PLACEHOLDER_ASSET`, never a failed run), stable asset ids, the course media settings and manifest, the `edu_asset_*` tools, and the bot's media check. The foundation of EGS-16 and EGS-17. Plan `.claude/tickets/EGS-15-art/`.
 
 ## Later
 

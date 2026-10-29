@@ -34,6 +34,10 @@ export interface ResearchEnvOptions {
   engine?: Partial<EngineOptions>
   /** The client provider (`client/claude-code`) next to the local one, so a course can name it as its model. */
   mixed?: boolean
+  /** A vision model for the art-critic (see `makeEduEnv`). */
+  vision?: boolean
+  /** The fakes of the studios and Google Flow (see `makeEduEnv`). */
+  studios?: boolean
 }
 
 export interface ResearchEnv extends EduEnv {
@@ -70,7 +74,7 @@ export async function makeResearchEnv(o: ResearchEnvOptions = {}): Promise<Resea
     counters.fetches.push(url)
     return byUrl.get(url)?.content ?? ''
   }
-  const env = await makeEduEnv({ ...(o.mixed ? { mixed: true } : {}), engine: { searchProviders: [provider], search: { fetchPage }, ...(o.engine ?? {}) } })
+  const env = await makeEduEnv({ ...(o.mixed ? { mixed: true } : {}), ...(o.vision ? { vision: true } : {}), ...(o.studios ? { studios: true } : {}), engine: { searchProviders: [provider], search: { fetchPage }, ...(o.engine ?? {}) } })
   const mock: MockProvider = env.mock
   const count = (k: string) => (counters.calls[k] = (counters.calls[k] ?? 0) + 1)
   mock.on({ task: 'research' }, (req) => {

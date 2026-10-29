@@ -25,11 +25,17 @@ export interface AuthorOptions {
   review?: (role: string, round: number) => 'pass' | 'revise'
   /** The playtester's verdict. */
   report?: 'pass' | 'revise'
+  /** The art-director's answer: `ok` (default), `repair` (wrong the first time, right after the repair round) or `unusable` (never right: the deterministic plan is used). */
+  artPlan?: 'ok' | 'repair' | 'unusable'
+  /** The art-critic's verdict on a picture in a round (default pass). */
+  artReview?: (assetId: string, round: number) => 'pass' | 'revise'
 }
 
 export interface Author {
   calls: string[]
   count(prefix: string): number
+  /** The number of images in each request the art-critic got (a picture goes with every review). */
+  criticImages: number[]
 }
 
 const userText = (req: ChatRequest): string => req.messages.filter((m) => m.role === 'user').map((m) => contentText(m.content)).join('\n')
@@ -50,6 +56,7 @@ const objectives = (text: string, unit?: string): { id: string; unit: string; fa
 
 export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
   const calls: string[] = []
+  const criticImages: number[] = []
   const log = (s: string) => calls.push(s)
   const on = (role: string, fn: (text: string, req: ChatRequest) => unknown) => env.mock.on({ role }, (req) => out(fn(userText(req), req)))
 
@@ -204,6 +211,34 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
   review('accessibility-reviewer', { accessibility: 9, readability: 9 })
   review('child-safety-reviewer', { age_fit: 9 })
 
+  // the art-director plans one picture per article and per required slot, and one picture for the first question; the prompt lists them (see seed/prompts/art-director/plan.md)
+  let artCalls = 0
+  on('art-director', (t) => {
+    artCalls++
+    log('art-director/plan')
+    const articles = lines(t).map((l) => /^- (a-u\d+-\d+) \(unit/.exec(l)?.[1]).filter((x): x is string => !!x)
+    const slots = lines(t).map((l) => /^- shell (\S+), slot (\S+) \(/.exec(l)).filter((m): m is RegExpExecArray => !!m)
+    const flash = lines(t).map((l) => /^- (u\d+-q\d+) \((?:flashcard|mcq)/.exec(l)?.[1]).filter((x): x is string => !!x)[0] // the first question a picture could go with
+    const bad = o.artPlan === 'unusable' || (o.artPlan === 'repair' && artCalls === 1)
+    const images = [
+      ...articles.map((id) => ({ for: 'article', id: bad ? 'no-such-article' : id, prompt: `A clear picture that shows the main idea of the article ${id}, a simple scene with one subject`, alt: `A picture for article ${id}` })),
+      ...slots.map((m) => ({ for: 'shell', shell: m[1], slot: m[2], prompt: `The scene for ${m[1]} ${m[2]}: an empty place that fits the topic, soft light`, alt: `The art of ${m[1]} ${m[2]}` })),
+      ...(flash ? [{ for: 'item', id: flash, prompt: `A friendly picture that helps to remember the question ${flash}`, alt: `A picture for the question ${flash}` }] : [])
+    ]
+    return { images, notes: 'Soft flat colours.' }
+  })
+
+  on('art-critic', (t, req) => {
+    criticImages.push(req.messages.flatMap((m) => (typeof m.content === 'string' ? [] : m.content)).filter((p) => p.type === 'image').length)
+    const id = grab(t, /Asset: (\S+) \(/)
+    const round = Number(grab(t, /It is round (\d+)/)) || 1
+    log(`art-critic/review:${id}:k${round}`)
+    const verdict = o.artReview?.(id, round) ?? 'pass'
+    return verdict === 'pass'
+      ? { verdict, scores: { relevance: 9, clarity: 9 }, notes: 'It shows what it should.', problems: [] }
+      : { verdict, scores: { relevance: 4, clarity: 5 }, notes: 'The subject is not clear.', problems: [{ ref: id, issue: 'the subject is too small', fix: 'show the subject large in the middle', severity: 'major' }] }
+  })
+
   on('playtester', () => {
     log('playtester/report')
     return o.report === 'revise'
@@ -216,7 +251,7 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     return { blurb: 'Learn the main ideas in short, friendly rounds.', notes: 'Good.' }
   })
 
-  return { calls, count: (prefix) => calls.filter((c) => c.startsWith(prefix)).length }
+  return { calls, count: (prefix) => calls.filter((c) => c.startsWith(prefix)).length, criticImages }
 }
 
 /** A search provider's pages for any question: two pages with their own text. */
@@ -237,13 +272,17 @@ export interface PipelineEnvOptions extends AuthorOptions {
   engine?: Partial<EngineOptions>
   playtest?: EngineOptions['playtest']
   mixed?: boolean
+  /** A vision model for the art-critic: without it the critic is skipped. */
+  vision?: boolean
+  /** Pixel Studio, Chiptune Studio and Google Flow are fakes (default: yes in a pipeline env, so no test reaches a real one). Set false to make the real clients. */
+  studios?: boolean
 }
 
 export type PipelineEnv = ResearchEnv & { author: Author }
 
 /** An engine with the mock team, a fake search, a fake playtest runner and the scripted author. */
 export async function makePipelineEnv(o: PipelineEnvOptions = {}): Promise<PipelineEnv> {
-  const env = await makeResearchEnv({ pagesFor: pagesForQuestion, ...(o.research ?? {}), ...(o.mixed ? { mixed: true } : {}), engine: { playtest: o.playtest ?? (async () => OK_PLAYTEST), ...(o.engine ?? {}) } })
+  const env = await makeResearchEnv({ pagesFor: pagesForQuestion, ...(o.research ?? {}), ...(o.mixed ? { mixed: true } : {}), ...(o.vision ? { vision: true } : {}), studios: o.studios !== false, engine: { playtest: o.playtest ?? (async () => OK_PLAYTEST), ...(o.engine ?? {}) } })
   env.engine.factory = { ...env.engine.factory, max_attempts: 1 }
   const author = installAuthor(env, o)
   return Object.assign(env, { author })

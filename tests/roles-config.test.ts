@@ -15,7 +15,7 @@ const seed = (...p: string[]) => fs.readFileSync(path.join(seedDir, ...p), 'utf8
 const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]))
 
 describe('the roles', () => {
-  it('ROLES is the content team, and the picker list of the renderer is the same list', () => {
+  it('ROLES is the content team plus the art roles of EGS-15, and the picker list of the renderer is that list so far', () => {
     expect([...ROLES]).toEqual([
       'director',
       'curriculum-designer',
@@ -28,13 +28,17 @@ describe('the roles', () => {
       'fact-checker',
       'game-designer',
       'narrative-designer',
+      'art-director',
+      'art-critic',
       'playtester',
       'accessibility-reviewer',
       'child-safety-reviewer',
       'publisher'
     ])
-    expect([...KNOWN_ROLES]).toEqual([...ROLES])
-    for (const phase6 of ['art-director', 'art-critic', 'composer', 'voice-director']) expect(ROLES as readonly string[]).not.toContain(phase6)
+    // the renderer's picker list (src/renderer/ui/roles.ts, restyled elsewhere) lags behind: it has no role that is not here, and the Agents page adds the rest from roles.md
+    const ART = ['art-director', 'art-critic']
+    expect([...KNOWN_ROLES]).toEqual([...ROLES].filter((r) => !ART.includes(r)))
+    for (const later of ['composer', 'voice-director']) expect(ROLES as readonly string[]).not.toContain(later) // EGS-16, EGS-17
   })
 
   it('config/roles.md lists every role with a model list: writers and designers paid first, checkers and the researcher local first', () => {
@@ -44,6 +48,8 @@ describe('the roles', () => {
     for (const role of ['director', 'curriculum-designer', 'subject-expert', 'item-writer', 'misconception-designer', 'explainer', 'language-coach', 'game-designer', 'narrative-designer', 'publisher']) expect(roles[role]!.models, role).toEqual(['paid', 'strata', 'lmstudio'])
     for (const role of ['researcher', 'fact-checker']) expect(roles[role]!.models, role).toEqual(['strata/qwen3.8-flash-next-low', 'lmstudio', 'paid'])
     for (const role of ['accessibility-reviewer', 'child-safety-reviewer', 'playtester']) expect(roles[role]!.models, role).toEqual(['strata', 'lmstudio', 'paid'])
+    expect(roles['art-director']!.models).toEqual(['paid', 'strata', 'lmstudio'])
+    expect(roles['art-critic']!.models).toEqual(['gemini/gemini-2.5-flash', 'anthropic/claude-sonnet-4-5', 'lmstudio']) // vision models first: the critic sends images
     for (const role of ROLES) expect(parseMd(seed('config', 'roles.md')).body, role).toContain(`\`${role}\``) // every role is described
   })
 

@@ -6,6 +6,8 @@ import { atomicWrite } from '../store/atomic'
 import { buildCourse, buildDirOf, GAME_DATA_FILE, type BuildResult } from './build'
 import { loadCourseFolder, validateCourseFolder } from './course-io'
 import { lintGame, summarize, type LintResult } from './lint'
+import { applyMedia } from './media-link'
+import type { MediaApplied, MediaMerge } from './media-link'
 import { assertSlug, coursesDir } from './paths'
 
 /**
@@ -199,6 +201,25 @@ export class CourseStore {
       if (problems.length > 0) throw new Error(`the assembled course is not valid, nothing was written: ${fmt(problems)}`)
       await this.save(slug, pack, catalogs)
       return { slug, dir: this.root(slug) }
+    })
+  }
+
+  /**
+   * Merges the media of the manifest into the pack on disk (`pack.assets`, the alt texts, the links of articles, items and shells: see
+   * `media-link.ts`), in one atomic write. Refused (nothing written) when it would make the pack invalid. A build made before is stale after it.
+   */
+  mergeMedia(slug: string, merge: MediaMerge): Promise<MediaApplied & { slug: string }> {
+    return this.exclusive(slug, async () => {
+      const { pack, catalogs } = await this.load(slug)
+      const before = this.check(pack, catalogs).blocking
+      const lang = String(pack.sourceLang)
+      const cat: Json = catalogs[lang] ?? { schema: 1, lang, strings: {} }
+      if (!isObj(cat.strings)) cat.strings = {}
+      const applied = applyMedia(pack, cat as { strings: Record<string, string> }, merge)
+      const all = { ...catalogs, [lang]: cat }
+      this.refuse('the media merge', before, this.check(pack, all).blocking)
+      await this.save(slug, pack, all, { catalogs: [lang] })
+      return { slug, ...applied }
     })
   }
 

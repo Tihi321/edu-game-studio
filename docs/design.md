@@ -63,8 +63,9 @@ Each role maps to models in `config/roles.md`, with fallbacks and budget caps. W
 | fact-checker | Checks every item and article against the fact base. **Must pass** |
 | game-designer | Picks the shells, maps units to levels, rooms and quests, sets rewards and difficulty |
 | narrative-designer | Frame story and characters; hands longer stories to Scriptorium over MCP |
-| art-director, art-critic | Image plans and a check with a vision model |
-| composer, voice-director | Music per area and mood; text-to-speech for narration and listening items |
+| art-director | Plans the pictures: one per article, the art of each shell (backdrops, castle rooms, plates, RPG tiles and sprites), a picture for an item where it helps, hotspot pictures (EGS-15) |
+| art-critic | Looks at each generated picture with a vision model and says pass or revise against its plan line; **not must-pass** (a rejected picture stays, marked), EGS-15 |
+| composer, voice-director | Music per area and mood; text-to-speech for narration and listening items (EGS-16, EGS-17) |
 | playtester | Plays the built game through the bot as simulated learners and reports flow, difficulty and dead ends |
 | accessibility- and child-safety-reviewer | Contrast, keyboard play, reading level; child safety for kids' courses. **Must pass** |
 | publisher | Scores against the threshold and builds the game |
@@ -99,7 +100,8 @@ A shell picks its look by id: `themeForShell('mindmaze')` (or the theme named in
 - **Data folder** `~/EduGames`: `config/`, `agents/`, `prompts/<role>/<task>.md`, `courses/<slug>/`, `jobs/`, `logs/`.
 - **Engine core** (copied from VN Studio): jobs are markdown files that move through `jobs/{queued,running,done,failed}`; the scheduler registers a handler per task; `engine.lock` keeps one engine per data folder; providers are openai-compatible servers, Anthropic, Gemini and `client`; every MCP tool is `def(name, description, schema, run)`.
 - **Course contract** (`src/shared/course.ts`, EGS-02): `course/pack.json` is the template (ids, objectives, the prerequisite graph, items with answer keys, shells, assets, cues); `course/text/<lang>.json` is the only translatable text, so Book Translator can translate it. Answer keys are language-neutral where possible: indexes, ids, numbers.
-- **Pipeline** (EGS-08): brief, research, curriculum, articles, items, fact-check, explain, game design, story, art, music, voice, assemble, build, lint, playtest, publish.
+- **Pipeline** (EGS-08): brief, research, curriculum, articles, items, fact-check, explain, game design, story, art, music, voice, assemble, build, lint, playtest, publish. Art is real since EGS-15 (`art_plan`, `art_generate`, `art_review`); music and voice are skipped hooks until EGS-16 and EGS-17.
+- **Media** (EGS-15): a course's media settings are `course.md` `media`; its assets are `course/assets.json` plus `course/assets/<id>/v<n>.<ext>`, with ids that come from what they illustrate; `assemble` links them into the pack (`assets[]`, `article.asset`, `item.asset`, `shells.config[*].art`). A picture that cannot be made is a labelled placeholder (lint `PLACEHOLDER_ASSET`, a warning), never a failed run. Google Flow is used only when a course asks.
 - **Player runtime** (EGS-03): our own DOM/CSS + Canvas 2D code that emits `index.html`, `player.js`, `player.css` and `game-data.js` and works over `file://`. Shells are plugins on a `window.EduEngine` hook (`registerShell`, `registerItemKind`). Progress and the review queue live in localStorage, with export and import. Every interactive element has a `data-testid`, so the bot and Playwright can drive it.
 - **MCP** on port 7463, tools prefixed `edu_`, the guide served as `edu-studio://guide`.
 - **Generators**: ComfyUI (images, music, text-to-speech), Pixel Studio (pixel art), Chiptune Studio (music), Google Flow (images, voices, songs), local and cloud text-to-speech. Reached through the clients in `src/engine/studios/` and `src/engine/comfy/`.

@@ -23,4 +23,5 @@ How the publisher decides.
 - After the last round the publisher decides. A reviewer in `must_pass` that still says `revise` blocks the course. So does a hard gate (lint errors in the built game, the autoplay bot failing). Otherwise the weighted average of all scores must reach `threshold`.
 - `weights` say how much each dimension counts. A dimension that isn't listed counts 1.
 - The fact-checker also runs a script first: every item and article must name facts that exist in the fact base. A problem there forces `revise` whatever the model says.
+- The art-critic (EGS-15) reviews each generated picture with a vision model and returns the same `{verdict, scores, notes, problems}` with the scores `relevance` and `clarity`. It is not in `must_pass` and does not count towards the publisher's score: a `revise` (a score below `revise_below`) makes that picture again with the critic's note, up to `max_rounds`; a picture still rejected after the last round stays in the course, marked `rejected`.
 - A blocked course stays in `courses/` with its reasons; nothing is deleted.

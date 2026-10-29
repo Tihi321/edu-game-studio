@@ -4,6 +4,8 @@ Our own runtime (plain TypeScript and DOM, no game engine, no React) that plays 
 
 The autoplay bot (EGS-04, `scripts/play.mjs`) and Playwright drive the game **only through `data-testid`s and `window.EduEngine.getState()`**, both documented here, plus the small solver hook `window.EduEngine.debug` (below).
 
+An image or an audio element that fails to load is a `console.error` (`main.ts` listens for the `error` event of `img`, `audio`, `video` and SVG `image` in the capture phase), so the bot counts it; the bot's own media check (EGS-15) loads every asset URL of `game-data.json` in the page and reports `mediaErrors`.
+
 ## Pieces
 
 | File | What |

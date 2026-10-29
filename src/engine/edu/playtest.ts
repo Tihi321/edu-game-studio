@@ -13,7 +13,7 @@ import path from 'node:path'
  *   strong      a learner who is right 90 % of the time (must finish)
  *   average     75 %, the bot's default learner (must finish)
  *   struggling  55 % (must finish within the step bound)
- * `ok` is true when every persona passed its own checks and no run logged a console error.
+ * `ok` is true when every persona passed its own checks and no run logged a console error or an asset that did not load (the bot's media check).
  */
 
 export interface Persona {
@@ -43,6 +43,8 @@ export interface BotSummary {
   screens: string[]
   finished: boolean
   consoleErrors: number
+  /** Assets that did not load in the page (an image that does not decode, audio that does not play): the bot's media check (EGS-15). Missing from an older bot. */
+  mediaErrors?: number
   maxSteps: number
   checks?: { whys: number; explanations: number; answers: number }
   ok: boolean
@@ -112,8 +114,10 @@ function playOne(buildDir: string, p: Persona, o: Required<Pick<PlaytestOptions,
     const run = (code: number, summary: BotSummary | null, extra: string[] = []): void => {
       const failures = [...(summary?.failures ?? []), ...extra]
       const errors = summary?.consoleErrors ?? 0
+      const mediaErrors = summary?.mediaErrors ?? 0
       if (errors > 0) failures.push(`${errors} console error(s) while playing`)
-      resolve({ persona: p.id, mode: p.mode, code, ok: code === 0 && !!summary?.ok && errors === 0, summary, failures })
+      if (mediaErrors > 0 && !failures.some((f) => f.startsWith('media:'))) failures.push(`${mediaErrors} asset(s) did not load`)
+      resolve({ persona: p.id, mode: p.mode, code, ok: code === 0 && !!summary?.ok && errors === 0 && mediaErrors === 0, summary, failures })
     }
     execFile(o.node, [o.playScript, buildDir, '--json', ...argsOf(p)], { maxBuffer: 16 * 1024 * 1024, timeout: o.timeoutMs, env: o.env, signal: o.signal }, (err, stdout, stderr) => {
       const code = err ? (typeof (err as { code?: unknown }).code === 'number' ? (err as { code: number }).code : 1) : 0
@@ -165,7 +169,7 @@ export function playtestDigest(result: PlaytestResult): string {
       if (!s) return `### ${r.persona}\nThe bot gave no result: ${r.failures.join('; ')}`
       return [
         `### ${r.persona} (${r.mode}${r.mode === 'random' ? `, seed ${s.seed}` : ''}): ${r.ok ? 'passed' : 'FAILED'}`,
-        `steps ${s.steps} of at most ${s.maxSteps}, right ${s.correct}, wrong ${s.wrong}, finished: ${s.finished ? 'yes' : 'no'}, console errors ${s.consoleErrors}`,
+        `steps ${s.steps} of at most ${s.maxSteps}, right ${s.correct}, wrong ${s.wrong}, finished: ${s.finished ? 'yes' : 'no'}, console errors ${s.consoleErrors}, media errors ${s.mediaErrors ?? 0}`,
         `screens seen: ${s.screens.join(', ')}`,
         ...(r.failures.length ? [`failures: ${r.failures.join('; ')}`] : [])
       ].join('\n')

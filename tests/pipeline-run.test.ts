@@ -133,7 +133,7 @@ describe('the MCP side', () => {
         expect(t.user.length, `${t.role}/${t.task}`).toBeGreaterThan(200)
         expect(t.hasSchema, `${t.role}/${t.task}`).toBe(true)
       }
-      expect(new Set(seen.map((t) => t.role))).toEqual(new Set(['director', 'researcher', 'curriculum-designer', 'subject-expert', 'item-writer', 'misconception-designer', 'fact-checker', 'explainer', 'game-designer', 'accessibility-reviewer', 'playtester', 'publisher']))
+      expect(new Set(seen.map((t) => t.role))).toEqual(new Set(['director', 'researcher', 'curriculum-designer', 'subject-expert', 'item-writer', 'misconception-designer', 'fact-checker', 'explainer', 'game-designer', 'art-director', 'art-critic', 'accessibility-reviewer', 'playtester', 'publisher']))
       // the no-model steps ran on their own in between
       expect(await json(pf(env, 'lint.json'))).toMatchObject({ ok: true })
     } finally {

@@ -94,6 +94,8 @@ export const courseSettingsSchema = z.object({
   models: z.record(z.string(), z.string()).default({}),
   art: z
     .object({
+      /** The art step runs (default). false: no image is planned or made (the course has no pictures, and no placeholder). */
+      enabled: z.boolean().default(true),
       style: z.enum(['illustrated', 'pixel']).default('illustrated'),
       /** ComfyUI generator engine id. */
       generator: z.string().default('qwen-image-2.1'),
@@ -101,8 +103,8 @@ export const courseSettingsSchema = z.object({
       editor: z.string().default('qwen-image-2.1-edit'),
       /** A pixel palette name, for pixel mode. */
       palette: z.string().optional(),
-      /** The art-critic reviews every generated image. */
-      review: z.boolean().default(false),
+      /** The art-critic reviews every generated image (needs a vision model; without one the check is skipped, with the reason). */
+      review: z.boolean().default(true),
       /** The style words every image prompt starts with. Empty: derived from the format, genre and art mode (never from the bible's Style section, which is a writing note). */
       stylePrompt: z.string().optional(),
       /** How sprites get a transparent background: ComfyUI BiRefNet, a Qwen-Image edit pass then BiRefNet, or keying out a flat background. */
@@ -118,7 +120,7 @@ export const courseSettingsSchema = z.object({
       /** Pixel art size and look. Missing fields take `PIXEL_DEFAULTS`. */
       pixel: pixelSchema.optional()
     })
-    .default({ style: 'illustrated', generator: 'qwen-image-2.1', editor: 'qwen-image-2.1-edit', review: false, bgRemoval: 'birefnet' }),
+    .default({ enabled: true, style: 'illustrated', generator: 'qwen-image-2.1', editor: 'qwen-image-2.1-edit', review: true, bgRemoval: 'birefnet' }),
   music: z
     .object({
       engine: z.string().default('ace-step-v1-instrumental'),
@@ -166,6 +168,25 @@ export const courseSettingsSchema = z.object({
 })
 export type CourseSettings = z.infer<typeof courseSettingsSchema>
 
+/**
+ * The media settings of a course, as `course.md` keeps them under `media` (frontmatter): `art`, `music`, `voice` and `sound` with the
+ * shapes above, every field optional (a course with no `media` block gets the defaults: art `comfy`, the art-critic on, Flow off).
+ */
+export const courseMediaSchema = z.object({
+  art: courseSettingsSchema.shape.art,
+  music: courseSettingsSchema.shape.music,
+  voice: courseSettingsSchema.shape.voice,
+  sound: courseSettingsSchema.shape.sound
+})
+export type CourseMedia = z.infer<typeof courseMediaSchema>
+
+/** `media` as a person or a brief gives it (any subset of the blocks); the settings of a course with none are `parseCourseMedia(undefined)`. */
+export function parseCourseMedia(raw: unknown): CourseMedia {
+  const r = courseMediaSchema.safeParse(raw === undefined || raw === null ? {} : raw)
+  if (!r.success) throw new Error(`the media settings are not valid: ${r.error.issues.map((i) => `media.${i.path.join('.') || '(root)'}: ${i.message}`).join('; ')}`)
+  return r.data
+}
+
 // The newer settings are optional, so a project.md from before them still parses (and is saved unchanged). These give their values.
 
 export function resolvePixel(art: Pick<CourseSettings['art'], 'pixel'>): { width: number; height: number; dither: Dither; outline: boolean } {
@@ -174,9 +195,14 @@ export function resolvePixel(art: Pick<CourseSettings['art'], 'pixel'>): { width
 }
 
 export const resolvePixelProvider = (art: Pick<CourseSettings['art'], 'pixelProvider'>): (typeof PIXEL_PROVIDERS)[number] => art.pixelProvider ?? 'builtin'
+/** Who turns the images of a pixel-art asset (an RPG tile set, a sprite) into pixel art: Pixel Studio unless the course says `builtin` (the built-in quantiser also runs, with a warning, when Pixel Studio is down). */
+export const resolveRpgPixelProvider = (art: Pick<CourseSettings['art'], 'pixelProvider'>): (typeof PIXEL_PROVIDERS)[number] => art.pixelProvider ?? 'pixel-studio'
+/** Who makes the images: ComfyUI unless the course says otherwise. Flow is only used when `art.provider` is `flow`. */
 export const resolveArtProvider = (art: Pick<CourseSettings['art'], 'provider'>): (typeof ART_PROVIDERS)[number] => art.provider ?? 'comfy'
-/** The asset kinds that are images. */
-export const IMAGE_KINDS: ReadonlySet<string> = new Set(['background', 'sheet', 'sprite', 'cover', 'cg'])
+/** The asset kinds that are images. `illustration` is a picture of a fact (an article or an item), `tileset` a pixel-art tile sheet. */
+export const IMAGE_KINDS: ReadonlySet<string> = new Set(['background', 'sheet', 'sprite', 'cover', 'cg', 'illustration', 'tileset'])
+/** The image kinds that are pixel art whatever the art style of the course is (the RPG shell's art). */
+export const PIXEL_KINDS: ReadonlySet<string> = new Set(['sprite', 'tileset'])
 /** The asset kinds that are audio, made by a model or imported (a voice reference is audio too, but only ever uploaded). */
 export const AUDIO_KINDS: ReadonlySet<string> = new Set(['music', 'sfx', 'ambience'])
 /** Hand-made art: Edu Studio never generates an image (any art style). */
@@ -217,7 +243,7 @@ export function resolveSfxEngine(settings: Pick<CourseSettings, 'art' | 'music' 
 
 // ---- assets (assets.json) ----
 
-export const ASSET_KINDS = ['background', 'sheet', 'sprite', 'cover', 'cg', 'music', 'sfx', 'ambience', 'voiceRef'] as const
+export const ASSET_KINDS = ['background', 'sheet', 'sprite', 'cover', 'cg', 'illustration', 'tileset', 'music', 'sfx', 'ambience', 'voiceRef'] as const
 export const assetKindSchema = z.enum(ASSET_KINDS)
 export type AssetKind = z.infer<typeof assetKindSchema>
 
@@ -265,10 +291,24 @@ export const assetEntrySchema = z.object({
   locked: z.boolean(),
   /** The prompt was set with `edu_asset_set`: the art-director and composer keep it. */
   promptByHand: z.boolean().optional(),
+  /** What the asset shows, in a sentence (the alt text of the image; the catalog key `asset.<id>.alt` holds it). */
+  alt: z.string().optional(),
+  /** `illustrated` or `pixel`: how the asset looks (an RPG tile set and sprite are always pixel). */
+  style: z.enum(['illustrated', 'pixel']).optional(),
+  /** Who makes this asset's image, over the course's `art.provider` (set with `edu_asset_set`). */
+  provider: z.enum(['comfy', 'flow']).optional(),
+  /** The size the picture is fitted to when it is finished (a hotspot image is fitted to its item's width and height). Missing: by kind. */
+  fit: z.object({ w: z.number().int().positive(), h: z.number().int().positive() }).optional(),
+  /** No image could be made yet: the placeholder card in `assets/<id>/<file>` stands in (lint warns `PLACEHOLDER_ASSET`) until a version exists. */
+  placeholder: z.object({ file: z.string(), reason: z.string() }).optional(),
   review: z
     .object({
       status: z.enum(['pending', 'approved', 'rejected']),
-      note: z.string().optional()
+      note: z.string().optional(),
+      /** The version the art-critic looked at. */
+      version: z.number().int().positive().optional(),
+      /** The art-critic rounds spent on this asset. */
+      rounds: z.number().int().nonnegative().optional()
     })
     .optional()
 })

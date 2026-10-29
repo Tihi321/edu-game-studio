@@ -19,7 +19,7 @@ import { assertSlug, coursesDir } from './paths'
  * ```
  * plan -> research x N -> factbase -> curriculum -> scope (language courses)
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
- *   -> design -> story -> art, music, voice (hooks, skipped until phase 6) -> assemble
+ *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music, voice (hooks, skipped until EGS-16, EGS-17) -> assemble
  *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise) -> build -> lint -> playtest
  *   -> playtest_report -> publish (code: must-pass, threshold, hard gates; the publisher writes the blurb) -> summarize
  * ```
@@ -32,7 +32,7 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'assemble', 'review', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'assemble', 'review', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
 
 /** Which stage a task belongs to (for `restart from`). */
@@ -53,9 +53,11 @@ const STAGE_OF: Record<string, Stage> = {
   accepted: 'accepted',
   design: 'design',
   story: 'story',
-  art: 'story',
-  music: 'story',
-  voice: 'story',
+  art_plan: 'art',
+  art_generate: 'art',
+  art_review: 'art',
+  music: 'art',
+  voice: 'art',
   assemble: 'assemble',
   review_accessibility: 'review',
   review_child_safety: 'review',
@@ -81,6 +83,7 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   accepted: ['units/*/accepted.json'],
   design: ['design.json'],
   story: ['story.json'],
+  art: ['art.json', 'reviews/art_review-*'],
   assemble: ['assembled.json', 'polish.json'],
   review: ['reviews/review-*'],
   lint: ['lint.json'],
@@ -88,16 +91,15 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   publish: ['publish.json']
 }
 
-/** The hooks of the generators (phase 6): recorded as skipped until a ticket fills them. */
+/** The hooks of the generators that are not built yet (EGS-16 music, EGS-17 voice): recorded as skipped until a ticket fills them. Art is real since EGS-15. */
 export interface MediaHook {
-  id: 'art' | 'music' | 'voice'
+  id: 'music' | 'voice'
   /** Why it did not run. */
   skipped: string
 }
 export const MEDIA_HOOKS: MediaHook[] = [
-  { id: 'art', skipped: 'phase 6 (EGS-15..17): art is made by the generators later' },
-  { id: 'music', skipped: 'phase 6 (EGS-15..17): music is made by the generators later' },
-  { id: 'voice', skipped: 'phase 6 (EGS-15..17): voices are made by the generators later' }
+  { id: 'music', skipped: 'EGS-16: music is made by the generators later' },
+  { id: 'voice', skipped: 'EGS-17: voices are made by the generators later' }
 ]
 
 export type StepStatus = 'queued' | 'done' | 'skipped' | 'blocked'
@@ -488,6 +490,7 @@ export class Pipeline {
     if ((await this.ensure(c, { task: 'design', role: 'game-designer', label: 'design the game' })) !== 'done') return 'running'
     if (R.brief.story === 'none') this.skip(c, 'story', null, 'no story asked (story: none)')
     else if ((await this.ensure(c, { task: 'story', role: 'narrative-designer', label: R.brief.story === 'frame' ? 'write the frame story' : 'hand the story to Scriptorium' })) !== 'done') return 'running'
+    if ((await this.artFlow(c)) !== 'done') return 'running'
     for (const h of MEDIA_HOOKS) this.skip(c, h.id, null, h.skipped)
 
     // assemble, then the audience reviews; a revise goes through polish and assemble again
@@ -533,6 +536,34 @@ export class Pipeline {
     if (pub === 'blocked') return this.settle(c, true)
     if (pub !== 'done') return 'running'
     return this.settle(c, false)
+  }
+
+  /**
+   * The art steps (EGS-15): the art-director plans the pictures (`art_plan`), the generators make them (`art_generate`, no model) and the
+   * art-critic reviews each new version (`art_review`); a picture it sends back is made again with its note (`art_generate-k2`, then
+   * `art_review-k2`), up to `max_rounds`. The critic is not a gate: a picture that is still rejected after the last round stays in the course. With
+   * `media.art.review: false`, or no model with vision, the review is skipped with the reason. 'done' when the whole flow is settled.
+   */
+  private async artFlow(c: Ctx): Promise<'done' | 'wait'> {
+    const { slug, q } = c
+    const media = await this.svc.media.settings(slug)
+    if (!media.art.enabled) {
+      for (const t of ['art_plan', 'art_generate', 'art_review']) this.skip(c, t, null, 'media.art.enabled is false: the course has no pictures')
+      return 'done'
+    }
+    if ((await this.ensure(c, { task: 'art_plan', role: 'art-director', label: 'plan the pictures' })) !== 'done') return 'wait'
+    if ((await this.ensure(c, { task: 'art_generate', role: 'art-director', label: 'make the pictures' })) !== 'done') return 'wait'
+    const critic = await this.svc.media.criticAvailable(slug)
+    if (!critic.ok) {
+      this.skip(c, 'art_review', null, critic.reason ?? 'the art-critic is off')
+      return 'done'
+    }
+    for (let k = 1; ; k++) {
+      if ((await this.ensure(c, { task: 'art_review', role: 'art-critic', round: k, extra: { vision: true }, label: `the art-critic looks at the pictures${k > 1 ? ` (round ${k})` : ''}` })) !== 'done') return 'wait'
+      const r = await this.readJson<{ revise: { id: string; note: string }[] }>(slug, `reviews/art_review-k${k}.json`)
+      if (!r?.revise?.length || k >= q.max_rounds) return 'done'
+      if ((await this.ensure(c, { task: 'art_generate', role: 'art-director', round: k + 1, label: `make the pictures again with the critic's notes (round ${k + 1})` })) !== 'done') return 'wait'
+    }
   }
 
   /** The run is over (published or blocked): the director's summary, then the outcome. */

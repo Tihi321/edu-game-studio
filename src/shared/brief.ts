@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { CEFR_LEVELS } from './course'
-import { langSchema } from './media'
+import { courseMediaSchema, langSchema } from './media'
 import type { FormatEntry } from './schemas'
 
 /**
@@ -21,7 +21,8 @@ import type { FormatEntry } from './schemas'
  *   kids         a course for children: the child-safety reviewer must pass it (default: age < 13)
  *   story        none (default), frame (a frame story written by the narrative designer) or scriptorium (hand a story idea to Scriptorium)
  *   model        provider/model for every role of this course (written to course.md `models['*']`), e.g. client/claude-code
- *   notes        anything else the roles should know
+ *   media        the media settings (written to course.md `media`): {art: {enabled, style, provider (comfy|flow|hand), review, palette ...}, music, voice, sound}
+ *   notes       anything else the roles should know
  */
 export const STORY_MODES = ['none', 'frame', 'scriptorium'] as const
 
@@ -42,6 +43,14 @@ export const briefSchema = z.object({
   kids: z.boolean().optional(),
   story: z.enum(STORY_MODES).default('none'),
   model: z.string().trim().regex(/^[^\s/]+\/\S+$/, 'a model is provider/model, for example client/claude-code').optional(),
+  /** The media settings of the course (`art`, `music`, `voice`, `sound`; see `courseMediaSchema`): written to course.md `media`. Missing: the defaults. */
+  media: z
+    .record(z.string(), z.unknown())
+    .superRefine((v, ctx) => {
+      const r = courseMediaSchema.safeParse(v)
+      if (!r.success) for (const i of r.error.issues) ctx.addIssue({ code: 'custom', path: i.path, message: i.message })
+    })
+    .optional(),
   notes: z.string().optional()
 })
 export type Brief = z.output<typeof briefSchema>

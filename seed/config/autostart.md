@@ -13,7 +13,7 @@ stopOnExit: false
 ---
 # Auto-start
 
-When a job calls Pixel Studio, Chiptune Studio or ComfyUI and nothing answers, Edu Studio starts it from the hub's `services.json`, waits until it answers (checked every half second), and retries the call once. Without this, Pixel Studio work falls back to the built-in pixelate and Chiptune and ComfyUI jobs fail and retry.
+When a job calls Pixel Studio, Chiptune Studio or ComfyUI and nothing answers, Edu Studio starts it from the hub's `services.json`, waits until it answers (checked every half second), and retries the call once. Without this, Pixel Studio work falls back to the built-in pixelate, ComfyUI pictures become placeholder cards (the lint warns) and Chiptune jobs fail and retry.
 
 - `enabled`: `false` turns it off. `EDU_AUTOSTART=0` in the environment turns it off too (the tests do this).
 - `registry`: the path of `services.json`. Missing or unreadable: auto-start is off, and the engine log says so once.
