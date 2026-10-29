@@ -20,6 +20,10 @@ flowUrl: http://127.0.0.1:7462/mcp
 flowRepo: ../flow-music-mcp
 # The bearer token of its MCP server; the environment variable FLOW_MUSIC_MCP_TOKEN and the credential store win over this field.
 flowToken: ''
+# Scriptorium (the hub's book factory): a course with story: scriptorium hands its story idea over MCP. Edu Studio NEVER starts it (its engine resumes
+# the whole book factory and may use paid models): start it yourself. Its token is only needed when its MCP server asks for one.
+scriptoriumUrl: http://127.0.0.1:7341/mcp
+scriptoriumToken: ''
 # Seconds per wait call (at most 50), and when to give up on one image job / one song.
 flowPollS: 40
 flowJobTimeoutS: 900
@@ -49,6 +53,7 @@ Where Edu Studio finds the two studio apps.
 - `pixelStudioRepo`, `chiptuneStudioRepo`: the folders of the apps (start hints, and the window of "Open in ...").
 - `pixelStudioExe`, `chiptuneStudioExe`: a packaged app to launch instead.
 - `flowUrl`, `flowRepo`, `flowToken`, `flowPollS`, `flowJobTimeoutS`, `flowMusicTimeoutS`, `flowImageQuality`, `flowVoicePauseMs`, `flowVoiceRetries`, `flowMusicMaxSongs`: flow-music-mcp (Google Flow), used when a course's art, voice or music provider is `flow` (`EDU_FLOW_URL` overrides the URL; the token variable is `FLOW_MUSIC_MCP_TOKEN`). Images and the Gemini / Windows voices are free; Flow Music songs spend credits and are capped per project by `flowMusicMaxSongs`.
+- `scriptoriumUrl`, `scriptoriumToken`: Scriptorium's MCP endpoint (`EDU_SCRIPTORIUM_URL` overrides it; the token variable is `SCRIPTORIUM_MCP_TOKEN`). Used only when a course's brief says `story: scriptorium`: the narrative designer's story idea is added with Scriptorium's `add_story`. **Edu Studio never starts Scriptorium**: starting it resumes its whole book factory, which may spend on paid models. When it is down the story step is skipped, with the start hint.
 - `pixelStudioToken`, `chiptuneStudioToken`: the bearer token of an app whose MCP server needs one (shown in its Settings -> MCP). It is sent as `Authorization: Bearer <token>`. Where it is looked up, first match wins: the environment variable `PIXEL_STUDIO_MCP_TOKEN` / `CHIPTUNE_STUDIO_MCP_TOKEN`, the Windows credential store under the same name (`yarn key:set PIXEL_STUDIO_MCP_TOKEN`), then this field. Keep tokens out of files you share: prefer the first two. An app that answers 401 gives the message "rejected the token: set <VAR> ...".
 - A course picks them in its settings: music provider `chiptune` (the default for pixel-style courses), pixel provider `pixel-studio`.
 - `drawSteps`, `drawTimeoutS`, `drawMode`: how a sprite is drawn in the `pixel-studio-draw` mode (pixel art). `loop`: the model calls Pixel Studio's drawing tools turn by turn, up to `drawSteps` turns and `drawTimeoutS` seconds (checked between turns). `grid`: one model request for the whole sprite, with no time limit: the reference is reduced to the palette and sent as rows of characters (`.` transparent, `0-9a-zA-Z` the palette colours, as in Pixel Studio's `draw_grid`), the model answers the cleaned-up rows, and Edu Studio paints them with `draw_grid` calls of at most 64x64 pixels and exports as the loop does (so "Open in Pixel Studio" works). Rows that do not fit the grid get one repair round, then the image is converted instead. Without Pixel Studio running, the PNG is built from the rows here. `auto` picks `grid` for a client model (it can take minutes per answer) and `loop` for any other; with a client model the loop has no time limit either.

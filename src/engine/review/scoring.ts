@@ -124,6 +124,9 @@ export function reviewSchemaFor(role: string) {
   return z.preprocess(normalizeReviewJson, body(dimensionsFor(role)))
 }
 
+/** The object schema of one reviewer role (before the normalising step), for a role whose answer has more fields than a review (the playtester's `deadEnds`). */
+export const reviewBodyFor = (role: string) => body(dimensionsFor(role))
+
 // ---- reading a review ----
 
 /** The lowest score of a review, or undefined when it has none. */

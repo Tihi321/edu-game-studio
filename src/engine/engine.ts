@@ -26,6 +26,8 @@ import type { ComfyClient } from './comfy/client'
 import type { PixelClient } from './studios/pixel'
 import type { ChiptuneClient } from './studios/chiptune'
 import type { FlowClient } from './studios/flow'
+import type { ScriptoriumClient } from './studios/scriptorium'
+import type { EduDeps } from './edu/service'
 import { ServiceStarter } from './studios/autostart'
 import { SearchService } from './research/service'
 import type { SearchServiceOptions } from './research/service'
@@ -53,6 +55,10 @@ export interface EngineOptions {
   chiptune?: ChiptuneClient
   /** flow-music-mcp client for Google Flow images, voices and songs (tests pass a fake). Default: made from `config/studios.md`. */
   flow?: FlowClient
+  /** Scriptorium for a course whose story is written there (tests pass a fake). Default: made from `config/studios.md`. Never started by Edu Studio. */
+  scriptorium?: ScriptoriumClient
+  /** The autoplay bot runner for the playtest step (tests pass a fake). Default: `runPlaytest`. */
+  playtest?: EduDeps['playtest']
   /** Starts Pixel Studio, Chiptune Studio and ComfyUI when a job needs them (`config/autostart.md`). Default: one made here (tests pass a fake). */
   starter?: ServiceStarter
   /** Tests: these search providers serve the researcher instead of the ones in `config/providers.md` (nothing reaches the network). */
@@ -169,6 +175,8 @@ export class Engine {
       pixel: opts.pixel,
       chiptune: opts.chiptune,
       flow: opts.flow,
+      scriptorium: opts.scriptorium,
+      playtest: opts.playtest,
       starter: this.starter,
       dirs: opts.dirs
     })

@@ -20,8 +20,11 @@ import { buildInventory, freeAllLanes } from '../comfy/inventory'
 import type { PixelClient } from '../studios/pixel'
 import type { ChiptuneClient } from '../studios/chiptune'
 import type { FlowClient } from '../studios/flow'
+import type { ScriptoriumClient } from '../studios/scriptorium'
+import { runPlaytest } from './playtest'
+import type { PlaytestOptions, PlaytestResult } from './playtest'
 import type { ServiceStarter } from '../studios/autostart'
-import { chiptuneClientFor, flowClientFor, flowStartHint, loadStudiosConfig, pixelClientFor, startHint, studioRepo, studioUrl, STUDIO_NAMES } from '../studios/config'
+import { chiptuneClientFor, flowClientFor, flowStartHint, loadStudiosConfig, pixelClientFor, scriptoriumClientFor, startHint, studioRepo, studioUrl, STUDIO_NAMES } from '../studios/config'
 import type { StudioId, StudiosConfig } from '../studios/config'
 import { ResearchService } from '../research/service'
 import type { SearchService } from '../research/service'
@@ -66,6 +69,10 @@ export interface EduDeps {
   pixel?: PixelClient
   chiptune?: ChiptuneClient
   flow?: FlowClient
+  /** Scriptorium (tests pass a fake). Default: made from `config/studios.md`. It is never started by Edu Studio. */
+  scriptorium?: ScriptoriumClient
+  /** Plays a built game with the autoplay bot (tests pass a fake; `runPlaytest` by default). */
+  playtest?: (buildDir: string, opts?: PlaytestOptions) => Promise<PlaytestResult>
   /** Starts the generator services when a job finds them down (tests pass a fake, or none). */
   starter?: ServiceStarter
   /** The folders that ship with the app. Default: found relative to this code. */
@@ -397,6 +404,18 @@ export class EduService {
       flow: this.deps.flow ?? flowClientFor(config),
       config
     }
+  }
+
+  /** The Scriptorium client (never started from here: a Scriptorium that is down is an error with the start hint). */
+  async scriptorium(): Promise<ScriptoriumClient> {
+    return this.deps.scriptorium ?? scriptoriumClientFor(await loadStudiosConfig(this.dataDir))
+  }
+
+  /** Plays the built game of a course with the autoplay bot as simulated learners (`runPlaytest`; needs Chromium). Build the course first. */
+  async playtest(slug: string, opts: PlaytestOptions = {}): Promise<PlaytestResult> {
+    if (!(await this.courseExists(slug))) throw new Error(`no course "${slug}"`)
+    const dir = this.courses.buildDir(slug)
+    return (this.deps.playtest ?? runPlaytest)(dir, opts)
   }
 
   /** Asks the studios for their tools. Never throws: an unreachable studio is `ok: false` with the message (and how to start it). */

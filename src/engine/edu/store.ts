@@ -187,6 +187,21 @@ export class CourseStore {
     return { slug, pending: pending.slice(0, 40), pendingCount: pending.length }
   }
 
+  /**
+   * Writes the pack and the catalogs that `assembleCourse` made as the course's files (`courses/<slug>/course/`), over what is there. The course
+   * must be complete: any problem of `validateCourse` (a missing text included) refuses the write and nothing is written. Used by the pipeline's
+   * assemble step; the files then go through `validate`, `build` and `lint` like any course.
+   */
+  writeAssembled(slug: string, pack: Record<string, unknown>, catalogs: Record<string, unknown>): Promise<{ slug: string; dir: string }> {
+    if (!PACK_SLUG.test(slug)) return Promise.reject(new Error(`invalid slug "${slug}": lower-case letters, digits and -`))
+    return this.exclusive(slug, async () => {
+      const problems = validateCourse(pack, catalogs).problems
+      if (problems.length > 0) throw new Error(`the assembled course is not valid, nothing was written: ${fmt(problems)}`)
+      await this.save(slug, pack, catalogs)
+      return { slug, dir: this.root(slug) }
+    })
+  }
+
   // ---- create / import ----
 
   async create(input: CreateCourseInput): Promise<MutationResult & { dir: string }> {

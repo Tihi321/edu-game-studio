@@ -7,6 +7,8 @@ import type { FlowClient } from './flow'
 import { createChiptuneClient } from './chiptune'
 import type { ChiptuneClient } from './chiptune'
 import { resolveToken } from './mcp-http'
+import { createScriptoriumClient, DEFAULT_SCRIPTORIUM_URL } from './scriptorium'
+import type { ScriptoriumClient } from './scriptorium'
 import { createPixelClient } from './pixel'
 import type { PixelClient } from './pixel'
 
@@ -15,6 +17,7 @@ export type StudioId = 'pixel' | 'chiptune'
 export const DEFAULT_PIXEL_STUDIO_URL = 'http://127.0.0.1:7457/mcp'
 export const DEFAULT_CHIPTUNE_STUDIO_URL = 'http://127.0.0.1:7458/mcp'
 export const DEFAULT_FLOW_URL = 'http://127.0.0.1:7462/mcp'
+export { DEFAULT_SCRIPTORIUM_URL } from './scriptorium'
 
 /** `config/studios.md`: where Pixel Studio and Chiptune Studio are, and where their code is (for the start hints and "Open in"). */
 export const studiosConfigSchema = z.object({
@@ -33,6 +36,10 @@ export const studiosConfigSchema = z.object({
   flowRepo: z.string().default('../flow-music-mcp'),
   /** The bearer token of flow-music-mcp. `FLOW_MUSIC_MCP_TOKEN` (environment or credential store) wins over this. */
   flowToken: z.string().default(''),
+  /** Scriptorium (the book factory), for a course whose story is written there. `EDU_SCRIPTORIUM_URL` overrides the URL. Edu Studio never starts it. */
+  scriptoriumUrl: z.string().default(DEFAULT_SCRIPTORIUM_URL),
+  /** The bearer token of its MCP server, only when it has one. `SCRIPTORIUM_MCP_TOKEN` (environment or credential store) wins over this. */
+  scriptoriumToken: z.string().default(''),
   /** Seconds per `flow_wait` / `music_wait` call (the server allows at most 50). */
   flowPollS: z.number().min(1).max(50).default(40),
   /** Give up on one Flow image job / one Flow Music song after this many seconds. */
@@ -83,7 +90,8 @@ export async function loadStudiosConfig(dataDir: string, env: NodeJS.ProcessEnv 
     ...c,
     ...(env.EDU_PIXEL_STUDIO_URL ? { pixelStudioUrl: env.EDU_PIXEL_STUDIO_URL } : {}),
     ...(env.EDU_CHIPTUNE_STUDIO_URL ? { chiptuneStudioUrl: env.EDU_CHIPTUNE_STUDIO_URL } : {}),
-    ...(env.EDU_FLOW_URL ? { flowUrl: env.EDU_FLOW_URL } : {})
+    ...(env.EDU_FLOW_URL ? { flowUrl: env.EDU_FLOW_URL } : {}),
+    ...(env.EDU_SCRIPTORIUM_URL ? { scriptoriumUrl: env.EDU_SCRIPTORIUM_URL } : {})
   }
 }
 
@@ -134,6 +142,11 @@ export function flowStartHint(c: StudiosConfig): string {
 }
 
 export const flowToken = (c: StudiosConfig, env: NodeJS.ProcessEnv = process.env, getKey?: StoredKeyGetter): string | null => resolveToken('FLOW_MUSIC_MCP_TOKEN', c.flowToken, env, getKey)
+
+/** The Scriptorium client. No `ensureUp`: Edu Studio never starts Scriptorium. */
+export function scriptoriumClientFor(c: StudiosConfig): ScriptoriumClient {
+  return createScriptoriumClient({ url: c.scriptoriumUrl, token: resolveToken('SCRIPTORIUM_MCP_TOKEN', c.scriptoriumToken), timeoutMs: c.timeoutS * 1000 })
+}
 
 export function flowClientFor(c: StudiosConfig, o: ClientHooks = {}): FlowClient {
   return createFlowClient({

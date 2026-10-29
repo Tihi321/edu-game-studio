@@ -27,9 +27,9 @@ describe('planSeedFile (the decision)', () => {
     expect(planSeedFile('a.md', h('v2'), h('mine'), none, history)).toEqual({ action: 'keep', recorded: undefined, pending: true })
     expect(planSeedFile('a.md', h('v1'), h('mine'), none, history)).toEqual({ action: 'keep', recorded: h('v1'), pending: false })
   })
-  it('hashes ignore line endings, and the earlier seed versions are the skeleton roles.md and providers.md (EGS-06)', () => {
+  it('hashes ignore line endings, and the earlier seed versions are the skeleton roles.md, providers.md and studios.md (EGS-06, EGS-07)', () => {
     expect(seedHash('a\r\nb\r\n')).toBe(seedHash('a\nb\n'))
-    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['config/providers.md', 'config/roles.md'])
+    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['config/providers.md', 'config/roles.md', 'config/studios.md'])
   })
 })
 

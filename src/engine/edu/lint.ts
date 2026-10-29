@@ -28,6 +28,8 @@ import { GAME_DATA_FILE } from './build'
  *   PREREQ_CYCLE         the prerequisite graph of units has a cycle
  *   UNIT_UNREACHABLE     a unit no learner can reach from the units that have no prerequisites
  *   PLACEHOLDER          TODO, TBD, FIXME, lorem ipsum, XXX, `[[`, a `{{` that is not a gap marker, or "placeholder" in a text
+ *   ITEM_NO_FACT         (a pack made by the pipeline, `extensions.pipeline`) an item names no fact it rests on (`extensions.facts`), or one that is not in the fact base
+ *   ARTICLE_NO_CITATION  (a pipeline pack) an article cites no fact, or one that is not in the fact base
  *   PLACEHOLDER_ASSET    (warning) an asset (or the text of an item that uses it) says it is a placeholder, such as a test tone for speech
  * plus every code of `validateCourse` (SCHEMA, UNKNOWN_*, DUPLICATE_ID, MISSING_WHY ...; its MISSING_TEXT is reported as TEXT_MISSING or
  * ACCEPTED_INCOMPLETE), and GAME_DATA_INVALID when `game-data.json` is not a game.
@@ -70,6 +72,8 @@ export const LINT_CODES = [
   'PREREQ_CYCLE',
   'UNIT_UNREACHABLE',
   'PLACEHOLDER',
+  'ITEM_NO_FACT',
+  'ARTICLE_NO_CITATION',
   'PLACEHOLDER_ASSET',
   'GAME_DATA_INVALID'
 ] as const
@@ -299,6 +303,20 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
   pack.units.forEach((u, i) => {
     if (objectivesOf(pack, u.id).length === 0) out.add('UNIT_NO_OBJECTIVES', `units[${i}]`, `the unit "${u.id}" has no objectives`)
   })
+  // a course made by the pipeline rests on its fact base: every item and article names facts that exist (hand-made packs are not held to this)
+  if (pack.extensions && (pack.extensions as Record<string, unknown>).pipeline !== undefined) {
+    const known = new Set(pack.factbase.map((f) => f.id))
+    pack.items.forEach((item, i) => {
+      const listed = (item.extensions as { facts?: unknown } | undefined)?.facts
+      const ids = Array.isArray(listed) ? listed.filter((x): x is string => typeof x === 'string') : []
+      if (ids.length === 0) out.add('ITEM_NO_FACT', `items[${i}]`, `the item "${item.id}" names no fact it rests on (extensions.facts is empty or missing)`)
+      for (const id of ids) if (!known.has(id)) out.add('ITEM_NO_FACT', `items[${i}].extensions.facts`, `the item "${item.id}" names the fact "${id}", which is not in the fact base`)
+    })
+    pack.encyclopedia.articles.forEach((a, i) => {
+      if (a.citations.length === 0) out.add('ARTICLE_NO_CITATION', `encyclopedia.articles[${i}]`, `the article "${a.id}" cites no fact`)
+      for (const id of a.citations) if (!known.has(id)) out.add('ARTICLE_NO_CITATION', `encyclopedia.articles[${i}].citations`, `the article "${a.id}" cites the fact "${id}", which is not in the fact base`)
+    })
+  }
   const cycle = findUnitCycle(pack.units)
   if (cycle) out.add('PREREQ_CYCLE', 'units', `the prerequisites form a cycle: ${cycle.join(' -> ')}`)
   const unitIds = new Set(pack.units.map((u) => u.id))

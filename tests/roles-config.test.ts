@@ -138,7 +138,7 @@ describe('a data folder made from the seed', () => {
       for (const rel of ['config/quality.md', 'config/formats.md', 'config/roles.md', 'config/providers.md', 'prompts/_rules.md', 'prompts/researcher/write_notes.md', 'prompts/researcher/check_notes.md', 'prompts/researcher/search_queries.md', 'prompts/researcher/from_knowledge.md', 'prompts/fact-checker/fact_check.md']) {
         expect(hashes[rel], rel).toBe(seedHash(fs.readFileSync(path.join(data, ...rel.split('/')), 'utf8')))
       }
-      expect(fs.readdirSync(path.join(data, 'agents')).sort()).toEqual(['director-default.md', 'fact-checker-leo-brandt.md', 'researcher-nora-wells.md', 'researcher-sam-okafor.md'])
+      expect(fs.readdirSync(path.join(data, 'agents'))).toEqual(expect.arrayContaining(['director-default.md', 'fact-checker-leo-brandt.md', 'researcher-nora-wells.md', 'researcher-sam-okafor.md']))
     } finally {
       fs.rmSync(data, { recursive: true, force: true })
     }

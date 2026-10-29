@@ -2,7 +2,7 @@
 
 Edu Studio turns a topic into a playable educational game: a course (objectives, articles, items with answer keys, game shells) that a self-contained web player plays. This server lets an agent such as Claude Code drive the studio: see the courses and the job queue, and do the model work of the jobs itself, at no cost.
 
-**Status: EGS-06.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts and outputs arrive in EGS-07, the pipeline that runs it (`edu_run_pipeline`) in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
+**Status: EGS-07.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts, output contracts, the assembly of a course and the playtest runner (EGS-07) exist as engine code; the pipeline that runs them (`edu_run_pipeline`) arrives in EGS-08, the generators in EGS-15 to EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
 
 ## Connect
 
@@ -90,6 +90,8 @@ A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral te
 | `TEXT_MISSING` | error | a text key the pack or an item uses is missing or empty in an edition |
 | `PREREQ_CYCLE` | error | the unit prerequisites form a cycle |
 | `UNIT_UNREACHABLE` | error | no learner can reach the unit from the units without prerequisites |
+| `ITEM_NO_FACT` | error | in a pack made by the pipeline (`extensions.pipeline` is set): an item names no fact it rests on (`extensions.facts` empty or missing), or one that is not in the fact base. Hand-made packs are not checked |
+| `ARTICLE_NO_CITATION` | error | in a pipeline pack: an article cites no fact, or one that is not in the fact base |
 | `PLACEHOLDER` | error | a text says TODO, TBD, FIXME (upper case, or lower case with a colon), lorem ipsum, XXX, `[[`, "placeholder", or has a `{{` that is not a gap marker of its own cloze item |
 | `PLACEHOLDER_ASSET` | warning | an asset (or an item's text that uses it) says it is a placeholder, such as a test tone standing in for speech: replace it before publishing |
 | `GAME_DATA_INVALID` | error | `game-data.json` is missing or is not a game |
@@ -111,6 +113,33 @@ A course teaches only what its **fact base** says. The researcher (a role, `conf
 4. A task nobody takes within `wait_minutes` (10 by default) gives no results and the next provider is tried, so a course never stalls without a session. Once you have taken it, the answer is waited for.
 
 A course can also set its own models in `courses/<slug>/course.md` (`models: {<role> or "*": provider/model}`): they go before the agent's model and the role's list, so a course can run on `client/claude-code` while the others keep their models. A change takes effect at the next request, with no restart.
+
+## The content team's work (EGS-07)
+
+Each role of the team answers with one JSON object, checked by a zod schema (`src/engine/edu/authoring.ts`); the prompts are `prompts/<role>/<task>.md`. When you do the model work yourself (below), the task you get carries the exact JSON shape; this is what each one means:
+
+| Role | Task | Answer |
+|---|---|---|
+| director | `plan_brief` | `{title, summary, units: [{title, focus}], research: [{question, unit}]}` |
+| curriculum-designer | `curriculum` | `{units: [{id, title, summary, requires}], objectives: [{id, unit, bloom, text, facts: [fact ids]}]}`: ids unique, `requires` acyclic, every unit has an objective, every objective rests on existing facts |
+| language-coach | `scope`, `accepted` | the vocabulary and grammar per unit (a language course); the other accepted answers of typed gaps (`ref` = item id, or `<item id>.<gap id>`) |
+| subject-expert | `articles`, `articles_revise` | `{articles: [{id, unit, title, body, related}]}`: the body cites facts as `[f3]`; every article cites at least one existing fact |
+| item-writer | `items`, `items_revise` | `{items: [...]}` of the kinds mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, flashcard; each names its objective and the facts it rests on; every objective in at least two kinds |
+| misconception-designer | `distractors` | the full option list of each mcq and multi-select item (right options unchanged, a `why` for every wrong one) and the `why` of each true-false |
+| explainer | `explain`, `polish` | `explanation`, `hint` and a `didYouKnow` with its `didYouKnowFact`; `polish` returns `{strings: {key: text}}` for flagged keys only |
+| fact-checker, accessibility-reviewer, child-safety-reviewer | `fact_check`, `review` | the review JSON `{verdict, scores, notes, problems: [{ref, issue, fix?, severity?}]}`; scores `accuracy`; `accessibility` and `readability`; `age_fit` |
+| game-designer | `design` | `{shells, quizArena: {roundLength, bossLength, timerSeconds?}, difficulty: [{item, difficulty}], notes}`, clamped to the player's limits (round 3 to 12, boss 4 to 20, timer 5 to 120 s, difficulty 1 to 5) |
+| narrative-designer | `frame`, `scriptorium_brief` | a frame story (premise, characters, intro, outro, a beat per unit) or the brief `{idea, audience, length}` for Scriptorium |
+| playtester | `report` | a review with the scores `flow` and `difficulty` and a list `deadEnds` |
+| publisher | `publish` | `{blurb, notes}` (the decision itself is code: must-pass reviewers, hard gates and the threshold) |
+
+A repair round sends back what is wrong in words: a schema issue (`units: units must be a list of {title, focus}`) or a problem found by a check (`q4: the item names the fact f9, which is not in the fact base`). Ids in an answer (units, objectives, items, articles, facts) must be the ones given.
+
+**Assembly.** `assembleCourse` turns the answers into `course/pack.json` and the text catalog (keys: `item.<id>.prompt|expl|hint|dyk|why`, `item.<id>.opt.<optId>`, `art.<id>.title|body`, `fact.<id>.claim`, `story.*` ...). A language course keeps the taught phrases (items marked `taught`) in the target-language catalog. A pack made this way has `extensions.pipeline`, so `edu_lint` also holds it to `ITEM_NO_FACT` and `ARTICLE_NO_CITATION`.
+
+**Playtest.** The autoplay bot plays a built game as simulated learners (perfect, always wrong, and right 90, 75 and 55 percent of the time) through `runPlaytest`; it needs Chromium (`yarn playwright install chromium`). A failed run or a console error is a hard gate of the publisher.
+
+**Scriptorium.** A course whose brief says `story: scriptorium` hands the narrative designer's story idea to Scriptorium over MCP (`add_story`, then `wait_for_book`; `scriptoriumUrl` in `config/studios.md`, default `http://127.0.0.1:7341/mcp`). Edu Studio never starts Scriptorium (its engine resumes the whole book factory and may spend on paid models): when it is down, the story step is skipped.
 
 ## Do the model work yourself
 
