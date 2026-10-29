@@ -1,0 +1,1414 @@
+{
+  "schema": 1,
+  "id": "solar-system",
+  "slug": "solar-system",
+  "sourceLang": "en",
+  "languages": [
+    "en",
+    "hr"
+  ],
+  "subject": "The solar system",
+  "audience": "Curious learners from about age 10",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-sun-planets",
+      "title": "ss.unit.sun.title",
+      "summary": "ss.unit.sun.summary",
+      "requires": []
+    },
+    {
+      "id": "u-rocky-giant",
+      "title": "ss.unit.types.title",
+      "summary": "ss.unit.types.summary",
+      "requires": [
+        "u-sun-planets"
+      ]
+    },
+    {
+      "id": "u-moons-beyond",
+      "title": "ss.unit.moons.title",
+      "summary": "ss.unit.moons.summary",
+      "requires": [
+        "u-rocky-giant"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-planet-order",
+      "unit": "u-sun-planets",
+      "bloom": "remember",
+      "text": "ss.obj.obj-planet-order",
+      "facts": [
+        "f-eight-planets"
+      ]
+    },
+    {
+      "id": "obj-sun",
+      "unit": "u-sun-planets",
+      "bloom": "understand",
+      "text": "ss.obj.obj-sun",
+      "facts": [
+        "f-sun-star",
+        "f-sun-mass",
+        "f-light-time"
+      ]
+    },
+    {
+      "id": "obj-planet-types",
+      "unit": "u-rocky-giant",
+      "bloom": "analyze",
+      "text": "ss.obj.obj-planet-types",
+      "facts": [
+        "f-planet-types"
+      ]
+    },
+    {
+      "id": "obj-venus-hot",
+      "unit": "u-rocky-giant",
+      "bloom": "understand",
+      "text": "ss.obj.obj-venus-hot",
+      "facts": [
+        "f-venus-hot",
+        "f-mercury-night"
+      ]
+    },
+    {
+      "id": "obj-giants",
+      "unit": "u-rocky-giant",
+      "bloom": "remember",
+      "text": "ss.obj.obj-giants",
+      "facts": [
+        "f-jupiter-mass",
+        "f-saturn"
+      ]
+    },
+    {
+      "id": "obj-planet-facts",
+      "unit": "u-rocky-giant",
+      "bloom": "remember",
+      "text": "ss.obj.obj-planet-facts",
+      "facts": [
+        "f-mars-red",
+        "f-venus-hot",
+        "f-jupiter-mass",
+        "f-saturn",
+        "f-uranus-side",
+        "f-neptune-winds"
+      ]
+    },
+    {
+      "id": "obj-moons",
+      "unit": "u-moons-beyond",
+      "bloom": "remember",
+      "text": "ss.obj.obj-moons",
+      "facts": [
+        "f-ganymede",
+        "f-titan",
+        "f-europa",
+        "f-io",
+        "f-mars-moons"
+      ]
+    },
+    {
+      "id": "obj-beyond",
+      "unit": "u-moons-beyond",
+      "bloom": "understand",
+      "text": "ss.obj.obj-beyond",
+      "facts": [
+        "f-pluto",
+        "f-asteroid-belt",
+        "f-kuiper"
+      ]
+    },
+    {
+      "id": "obj-exploration",
+      "unit": "u-moons-beyond",
+      "bloom": "remember",
+      "text": "ss.obj.obj-exploration",
+      "facts": [
+        "f-sputnik",
+        "f-apollo-11",
+        "f-voyager-2",
+        "f-new-horizons"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "q-order-mcq",
+      "kind": "mcq",
+      "objective": "obj-planet-order",
+      "prompt": "q-order-mcq.prompt",
+      "explanation": "q-order-mcq.explanation",
+      "didYouKnow": "q-order-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "planets",
+        "order"
+      ],
+      "options": [
+        {
+          "id": "mercury",
+          "text": "q-order-mcq.opt.mercury"
+        },
+        {
+          "id": "venus",
+          "text": "q-order-mcq.opt.venus",
+          "why": "q-order-mcq.why.venus"
+        },
+        {
+          "id": "earth",
+          "text": "q-order-mcq.opt.earth",
+          "why": "q-order-mcq.why.earth"
+        },
+        {
+          "id": "mars",
+          "text": "q-order-mcq.opt.mars",
+          "why": "q-order-mcq.why.mars"
+        }
+      ],
+      "answer": "mercury",
+      "shuffle": true
+    },
+    {
+      "id": "q-order-seq",
+      "kind": "order",
+      "objective": "obj-planet-order",
+      "prompt": "q-order-seq.prompt",
+      "explanation": "q-order-seq.explanation",
+      "didYouKnow": "q-order-seq.dyk",
+      "difficulty": 3,
+      "tags": [
+        "planets",
+        "order"
+      ],
+      "items": [
+        {
+          "id": "mercury",
+          "text": "ss.name.mercury"
+        },
+        {
+          "id": "venus",
+          "text": "ss.name.venus"
+        },
+        {
+          "id": "earth",
+          "text": "ss.name.earth"
+        },
+        {
+          "id": "mars",
+          "text": "ss.name.mars"
+        },
+        {
+          "id": "jupiter",
+          "text": "ss.name.jupiter"
+        },
+        {
+          "id": "saturn",
+          "text": "ss.name.saturn"
+        },
+        {
+          "id": "uranus",
+          "text": "ss.name.uranus"
+        },
+        {
+          "id": "neptune",
+          "text": "ss.name.neptune"
+        }
+      ],
+      "timeline": false
+    },
+    {
+      "id": "q-order-hotspot",
+      "kind": "hotspot",
+      "objective": "obj-planet-order",
+      "prompt": "q-order-hotspot.prompt",
+      "explanation": "q-order-hotspot.explanation",
+      "didYouKnow": "q-order-hotspot.dyk",
+      "difficulty": 2,
+      "tags": [
+        "planets",
+        "order",
+        "map"
+      ],
+      "asset": "img-solar-system",
+      "width": 800,
+      "height": 300,
+      "regions": [
+        {
+          "id": "mercury",
+          "label": "ss.region.mercury",
+          "shape": {
+            "type": "circle",
+            "cx": 190,
+            "cy": 150,
+            "r": 14
+          }
+        },
+        {
+          "id": "venus",
+          "label": "ss.region.venus",
+          "shape": {
+            "type": "circle",
+            "cx": 235,
+            "cy": 150,
+            "r": 16
+          },
+          "why": "q-order-hotspot.why.venus"
+        },
+        {
+          "id": "earth",
+          "label": "ss.region.earth",
+          "shape": {
+            "type": "circle",
+            "cx": 285,
+            "cy": 150,
+            "r": 16
+          }
+        },
+        {
+          "id": "mars",
+          "label": "ss.region.mars",
+          "shape": {
+            "type": "circle",
+            "cx": 335,
+            "cy": 150,
+            "r": 14
+          },
+          "why": "q-order-hotspot.why.mars"
+        },
+        {
+          "id": "jupiter",
+          "label": "ss.region.jupiter",
+          "shape": {
+            "type": "circle",
+            "cx": 425,
+            "cy": 150,
+            "r": 46
+          }
+        },
+        {
+          "id": "saturn",
+          "label": "ss.region.saturn",
+          "shape": {
+            "type": "circle",
+            "cx": 545,
+            "cy": 150,
+            "r": 58
+          }
+        },
+        {
+          "id": "uranus",
+          "label": "ss.region.uranus",
+          "shape": {
+            "type": "circle",
+            "cx": 640,
+            "cy": 150,
+            "r": 24
+          }
+        },
+        {
+          "id": "neptune",
+          "label": "ss.region.neptune",
+          "shape": {
+            "type": "circle",
+            "cx": 730,
+            "cy": 150,
+            "r": 23
+          }
+        },
+        {
+          "id": "sun",
+          "label": "ss.region.sun",
+          "shape": {
+            "type": "circle",
+            "cx": 40,
+            "cy": 150,
+            "r": 90
+          },
+          "why": "q-order-hotspot.why.sun"
+        }
+      ],
+      "answer": "earth"
+    },
+    {
+      "id": "q-order-card",
+      "kind": "flashcard",
+      "objective": "obj-planet-order",
+      "prompt": "q-order-card.prompt",
+      "explanation": "q-order-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "planets",
+        "order"
+      ],
+      "back": "q-order-card.back"
+    },
+    {
+      "id": "q-planets-ws",
+      "kind": "word-search",
+      "objective": "obj-planet-order",
+      "prompt": "q-planets-ws.prompt",
+      "explanation": "q-planets-ws.explanation",
+      "difficulty": 2,
+      "tags": [
+        "planets",
+        "words"
+      ],
+      "words": [
+        {
+          "id": "mercury",
+          "answer": "ss.word.mercury"
+        },
+        {
+          "id": "venus",
+          "answer": "ss.word.venus"
+        },
+        {
+          "id": "earth",
+          "answer": "ss.word.earth"
+        },
+        {
+          "id": "mars",
+          "answer": "ss.word.mars"
+        },
+        {
+          "id": "jupiter",
+          "answer": "ss.word.jupiter"
+        },
+        {
+          "id": "saturn",
+          "answer": "ss.word.saturn"
+        },
+        {
+          "id": "uranus",
+          "answer": "ss.word.uranus"
+        },
+        {
+          "id": "neptune",
+          "answer": "ss.word.neptune"
+        }
+      ],
+      "seed": 11,
+      "directions": "diagonal"
+    },
+    {
+      "id": "q-sun-mcq",
+      "kind": "mcq",
+      "objective": "obj-sun",
+      "prompt": "q-sun-mcq.prompt",
+      "explanation": "q-sun-mcq.explanation",
+      "didYouKnow": "q-sun-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "sun"
+      ],
+      "options": [
+        {
+          "id": "star",
+          "text": "q-sun-mcq.opt.star"
+        },
+        {
+          "id": "planet",
+          "text": "q-sun-mcq.opt.planet",
+          "why": "q-sun-mcq.why.planet"
+        },
+        {
+          "id": "fire",
+          "text": "q-sun-mcq.opt.fire",
+          "why": "q-sun-mcq.why.fire"
+        },
+        {
+          "id": "comet",
+          "text": "q-sun-mcq.opt.comet",
+          "why": "q-sun-mcq.why.comet"
+        }
+      ],
+      "answer": "star",
+      "shuffle": true
+    },
+    {
+      "id": "q-sun-tf",
+      "kind": "true-false",
+      "objective": "obj-sun",
+      "prompt": "q-sun-tf.prompt",
+      "explanation": "q-sun-tf.explanation",
+      "didYouKnow": "q-sun-tf.dyk",
+      "difficulty": 2,
+      "tags": [
+        "sun"
+      ],
+      "answer": false,
+      "why": "q-sun-tf.why"
+    },
+    {
+      "id": "q-sun-cloze",
+      "kind": "cloze",
+      "objective": "obj-sun",
+      "prompt": "q-sun-cloze.prompt",
+      "explanation": "q-sun-cloze.explanation",
+      "didYouKnow": "q-sun-cloze.dyk",
+      "difficulty": 2,
+      "tags": [
+        "sun",
+        "light"
+      ],
+      "text": "q-sun-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "q-sun-cloze.gap.1"
+        }
+      ]
+    },
+    {
+      "id": "q-sun-beeps",
+      "kind": "listening",
+      "objective": "obj-sun",
+      "prompt": "q-sun-beeps.prompt",
+      "explanation": "q-sun-beeps.explanation",
+      "didYouKnow": "q-sun-beeps.dyk",
+      "difficulty": 3,
+      "tags": [
+        "sun",
+        "light",
+        "listening"
+      ],
+      "asset": "aud-beeps",
+      "transcript": "q-sun-beeps.transcript",
+      "mode": "choose",
+      "options": [
+        {
+          "id": "a",
+          "text": "q-sun-beeps.opt.a",
+          "why": "q-sun-beeps.why.a"
+        },
+        {
+          "id": "b",
+          "text": "q-sun-beeps.opt.b"
+        },
+        {
+          "id": "c",
+          "text": "q-sun-beeps.opt.c",
+          "why": "q-sun-beeps.why.c"
+        }
+      ],
+      "answer": "b",
+      "shuffle": false
+    },
+    {
+      "id": "q-types-sort",
+      "kind": "sort-groups",
+      "objective": "obj-planet-types",
+      "prompt": "q-types-sort.prompt",
+      "explanation": "q-types-sort.explanation",
+      "didYouKnow": "q-types-sort.dyk",
+      "difficulty": 3,
+      "tags": [
+        "planets",
+        "types"
+      ],
+      "groups": [
+        {
+          "id": "rocky",
+          "title": "ss.group.rocky"
+        },
+        {
+          "id": "gas",
+          "title": "ss.group.gas"
+        },
+        {
+          "id": "ice",
+          "title": "ss.group.ice"
+        }
+      ],
+      "items": [
+        {
+          "id": "mercury",
+          "text": "ss.name.mercury",
+          "group": "rocky",
+          "why": "q-types-sort.why.mercury"
+        },
+        {
+          "id": "venus",
+          "text": "ss.name.venus",
+          "group": "rocky",
+          "why": "q-types-sort.why.venus"
+        },
+        {
+          "id": "earth",
+          "text": "ss.name.earth",
+          "group": "rocky",
+          "why": "q-types-sort.why.earth"
+        },
+        {
+          "id": "mars",
+          "text": "ss.name.mars",
+          "group": "rocky",
+          "why": "q-types-sort.why.mars"
+        },
+        {
+          "id": "jupiter",
+          "text": "ss.name.jupiter",
+          "group": "gas",
+          "why": "q-types-sort.why.jupiter"
+        },
+        {
+          "id": "saturn",
+          "text": "ss.name.saturn",
+          "group": "gas",
+          "why": "q-types-sort.why.saturn"
+        },
+        {
+          "id": "uranus",
+          "text": "ss.name.uranus",
+          "group": "ice",
+          "why": "q-types-sort.why.uranus"
+        },
+        {
+          "id": "neptune",
+          "text": "ss.name.neptune",
+          "group": "ice",
+          "why": "q-types-sort.why.neptune"
+        }
+      ]
+    },
+    {
+      "id": "q-types-mcq",
+      "kind": "mcq",
+      "objective": "obj-planet-types",
+      "prompt": "q-types-mcq.prompt",
+      "explanation": "q-types-mcq.explanation",
+      "difficulty": 2,
+      "tags": [
+        "planets",
+        "types"
+      ],
+      "options": [
+        {
+          "id": "jupiter",
+          "text": "q-types-mcq.opt.jupiter"
+        },
+        {
+          "id": "neptune",
+          "text": "q-types-mcq.opt.neptune",
+          "why": "q-types-mcq.why.neptune"
+        },
+        {
+          "id": "mars",
+          "text": "q-types-mcq.opt.mars",
+          "why": "q-types-mcq.why.mars"
+        },
+        {
+          "id": "venus",
+          "text": "q-types-mcq.opt.venus",
+          "why": "q-types-mcq.why.venus"
+        }
+      ],
+      "answer": "jupiter",
+      "shuffle": true
+    },
+    {
+      "id": "q-venus-mcq",
+      "kind": "mcq",
+      "objective": "obj-venus-hot",
+      "prompt": "q-venus-mcq.prompt",
+      "explanation": "q-venus-mcq.explanation",
+      "didYouKnow": "q-venus-mcq.dyk",
+      "difficulty": 2,
+      "tags": [
+        "venus",
+        "temperature"
+      ],
+      "options": [
+        {
+          "id": "venus",
+          "text": "q-venus-mcq.opt.venus"
+        },
+        {
+          "id": "mercury",
+          "text": "q-venus-mcq.opt.mercury",
+          "why": "q-venus-mcq.why.mercury"
+        },
+        {
+          "id": "mars",
+          "text": "q-venus-mcq.opt.mars",
+          "why": "q-venus-mcq.why.mars"
+        },
+        {
+          "id": "jupiter",
+          "text": "q-venus-mcq.opt.jupiter",
+          "why": "q-venus-mcq.why.jupiter"
+        }
+      ],
+      "answer": "venus",
+      "shuffle": true
+    },
+    {
+      "id": "q-venus-cloze",
+      "kind": "cloze",
+      "objective": "obj-venus-hot",
+      "prompt": "q-venus-cloze.prompt",
+      "explanation": "q-venus-cloze.explanation",
+      "didYouKnow": "q-venus-cloze.dyk",
+      "difficulty": 3,
+      "tags": [
+        "venus",
+        "temperature"
+      ],
+      "text": "q-venus-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "q-venus-cloze.gap.1",
+          "bank": [
+            "q-venus-cloze.gap.1",
+            "q-venus-cloze.bank.ocean",
+            "q-venus-cloze.bank.moon"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q-venus-tf",
+      "kind": "true-false",
+      "objective": "obj-venus-hot",
+      "prompt": "q-venus-tf.prompt",
+      "explanation": "q-venus-tf.explanation",
+      "difficulty": 2,
+      "tags": [
+        "venus",
+        "temperature"
+      ],
+      "answer": false,
+      "why": "q-venus-tf.why"
+    },
+    {
+      "id": "q-giants-multi",
+      "kind": "multi-select",
+      "objective": "obj-giants",
+      "prompt": "q-giants-multi.prompt",
+      "explanation": "q-giants-multi.explanation",
+      "difficulty": 3,
+      "tags": [
+        "saturn",
+        "giants"
+      ],
+      "options": [
+        {
+          "id": "rings",
+          "text": "q-giants-multi.opt.rings"
+        },
+        {
+          "id": "dense",
+          "text": "q-giants-multi.opt.dense"
+        },
+        {
+          "id": "solid",
+          "text": "q-giants-multi.opt.solid",
+          "why": "q-giants-multi.why.solid"
+        },
+        {
+          "id": "moons",
+          "text": "q-giants-multi.opt.moons",
+          "why": "q-giants-multi.why.moons"
+        }
+      ],
+      "answers": [
+        "rings",
+        "dense"
+      ],
+      "shuffle": true
+    },
+    {
+      "id": "q-giants-typed",
+      "kind": "typed",
+      "objective": "obj-giants",
+      "prompt": "q-giants-typed.prompt",
+      "explanation": "q-giants-typed.explanation",
+      "didYouKnow": "q-giants-typed.dyk",
+      "difficulty": 1,
+      "tags": [
+        "jupiter",
+        "giants"
+      ],
+      "answer": "q-giants-typed.answer"
+    },
+    {
+      "id": "q-giants-hotspot",
+      "kind": "hotspot",
+      "objective": "obj-giants",
+      "prompt": "q-giants-hotspot.prompt",
+      "explanation": "q-giants-hotspot.explanation",
+      "didYouKnow": "q-giants-hotspot.dyk",
+      "difficulty": 2,
+      "tags": [
+        "saturn",
+        "map"
+      ],
+      "asset": "img-solar-system",
+      "width": 800,
+      "height": 300,
+      "regions": [
+        {
+          "id": "jupiter",
+          "label": "ss.region.jupiter",
+          "shape": {
+            "type": "circle",
+            "cx": 425,
+            "cy": 150,
+            "r": 46
+          },
+          "why": "q-giants-hotspot.why.jupiter"
+        },
+        {
+          "id": "saturn",
+          "label": "ss.region.saturn",
+          "shape": {
+            "type": "circle",
+            "cx": 545,
+            "cy": 150,
+            "r": 58
+          }
+        },
+        {
+          "id": "uranus",
+          "label": "ss.region.uranus",
+          "shape": {
+            "type": "circle",
+            "cx": 640,
+            "cy": 150,
+            "r": 24
+          },
+          "why": "q-giants-hotspot.why.uranus"
+        },
+        {
+          "id": "neptune",
+          "label": "ss.region.neptune",
+          "shape": {
+            "type": "circle",
+            "cx": 730,
+            "cy": 150,
+            "r": 23
+          }
+        }
+      ],
+      "answer": "saturn"
+    },
+    {
+      "id": "q-facts-match",
+      "kind": "match-pairs",
+      "objective": "obj-planet-facts",
+      "prompt": "q-facts-match.prompt",
+      "explanation": "q-facts-match.explanation",
+      "didYouKnow": "q-facts-match.dyk",
+      "difficulty": 2,
+      "tags": [
+        "planets",
+        "facts"
+      ],
+      "pairs": [
+        {
+          "id": "mars",
+          "left": "ss.name.mars",
+          "right": "q-facts-match.r.mars"
+        },
+        {
+          "id": "venus",
+          "left": "ss.name.venus",
+          "right": "q-facts-match.r.venus"
+        },
+        {
+          "id": "jupiter",
+          "left": "ss.name.jupiter",
+          "right": "q-facts-match.r.jupiter"
+        },
+        {
+          "id": "saturn",
+          "left": "ss.name.saturn",
+          "right": "q-facts-match.r.saturn"
+        },
+        {
+          "id": "uranus",
+          "left": "ss.name.uranus",
+          "right": "q-facts-match.r.uranus"
+        },
+        {
+          "id": "neptune",
+          "left": "ss.name.neptune",
+          "right": "q-facts-match.r.neptune"
+        }
+      ]
+    },
+    {
+      "id": "q-facts-cross",
+      "kind": "crossword",
+      "objective": "obj-planet-facts",
+      "prompt": "q-facts-cross.prompt",
+      "explanation": "q-facts-cross.explanation",
+      "didYouKnow": "q-facts-cross.dyk",
+      "difficulty": 3,
+      "tags": [
+        "planets",
+        "words"
+      ],
+      "words": [
+        {
+          "id": "jupiter",
+          "answer": "ss.word.jupiter",
+          "clue": "q-facts-cross.clue.jupiter"
+        },
+        {
+          "id": "saturn",
+          "answer": "ss.word.saturn",
+          "clue": "q-facts-cross.clue.saturn"
+        },
+        {
+          "id": "uranus",
+          "answer": "ss.word.uranus",
+          "clue": "q-facts-cross.clue.uranus"
+        },
+        {
+          "id": "neptune",
+          "answer": "ss.word.neptune",
+          "clue": "q-facts-cross.clue.neptune"
+        },
+        {
+          "id": "mars",
+          "answer": "ss.word.mars",
+          "clue": "q-facts-cross.clue.mars"
+        },
+        {
+          "id": "earth",
+          "answer": "ss.word.earth",
+          "clue": "q-facts-cross.clue.earth"
+        },
+        {
+          "id": "venus",
+          "answer": "ss.word.venus",
+          "clue": "q-facts-cross.clue.venus"
+        }
+      ],
+      "seed": 7,
+      "maxSize": 15
+    },
+    {
+      "id": "q-moons-match",
+      "kind": "match-pairs",
+      "objective": "obj-moons",
+      "prompt": "q-moons-match.prompt",
+      "explanation": "q-moons-match.explanation",
+      "didYouKnow": "q-moons-match.dyk",
+      "difficulty": 3,
+      "tags": [
+        "moons"
+      ],
+      "pairs": [
+        {
+          "id": "titan",
+          "left": "ss.moon.titan",
+          "right": "q-moons-match.r.titan"
+        },
+        {
+          "id": "europa",
+          "left": "ss.moon.europa",
+          "right": "q-moons-match.r.europa"
+        },
+        {
+          "id": "io",
+          "left": "ss.moon.io",
+          "right": "q-moons-match.r.io"
+        },
+        {
+          "id": "ganymede",
+          "left": "ss.moon.ganymede",
+          "right": "q-moons-match.r.ganymede"
+        }
+      ]
+    },
+    {
+      "id": "q-moons-typed",
+      "kind": "typed",
+      "objective": "obj-moons",
+      "prompt": "q-moons-typed.prompt",
+      "explanation": "q-moons-typed.explanation",
+      "didYouKnow": "q-moons-typed.dyk",
+      "difficulty": 1,
+      "tags": [
+        "moons"
+      ],
+      "answer": "q-moons-typed.answer"
+    },
+    {
+      "id": "q-moons-mcq",
+      "kind": "mcq",
+      "objective": "obj-moons",
+      "prompt": "q-moons-mcq.prompt",
+      "explanation": "q-moons-mcq.explanation",
+      "didYouKnow": "q-moons-mcq.dyk",
+      "difficulty": 2,
+      "tags": [
+        "moons",
+        "mars"
+      ],
+      "options": [
+        {
+          "id": "mars",
+          "text": "q-moons-mcq.opt.mars"
+        },
+        {
+          "id": "venus",
+          "text": "q-moons-mcq.opt.venus",
+          "why": "q-moons-mcq.why.venus"
+        },
+        {
+          "id": "earth",
+          "text": "q-moons-mcq.opt.earth",
+          "why": "q-moons-mcq.why.earth"
+        },
+        {
+          "id": "neptune",
+          "text": "q-moons-mcq.opt.neptune",
+          "why": "q-moons-mcq.why.neptune"
+        }
+      ],
+      "answer": "mars",
+      "shuffle": true
+    },
+    {
+      "id": "q-moons-card",
+      "kind": "flashcard",
+      "objective": "obj-moons",
+      "prompt": "q-moons-card.prompt",
+      "explanation": "q-moons-card.explanation",
+      "didYouKnow": "q-moons-card.dyk",
+      "difficulty": 2,
+      "tags": [
+        "moons"
+      ],
+      "back": "q-moons-card.back"
+    },
+    {
+      "id": "q-beyond-mcq",
+      "kind": "mcq",
+      "objective": "obj-beyond",
+      "prompt": "q-beyond-mcq.prompt",
+      "explanation": "q-beyond-mcq.explanation",
+      "didYouKnow": "q-beyond-mcq.dyk",
+      "difficulty": 2,
+      "tags": [
+        "pluto",
+        "beyond"
+      ],
+      "options": [
+        {
+          "id": "dwarf",
+          "text": "q-beyond-mcq.opt.dwarf"
+        },
+        {
+          "id": "planet",
+          "text": "q-beyond-mcq.opt.planet",
+          "why": "q-beyond-mcq.why.planet"
+        },
+        {
+          "id": "asteroid",
+          "text": "q-beyond-mcq.opt.asteroid",
+          "why": "q-beyond-mcq.why.asteroid"
+        },
+        {
+          "id": "moon",
+          "text": "q-beyond-mcq.opt.moon",
+          "why": "q-beyond-mcq.why.moon"
+        }
+      ],
+      "answer": "dwarf",
+      "shuffle": true
+    },
+    {
+      "id": "q-beyond-order",
+      "kind": "order",
+      "objective": "obj-beyond",
+      "prompt": "q-beyond-order.prompt",
+      "explanation": "q-beyond-order.explanation",
+      "didYouKnow": "q-beyond-order.dyk",
+      "difficulty": 3,
+      "tags": [
+        "beyond",
+        "order"
+      ],
+      "items": [
+        {
+          "id": "mars",
+          "text": "ss.name.mars"
+        },
+        {
+          "id": "belt",
+          "text": "q-beyond-order.item.belt"
+        },
+        {
+          "id": "jupiter",
+          "text": "ss.name.jupiter"
+        },
+        {
+          "id": "neptune",
+          "text": "ss.name.neptune"
+        },
+        {
+          "id": "kuiper",
+          "text": "q-beyond-order.item.kuiper"
+        }
+      ],
+      "timeline": false
+    },
+    {
+      "id": "q-beyond-cloze",
+      "kind": "cloze",
+      "objective": "obj-beyond",
+      "prompt": "q-beyond-cloze.prompt",
+      "explanation": "q-beyond-cloze.explanation",
+      "difficulty": 2,
+      "tags": [
+        "beyond"
+      ],
+      "text": "q-beyond-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "q-beyond-cloze.gap.1"
+        }
+      ]
+    },
+    {
+      "id": "q-explore-timeline",
+      "kind": "order",
+      "objective": "obj-exploration",
+      "prompt": "q-explore-timeline.prompt",
+      "explanation": "q-explore-timeline.explanation",
+      "didYouKnow": "q-explore-timeline.dyk",
+      "difficulty": 3,
+      "tags": [
+        "exploration",
+        "timeline"
+      ],
+      "items": [
+        {
+          "id": "sputnik",
+          "text": "q-explore-timeline.sputnik",
+          "when": "ss.year.1957"
+        },
+        {
+          "id": "apollo",
+          "text": "q-explore-timeline.apollo",
+          "when": "ss.year.1969"
+        },
+        {
+          "id": "voyager",
+          "text": "q-explore-timeline.voyager",
+          "when": "ss.year.1977"
+        },
+        {
+          "id": "horizons",
+          "text": "q-explore-timeline.horizons",
+          "when": "ss.year.2015"
+        }
+      ],
+      "timeline": true
+    },
+    {
+      "id": "q-explore-mcq",
+      "kind": "mcq",
+      "objective": "obj-exploration",
+      "prompt": "q-explore-mcq.prompt",
+      "explanation": "q-explore-mcq.explanation",
+      "didYouKnow": "q-explore-mcq.dyk",
+      "difficulty": 2,
+      "tags": [
+        "exploration"
+      ],
+      "options": [
+        {
+          "id": "horizons",
+          "text": "q-explore-mcq.opt.horizons"
+        },
+        {
+          "id": "voyager",
+          "text": "q-explore-mcq.opt.voyager",
+          "why": "q-explore-mcq.why.voyager"
+        },
+        {
+          "id": "apollo",
+          "text": "q-explore-mcq.opt.apollo",
+          "why": "q-explore-mcq.why.apollo"
+        },
+        {
+          "id": "sputnik",
+          "text": "q-explore-mcq.opt.sputnik",
+          "why": "q-explore-mcq.why.sputnik"
+        }
+      ],
+      "answer": "horizons",
+      "shuffle": true
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "encyclopedia"
+    ],
+    "config": {
+      "quiz-arena": {
+        "roundLength": 8,
+        "timerSeconds": 30
+      },
+      "encyclopedia": {}
+    }
+  },
+  "assets": [
+    {
+      "id": "img-solar-system",
+      "kind": "image",
+      "file": "assets/solar-system.svg",
+      "alt": "ss.asset.solar.alt"
+    },
+    {
+      "id": "aud-beeps",
+      "kind": "audio",
+      "file": "assets/eight-beeps.wav",
+      "alt": "ss.asset.beeps.alt"
+    }
+  ],
+  "cues": [],
+  "encyclopedia": {
+    "articles": [
+      {
+        "id": "art-sun",
+        "title": "ss.art.sun.title",
+        "body": "ss.art.sun.body",
+        "citations": [
+          "f-sun-star",
+          "f-sun-mass",
+          "f-light-time"
+        ],
+        "related": [
+          "art-rocky"
+        ],
+        "unit": "u-sun-planets",
+        "asset": "img-solar-system"
+      },
+      {
+        "id": "art-rocky",
+        "title": "ss.art.rocky.title",
+        "body": "ss.art.rocky.body",
+        "citations": [
+          "f-planet-types",
+          "f-venus-hot",
+          "f-mercury-night",
+          "f-mars-red"
+        ],
+        "related": [
+          "art-giants"
+        ],
+        "unit": "u-rocky-giant"
+      },
+      {
+        "id": "art-giants",
+        "title": "ss.art.giants.title",
+        "body": "ss.art.giants.body",
+        "citations": [
+          "f-planet-types",
+          "f-jupiter-mass",
+          "f-saturn",
+          "f-uranus-side",
+          "f-neptune-winds"
+        ],
+        "related": [
+          "art-moons"
+        ],
+        "unit": "u-rocky-giant"
+      },
+      {
+        "id": "art-moons",
+        "title": "ss.art.moons.title",
+        "body": "ss.art.moons.body",
+        "citations": [
+          "f-ganymede",
+          "f-titan",
+          "f-europa",
+          "f-io",
+          "f-mars-moons"
+        ],
+        "related": [
+          "art-beyond"
+        ],
+        "unit": "u-moons-beyond"
+      },
+      {
+        "id": "art-beyond",
+        "title": "ss.art.beyond.title",
+        "body": "ss.art.beyond.body",
+        "citations": [
+          "f-asteroid-belt",
+          "f-kuiper",
+          "f-pluto",
+          "f-new-horizons"
+        ],
+        "related": [
+          "art-sun"
+        ],
+        "unit": "u-moons-beyond"
+      }
+    ]
+  },
+  "factbase": [
+    {
+      "id": "f-eight-planets",
+      "claim": "ss.fact.f-eight-planets",
+      "source": "NASA Science: About the Planets",
+      "url": "https://science.nasa.gov/solar-system/planets/"
+    },
+    {
+      "id": "f-planet-types",
+      "claim": "ss.fact.f-planet-types",
+      "source": "NASA Science: About the Planets",
+      "url": "https://science.nasa.gov/solar-system/planets/"
+    },
+    {
+      "id": "f-sun-star",
+      "claim": "ss.fact.f-sun-star",
+      "source": "NASA Science: Sun Facts",
+      "url": "https://science.nasa.gov/sun/facts/"
+    },
+    {
+      "id": "f-sun-mass",
+      "claim": "ss.fact.f-sun-mass",
+      "source": "NASA Science: Sun Facts",
+      "url": "https://science.nasa.gov/sun/facts/"
+    },
+    {
+      "id": "f-light-time",
+      "claim": "ss.fact.f-light-time",
+      "source": "NASA Science: Earth Facts",
+      "url": "https://science.nasa.gov/earth/facts/"
+    },
+    {
+      "id": "f-venus-hot",
+      "claim": "ss.fact.f-venus-hot",
+      "source": "NASA Science: Venus Facts",
+      "url": "https://science.nasa.gov/venus/venus-facts/"
+    },
+    {
+      "id": "f-mercury-night",
+      "claim": "ss.fact.f-mercury-night",
+      "source": "NASA Science: Mercury Facts",
+      "url": "https://science.nasa.gov/mercury/facts/"
+    },
+    {
+      "id": "f-mars-red",
+      "claim": "ss.fact.f-mars-red",
+      "source": "NASA Science: Mars Facts",
+      "url": "https://science.nasa.gov/mars/facts/"
+    },
+    {
+      "id": "f-mars-moons",
+      "claim": "ss.fact.f-mars-moons",
+      "source": "NASA Science: Mars Facts",
+      "url": "https://science.nasa.gov/mars/facts/"
+    },
+    {
+      "id": "f-jupiter-mass",
+      "claim": "ss.fact.f-jupiter-mass",
+      "source": "NASA Science: Jupiter Facts",
+      "url": "https://science.nasa.gov/jupiter/jupiter-facts/"
+    },
+    {
+      "id": "f-saturn",
+      "claim": "ss.fact.f-saturn",
+      "source": "NASA Science: Saturn Facts",
+      "url": "https://science.nasa.gov/saturn/facts/"
+    },
+    {
+      "id": "f-uranus-side",
+      "claim": "ss.fact.f-uranus-side",
+      "source": "NASA Science: Uranus Facts",
+      "url": "https://science.nasa.gov/uranus/facts/"
+    },
+    {
+      "id": "f-neptune-winds",
+      "claim": "ss.fact.f-neptune-winds",
+      "source": "NASA Science: Neptune Facts",
+      "url": "https://science.nasa.gov/neptune/neptune-facts/"
+    },
+    {
+      "id": "f-ganymede",
+      "claim": "ss.fact.f-ganymede",
+      "source": "NASA Science: Ganymede",
+      "url": "https://science.nasa.gov/jupiter/moons/ganymede/"
+    },
+    {
+      "id": "f-titan",
+      "claim": "ss.fact.f-titan",
+      "source": "NASA Science: Titan",
+      "url": "https://science.nasa.gov/saturn/moons/titan/"
+    },
+    {
+      "id": "f-europa",
+      "claim": "ss.fact.f-europa",
+      "source": "NASA Science: Europa",
+      "url": "https://science.nasa.gov/jupiter/moons/europa/"
+    },
+    {
+      "id": "f-io",
+      "claim": "ss.fact.f-io",
+      "source": "NASA Science: Io",
+      "url": "https://science.nasa.gov/jupiter/moons/io/"
+    },
+    {
+      "id": "f-pluto",
+      "claim": "ss.fact.f-pluto",
+      "source": "NASA Science: Pluto",
+      "url": "https://science.nasa.gov/dwarf-planets/pluto/"
+    },
+    {
+      "id": "f-asteroid-belt",
+      "claim": "ss.fact.f-asteroid-belt",
+      "source": "NASA Science: Asteroids",
+      "url": "https://science.nasa.gov/solar-system/asteroids/"
+    },
+    {
+      "id": "f-kuiper",
+      "claim": "ss.fact.f-kuiper",
+      "source": "NASA Science: Kuiper Belt",
+      "url": "https://science.nasa.gov/solar-system/kuiper-belt/"
+    },
+    {
+      "id": "f-sputnik",
+      "claim": "ss.fact.f-sputnik",
+      "source": "NASA Space Science Data Coordinated Archive: Sputnik 1",
+      "url": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1957-001B"
+    },
+    {
+      "id": "f-apollo-11",
+      "claim": "ss.fact.f-apollo-11",
+      "source": "NASA Science: Apollo 11",
+      "url": "https://www.nasa.gov/mission/apollo-11/"
+    },
+    {
+      "id": "f-voyager-2",
+      "claim": "ss.fact.f-voyager-2",
+      "source": "NASA Science: Voyager",
+      "url": "https://science.nasa.gov/mission/voyager/"
+    },
+    {
+      "id": "f-new-horizons",
+      "claim": "ss.fact.f-new-horizons",
+      "source": "NASA Science: New Horizons",
+      "url": "https://science.nasa.gov/mission/new-horizons/"
+    }
+  ],
+  "extensions": {}
+}

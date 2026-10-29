@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300" role="img" aria-labelledby="t d">
+  <title id="t">The Sun and the eight planets (not to scale)</title>
+  <desc id="d">The Sun at the far left, then Mercury, Venus, Earth, Mars, Jupiter, Saturn with its rings, Uranus and Neptune in a row. Hand-drawn diagram, sizes and distances are not to scale.</desc>
+  <defs>
+    <radialGradient id="sun" cx="35%" cy="50%" r="75%">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset="0.55" stop-color="#ffb300"/>
+      <stop offset="1" stop-color="#e65100"/>
+    </radialGradient>
+    <clipPath id="jup"><circle cx="425" cy="150" r="40"/></clipPath>
+    <clipPath id="sat"><circle cx="545" cy="150" r="30"/></clipPath>
+  </defs>
+  <rect width="800" height="300" fill="#0b1026"/>
+  <g fill="#ffffff" opacity="0.7">
+    <circle cx="120" cy="40" r="1.2"/><circle cx="260" cy="250" r="1"/><circle cx="360" cy="60" r="1.3"/>
+    <circle cx="480" cy="255" r="1.1"/><circle cx="600" cy="45" r="1.2"/><circle cx="690" cy="240" r="1"/>
+    <circle cx="770" cy="70" r="1.3"/><circle cx="165" cy="265" r="1"/><circle cx="520" cy="30" r="1"/>
+  </g>
+  <line x1="0" y1="150" x2="800" y2="150" stroke="#243056" stroke-width="1" stroke-dasharray="4 6"/>
+  <!-- the Sun -->
+  <circle cx="40" cy="150" r="90" fill="url(#sun)"/>
+  <!-- Mercury -->
+  <circle cx="190" cy="150" r="6" fill="#9e9e9e"/>
+  <!-- Venus -->
+  <circle cx="235" cy="150" r="10" fill="#e8c07a"/>
+  <!-- Earth -->
+  <circle cx="285" cy="150" r="11" fill="#2f7fd1"/>
+  <path d="M279 146 q4 -5 9 -2 q3 3 -1 7 q-4 3 -8 -1 z" fill="#3f9b4f"/>
+  <!-- Mars -->
+  <circle cx="335" cy="150" r="8" fill="#c1440e"/>
+  <!-- Jupiter with bands -->
+  <circle cx="425" cy="150" r="40" fill="#d9a066"/>
+  <g clip-path="url(#jup)">
+    <rect x="380" y="128" width="90" height="8" fill="#b9814f"/>
+    <rect x="380" y="145" width="90" height="10" fill="#efd2a6"/>
+    <rect x="380" y="164" width="90" height="7" fill="#b9814f"/>
+    <ellipse cx="440" cy="160" rx="8" ry="4" fill="#b5532f"/>
+  </g>
+  <!-- Saturn with rings -->
+  <circle cx="545" cy="150" r="30" fill="#e4cf99"/>
+  <g clip-path="url(#sat)"><rect x="510" y="140" width="70" height="6" fill="#cdb67f"/><rect x="510" y="158" width="70" height="5" fill="#cdb67f"/></g>
+  <ellipse cx="545" cy="150" rx="58" ry="13" fill="none" stroke="#e0cd9a" stroke-width="4" transform="rotate(-14 545 150)"/>
+  <!-- Uranus -->
+  <circle cx="640" cy="150" r="18" fill="#8fd3d9"/>
+  <!-- Neptune -->
+  <circle cx="730" cy="150" r="17" fill="#3d5ad6"/>
+</svg>
