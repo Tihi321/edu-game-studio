@@ -4,8 +4,9 @@ import sharp from 'sharp'
 import { artSizes, composePrompt, ART_NEGATIVE } from '../../shared/art'
 import type { ArtKind, ArtRatio } from '../../shared/art'
 import type { RegionShape } from '../../shared/course'
-import { FLOW_ENGINE, IMAGE_KINDS, PIXEL_KINDS, resolveArtProvider, resolvePixel, resolveRpgPixelProvider } from '../../shared/media'
+import { AUDIO_KINDS, FLOW_ENGINE, IMAGE_KINDS, PIXEL_KINDS, resolveArtProvider, resolvePixel, resolveRpgPixelProvider } from '../../shared/media'
 import type { AssetEntry, AssetManifest, AssetVersion, CourseMedia } from '../../shared/media'
+import type { ChiptuneClient } from '../studios/chiptune'
 import type { ComfyClient, ComfyProgress } from '../comfy/client'
 import { randomSeed } from '../comfy/graphs'
 import { renameRetry } from '../store/atomic'
@@ -18,11 +19,14 @@ import type { PixelClient } from '../studios/pixel'
 import type { FlowClient } from '../studios/flow'
 import { DEFAULT_FLOW_OPTIONS, makeFlowImage } from './flow-image'
 import type { FlowOptions } from './flow-image'
+import { generateAudioAsset } from './generate-audio'
+import type { AudioGenInfo } from './generate-audio'
 
 /**
  * Makes the images of a course (ported from VN Studio's `generate.ts`, adapted to a course: no book, no character sheets). One asset at a time:
  * the generator (ComfyUI, or Google Flow when the course says so) makes the picture, then `finishImage` fits it (webp, sprite cut-out and trim,
- * pixel art with a palette, the regions of a hotspot drawn over it). The audio branches (music, sound effects) arrive with EGS-16.
+ * pixel art with a palette, the regions of a hotspot drawn over it). The audio kinds (music, sound effects, ambience) are made by
+ * `generate-audio.ts` (EGS-16).
  */
 
 export interface GenerateOptions {
@@ -61,7 +65,7 @@ export interface HotspotOverlay {
 export interface GenerateContext {
   /** The course slug (the Flow project is du-<slug> unless the course names one). */
   slug: string
-  settings: Pick<CourseMedia, 'art'>
+  settings: Pick<CourseMedia, 'art'> & Partial<Pick<CourseMedia, 'music' | 'sound'>>
   /** `courses/<slug>/course`: the manifest and `assets/<id>/` live here. */
   projectDir: string
   /** A folder for the files other processes write (Flow, Pixel Studio): absolute. Default: `<projectDir>/../.tmp`. */
@@ -82,6 +86,12 @@ export interface GenerateContext {
   hotspotOf?: (assetId: string) => HotspotOverlay | null
   /** The ratio the art plan asked for (an illustration: `4:3`, `16:9` or `1:1`). */
   ratioOf?: (assetId: string) => ArtRatio | undefined
+  /** Chiptune Studio, for the music and the sound effects made by `chiptune` (EGS-16). */
+  chiptune?: ChiptuneClient
+  /** What the composer's plan says about an audio asset: the Chiptune Studio plan, the prompt, the length, the sound. */
+  audioOf?: (assetId: string) => AudioGenInfo | undefined
+  /** How many Flow Music songs the course has made (the cap `flowOptions.maxSongs` counts them); the generator adds one for each song it makes. */
+  flowSongs?: { made: number }
 }
 
 export type GenerateResult =
@@ -265,7 +275,8 @@ export async function finishImage(ctx: FinishContext, entry: AssetEntry, bytes: 
 export async function generateAsset(ctx: GenerateContext, entry: AssetEntry, opts: GenerateOptions = {}): Promise<GenerateResult> {
   const progress = (stage: GenerateProgress['stage'], message: string) => ctx.onProgress?.({ id: entry.id, stage, message })
   if (!opts.force && (entry.locked || entry.source === 'custom')) return { ok: true, skipped: true, entry, reason: entry.locked ? 'locked' : 'custom file' }
-  if (!IMAGE_KINDS.has(entry.kind)) return { ok: true, skipped: true, entry, reason: `${entry.kind} assets are made by the music and voice steps (EGS-16, EGS-17)` }
+  if (AUDIO_KINDS.has(entry.kind)) return generateAudioAsset(ctx, entry, opts)
+  if (!IMAGE_KINDS.has(entry.kind)) return { ok: true, skipped: true, entry, reason: `${entry.kind} assets are made by the voice step (EGS-17)` }
   if (entry.kind === 'sheet') return { ok: true, skipped: true, entry, reason: 'a course has no character sheets' }
   const art = ctx.settings.art
   const provider = entry.provider ?? resolveArtProvider(art)
@@ -352,6 +363,8 @@ export interface GenerateAllOptions {
   force?: boolean
   /** Skip these (for example orphaned) ids. */
   exclude?: Iterable<string>
+  /** The asset kinds to make. Default: the images; the music step passes the audio kinds. */
+  kinds?: ReadonlySet<string>
   /** Words added to the prompt of an asset for this run (the art-critic's notes), by id. */
   extraPrompts?: Record<string, string>
   /** Called when an asset failed, to decide what stands in (the caller writes a placeholder). Returns the entry to keep. */
@@ -371,7 +384,7 @@ export interface GenerateAllResult {
 }
 
 /** Generation order: backgrounds, then pictures, tile sheets and sprites. */
-const KIND_ORDER: Record<string, number> = { background: 0, illustration: 1, cover: 2, cg: 3, tileset: 4, sprite: 5, sheet: 6 }
+const KIND_ORDER: Record<string, number> = { background: 0, illustration: 1, cover: 2, cg: 3, tileset: 4, sprite: 5, sheet: 6, music: 7, ambience: 8, sfx: 9 }
 
 /**
  * Generates every image that has no usable file yet, saving `assets.json` after each one so a stopped run resumes where it left off. A failed
@@ -381,7 +394,8 @@ export async function generateAll(ctx: GenerateContext, manifest: AssetManifest,
   let current = manifest
   const excluded = new Set(opts.exclude ?? [])
   const wanted = opts.ids ? new Set(opts.ids) : null
-  const todo = current.assets.filter((e) => IMAGE_KINDS.has(e.kind) && !excluded.has(e.id) && (!wanted || wanted.has(e.id))).sort((a, b) => (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9))
+  const kinds = opts.kinds ?? IMAGE_KINDS
+  const todo = current.assets.filter((e) => kinds.has(e.kind) && !excluded.has(e.id) && (!wanted || wanted.has(e.id))).sort((a, b) => (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9))
   const result: GenerateAllResult = { manifest: current, generated: [], skipped: [], failed: [] }
   const commit =
     opts.commit ??

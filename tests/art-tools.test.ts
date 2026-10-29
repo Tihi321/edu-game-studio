@@ -253,7 +253,9 @@ describe('plan, generate, edit: a hand-made course', () => {
     expect((await call('edu_asset_lock', { slug: 'hand-err', id: 'img-nope', locked: true })).ok).toBe(false)
     await must('edu_media_settings', { slug: 'hand-err', set: { art: { enabled: false } } })
     expect((await call('edu_asset_plan', { slug: 'hand-err', fallback: true })).text).toMatch(/media\.art\.enabled is false/)
-    expect((await call('edu_asset_generate', { slug: 'hand-err' })).text).toMatch(/media\.art\.enabled is false/)
+    expect((await call('edu_asset_generate', { slug: 'hand-err', kind: 'illustration' })).text).toMatch(/media\.art\.enabled is false/)
+    await must('edu_media_settings', { slug: 'hand-err', set: { music: { enabled: false } } })
+    expect((await call('edu_asset_generate', { slug: 'hand-err' })).text).toMatch(/media\.art\.enabled is false/) // nothing is left to make: pictures and sounds are both off
   })
 })
 

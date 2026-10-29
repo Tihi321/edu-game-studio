@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
+import { toneWav } from '../src/engine/assets/wav'
 import type { ComfyClient, ComfyRequest, ComfyResult } from '../src/engine/comfy/client'
 import { ENGINES } from '../src/engine/comfy/graphs'
 import type { EngineOptions } from '../src/engine/engine'
@@ -31,9 +32,8 @@ export class FakeComfy implements ComfyClient {
     // every audio engine (the music ones, the TTS Audio Suite models and MOSS) answers with sound; everything else with a picture
     const isAudio = req.engine.startsWith('custom:') || ENGINES[req.engine]?.kind === 'audio'
     if (isAudio) {
-      // a custom workflow writes what its own save node writes (flac in the seed workflow); a built-in engine follows the requested format
-      const ext = req.engine.startsWith('custom:') ? 'flac' : (req.format ?? 'mp3')
-      return { bytes: Buffer.from(`AUDIO:${key}`), ext, kind: 'audio', seed: req.seed ?? 1, engine: req.engine, lane: 'fake', promptId: 'p' }
+      // real, decodable audio (a short PCM WAV tone, so the bot's media check and Chromium can load it): the file is a wav whatever format was asked for
+      return { bytes: toneWav(1, 220 + (key.length % 8) * 55), ext: 'wav', kind: 'audio', seed: req.seed ?? 1, engine: req.engine, lane: 'fake', promptId: 'p' }
     }
     const w = 128
     const h = 128

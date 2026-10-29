@@ -1,11 +1,13 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { RegionShape } from '../../shared/course'
+import { AUDIO_KINDS } from '../../shared/media'
 import type { AssetEntry } from '../../shared/media'
 import { artSizes } from '../../shared/art'
 import type { ArtKind } from '../../shared/art'
-import { atomicWrite } from '../store/atomic'
+import { atomicWrite, renameRetry } from '../store/atomic'
 import { assetDir } from './manifest'
+import { silentWav } from './wav'
 
 /**
  * What stands in for an image that could not be made (a provider is down, or the art is made by hand): a real file, `assets/<id>/placeholder.svg`,
@@ -14,6 +16,8 @@ import { assetDir } from './manifest'
  */
 
 export const PLACEHOLDER_FILE = 'placeholder.svg'
+/** The placeholder of a sound: a second of silence, named `placeholder` so the lint warns like it does for a picture (EGS-16). */
+export const PLACEHOLDER_AUDIO_FILE = 'placeholder.wav'
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -49,9 +53,17 @@ export function placeholderSvg(entry: Pick<AssetEntry, 'id' | 'kind' | 'alt' | '
   ].join('\n')
 }
 
-/** Writes the placeholder of an asset and returns the entry that records it (no version, nothing selected). */
+/** Writes the placeholder of an asset (a card for a picture, a short silent WAV for a sound) and returns the entry that records it (no version, nothing selected). */
 export async function writePlaceholder(projectDir: string, entry: AssetEntry, reason: string): Promise<AssetEntry> {
   const dir = assetDir(projectDir, entry.id)
+  if (AUDIO_KINDS.has(entry.kind)) {
+    const file = path.join(dir, PLACEHOLDER_AUDIO_FILE)
+    await fs.mkdir(dir, { recursive: true })
+    const tmp = `${file}.tmp-${process.pid}-${Date.now().toString(36)}`
+    await fs.writeFile(tmp, silentWav(1))
+    await renameRetry(tmp, file)
+    return { ...entry, placeholder: { file: PLACEHOLDER_AUDIO_FILE, reason } }
+  }
   await atomicWrite(path.join(dir, PLACEHOLDER_FILE), placeholderSvg(entry))
   return { ...entry, placeholder: { file: PLACEHOLDER_FILE, reason } }
 }

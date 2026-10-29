@@ -16,8 +16,8 @@ export type Lang = z.infer<typeof langSchema>
 export const ART_PROVIDERS = ['comfy', 'pixel-studio-draw', 'hand', 'flow'] as const
 export const PIXEL_PROVIDERS = ['builtin', 'pixel-studio'] as const
 export const MUSIC_PROVIDERS = ['comfy', 'chiptune', 'flow'] as const
-/** The chips of Chiptune Studio. */
-export const CHIPS = ['nes', 'gb', 'genesis', 'snes', 'pce'] as const
+/** The chips of Chiptune Studio (`ps1` and `dreamcast` are its later, lusher chips; EGS-16 ported them with the composer). */
+export const CHIPS = ['nes', 'gb', 'genesis', 'snes', 'pce', 'ps1', 'dreamcast'] as const
 export const DITHERS = ['none', 'ordered', 'floyd'] as const
 export type Chip = (typeof CHIPS)[number]
 export type Dither = (typeof DITHERS)[number]
@@ -123,14 +123,18 @@ export const courseSettingsSchema = z.object({
     .default({ enabled: true, style: 'illustrated', generator: 'qwen-image-2.1', editor: 'qwen-image-2.1-edit', review: true, bgRemoval: 'birefnet' }),
   music: z
     .object({
+      /** The music step runs (default). false: no music and no sound effect is planned or made (the course is silent, and has no placeholder). */
+      enabled: z.boolean().default(true),
       engine: z.string().default('ace-step-v1-instrumental'),
       tracks: z.number().int().nonnegative().default(3),
-      /** Who makes the music: ComfyUI (ACE-Step) or Chiptune Studio. Missing: chiptune for pixel courses, else comfy. */
+      /** Who makes the music: ComfyUI (ACE-Step), Chiptune Studio or Flow Music. Missing: chiptune for pixel courses (and for the RPG and castle music of any course), else comfy. `flow` spends credits: it needs `flowCredits: true` as well. */
       provider: z.enum(MUSIC_PROVIDERS).optional(),
+      /** The explicit opt-in to spend Flow Music credits. Flow Music is used only with `provider: flow` AND `flowCredits: true` (and at most `flowMusicMaxSongs` songs, `config/studios.md`). Default false. */
+      flowCredits: z.boolean().default(false),
       /** The chip of Chiptune Studio. Missing: the composer picks one per track. */
       chip: z.enum(CHIPS).optional()
     })
-    .default({ engine: 'ace-step-v1-instrumental', tracks: 3 }),
+    .default({ enabled: true, engine: 'ace-step-v1-instrumental', tracks: 3, flowCredits: false }),
   voice: z
     .preprocess(
       upgradeVoice,
@@ -212,6 +216,12 @@ export const isHandArt = (art: Pick<CourseSettings['art'], 'provider'>): boolean
 export function resolveMusicProvider(settings: Pick<CourseSettings, 'art' | 'music'>): (typeof MUSIC_PROVIDERS)[number] {
   return settings.music.provider ?? (settings.art.style === 'pixel' ? 'chiptune' : 'comfy')
 }
+
+/**
+ * Flow Music spends credits, so it is never a default: only a course that says `music.provider: flow` AND `music.flowCredits: true` may use it
+ * (and then at most `flowMusicMaxSongs` songs, see `config/studios.md`).
+ */
+export const flowMusicAllowed = (settings: Pick<CourseSettings, 'music'>): boolean => settings.music.provider === 'flow' && settings.music.flowCredits === true
 
 /** The TTS engine of one language: its `voice.engines` entry, else the course default `voice.engine`. */
 export function resolveVoiceEngine(settings: Pick<CourseSettings, 'voice'>, lang: Lang | string): string {

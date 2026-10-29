@@ -18,7 +18,9 @@ import type { PipelineEnv } from './pipeline-helpers'
  * No test touches a real provider: the data folder's autostart is off.
  */
 
-const BRIEF_RPG = { ...BRIEF, shells: ['quiz-arena', 'rpg'] }
+/** The art tests are about pictures: their briefs switch the music off (tests/music-pipeline.test.ts has the music, and one run with both). */
+const NO_MUSIC = { enabled: false }
+const BRIEF_RPG = { ...BRIEF, shells: ['quiz-arena', 'rpg'], media: { music: NO_MUSIC } }
 
 interface Pack {
   assets: { id: string; kind: string; file: string; alt: string }[]
@@ -148,7 +150,7 @@ describe('the whole run with art: every planned image is in the pack and the bui
   it('the course settings can switch the art off: the steps are skipped, no picture, no placeholder, and the course still publishes', async () => {
     const env = await makePipelineEnv()
     try {
-      await run(env, { ...BRIEF, media: { art: { enabled: false } } })
+      await run(env, { ...BRIEF, media: { art: { enabled: false }, music: NO_MUSIC } })
       const p = await pipelineOf(env)
       expect(p.stage).toBe('published')
       for (const s of ['art_plan:all', 'art_generate:all', 'art_review:all']) expect(p.steps.find((x) => x.step === s)).toMatchObject({ status: 'skipped', note: expect.stringMatching(/media\.art\.enabled is false/) })
@@ -286,7 +288,7 @@ describe('a provider that is down does not fail the run', () => {
   it('hand-made art: Edu Studio never calls ComfyUI for an image; placeholders stand in until edu_asset_replace gives the real file (custom, locked)', async () => {
     const env = await makePipelineEnv()
     try {
-      await run(env, { ...BRIEF, media: { art: { provider: 'hand' } } })
+      await run(env, { ...BRIEF, media: { art: { provider: 'hand' }, music: NO_MUSIC } })
       expect((await pipelineOf(env)).stage).toBe('published')
       expect(imageRequests(env)).toHaveLength(0)
       expect(env.flow.calls).toEqual([])
@@ -319,7 +321,7 @@ describe('Google Flow only when the course asks', () => {
   it('art.provider: flow makes every picture through Flow (no ComfyUI image call), the run publishes and the lint is clean', async () => {
     const env = await makePipelineEnv()
     try {
-      await run(env, { ...BRIEF_RPG, media: { art: { provider: 'flow' } } })
+      await run(env, { ...BRIEF_RPG, media: { art: { provider: 'flow' }, music: NO_MUSIC } })
       expect((await pipelineOf(env)).stage).toBe('published')
       const sent = env.flow.calls.filter((c) => c.tool === 'flow_generate')
       expect(sent).toHaveLength(10)
@@ -389,7 +391,7 @@ describe('the art-critic', () => {
   it('review: false skips the critic with the reason; a course with a vision model but no review setting is reviewed by default', async () => {
     const env = await makePipelineEnv({ vision: true })
     try {
-      await run(env, { ...BRIEF, media: { art: { review: false } } })
+      await run(env, { ...BRIEF, media: { art: { review: false }, music: NO_MUSIC } })
       const p = await pipelineOf(env)
       expect(p.steps.find((s) => s.step === 'art_review:all')).toMatchObject({ status: 'skipped', note: 'media.art.review is false' })
       expect(env.author.count('art-critic')).toBe(0)

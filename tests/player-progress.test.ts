@@ -66,7 +66,7 @@ describe('export and import', () => {
     const f = await loadFixture('solar-system')
     let p = newProgress(f.pack.id)
     p = recordRound(p, { unitId: f.pack.units[0]!.id }, 0.8)
-    p = { ...p, score: 420, queue: [f.pack.items[0]!.id], settings: { lang: 'hr', timer: true, sound: false } }
+    p = { ...p, score: 420, queue: [f.pack.items[0]!.id], settings: { lang: 'hr', timer: true, sound: false, reduceAudio: true } }
     const res = parseProgress(exportProgress(p), f.pack)
     expect(res.ok).toBe(true)
     if (res.ok) expect(res.progress).toEqual(p)

@@ -81,8 +81,8 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
           const course = await svc.courses.summary(a.slug)
           const pipeline = await svc.pipeline.status(a.slug)
           const media = await svc.media.summary(a.slug).catch(() => null)
-          const mediaNote = media && media.placeholders > 0 ? `${media.placeholders} picture(s) are placeholders: edu_lint warns PLACEHOLDER_ASSET until a real image replaces each (edu_asset_generate, edu_asset_replace)` : undefined
-          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), ...(media && media.images > 0 ? { media: { ...media, ...(mediaNote ? { note: mediaNote } : {}) } } : {}), clientTasks: queue().counts() }
+          const mediaNote = media && (media.placeholders > 0 || media.audioPlaceholders > 0) ? [media.placeholders > 0 ? `${media.placeholders} picture(s) are placeholders: edu_lint warns PLACEHOLDER_ASSET until a real image replaces each (edu_asset_generate, edu_asset_replace)` : '', media.audioPlaceholders > 0 ? `${media.audioPlaceholders} sound(s) are silent placeholders (PLACEHOLDER_ASSET until the provider is back and edu_asset_generate makes them, or edu_asset_replace gives a file)` : ''].filter(Boolean).join('; ') : undefined
+          return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), ...(media && (media.images > 0 || media.audio > 0) ? { media: { ...media, ...(mediaNote ? { note: mediaNote } : {}) } } : {}), clientTasks: queue().counts() }
         }
         const courses = await svc.listCourses()
         return { dataDir: svc.dataDir, courses: await Promise.all(courses.map(async (c) => ({ slug: c.slug, jobs: await svc.jobCounts(c.slug) }))), clientTasks: queue().counts() }

@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
+import { toneWav } from '../src/engine/assets/wav'
 import { FlowError } from '../src/engine/studios/flow'
 import type { FlowClient, FlowImageArgs, FlowLoop, FlowSong, FlowStatus, FlowVoices, NarrateArgs, SongArgs } from '../src/engine/studios/flow'
 
@@ -97,7 +98,7 @@ export class FakeFlow implements FlowClient {
     if (this.songError) throw this.songError
     await mkdir(a.out, { recursive: true })
     const file = path.join(a.out, `${a.name}.${a.format ?? 'mp3'}`)
-    await writeFile(file, `SONG:${a.sound}`)
+    await writeFile(file, toneWav(1, 262)) // real PCM audio (the fake has no mp3 encoder: the content is a wav whatever the extension)
     return { id: `song-${++this.n}`, file, creditsSpent: 5 }
   }
 
@@ -106,7 +107,7 @@ export class FakeFlow implements FlowClient {
     if (this.loopError) throw this.loopError
     await mkdir(a.out, { recursive: true })
     const file = path.join(a.out, `${a.name}.mp3`)
-    await writeFile(file, 'LOOP')
+    await writeFile(file, toneWav(1, 294))
     return { file, loopSeconds: 52, score: this.loopScore, seamClean: true }
   }
 }

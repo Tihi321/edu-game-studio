@@ -29,6 +29,8 @@ export interface AuthorOptions {
   artPlan?: 'ok' | 'repair' | 'unusable'
   /** The art-critic's verdict on a picture in a round (default pass). */
   artReview?: (assetId: string, round: number) => 'pass' | 'revise'
+  /** The composer's answer: `ok` (default), `merge` (every unit shares the first unit's track), `repair` (wrong the first time), `unusable` (never right: the deterministic plan is used). */
+  musicPlan?: 'ok' | 'repair' | 'unusable' | 'merge'
 }
 
 export interface Author {
@@ -237,6 +239,33 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     return verdict === 'pass'
       ? { verdict, scores: { relevance: 9, clarity: 9 }, notes: 'It shows what it should.', problems: [] }
       : { verdict, scores: { relevance: 4, clarity: 5 }, notes: 'The subject is not clear.', problems: [{ ref: id, issue: 'the subject is too small', fix: 'show the subject large in the middle', severity: 'major' }] }
+  })
+
+  // the composer plans one track per area the prompt lists and a sound effect for each event (see seed/prompts/composer/plan.md)
+  let musicCalls = 0
+  const SFX_SOUND: Record<string, string> = { correct: 'coin', wrong: 'cancel', combo: 'magic', 'level-up': 'powerup', boss: 'alert' }
+  on('composer', (t) => {
+    musicCalls++
+    log('composer/plan')
+    const areas = lines(t).map((l) => /^- (\S+) \((?:chiptune|comfy|flow)\): /.exec(l)?.[1]).filter((x): x is string => !!x)
+    const events = lines(t).map((l) => /^- (correct|wrong|combo|level-up|boss)(?: \(REQUIRED\))?: /.exec(l)?.[1]).filter((x): x is string => !!x)
+    if (o.musicPlan === 'unusable' || (o.musicPlan === 'repair' && musicCalls === 1)) return { music: [{ area: 'no-such-area', mood: 'calm', prompt: 'calm instrumental music', alt: 'x' }], sfx: [] }
+    const units = areas.filter((a) => a.startsWith('unit-'))
+    const merge = o.musicPlan === 'merge'
+    return {
+      music: areas
+        .filter((a) => !merge || !units.slice(1).includes(a))
+        .map((area) => ({
+          area,
+          ...(merge && area === units[0] ? { units: units.slice(1).map((u) => u.slice(5)) } : {}),
+          mood: area === 'boss' || area === 'rpg-battle' ? 'mysterious-calm' : 'peaceful',
+          prompt: `calm instrumental, soft piano and strings, slow tempo, for the area ${area}`,
+          alt: `The music of ${area}`,
+          seconds: 60
+        })),
+      sfx: events.map((event) => ({ event, sound: SFX_SOUND[event], alt: `The sound of ${event}` })),
+      notes: 'Soft and slow.'
+    }
   })
 
   on('playtester', () => {

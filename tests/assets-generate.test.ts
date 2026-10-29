@@ -80,7 +80,7 @@ describe('generateAsset: pictures', () => {
     expect(await generateAsset(kit.ctx(), custom)).toMatchObject({ ok: true, skipped: true, reason: 'custom file' })
     expect(kit.comfy.requests).toHaveLength(0)
     expect(await generateAsset(kit.ctx(), locked, { force: true })).toMatchObject({ ok: true, skipped: false })
-    expect(await generateAsset(kit.ctx(), entryOf('mus-menu', 'music'))).toMatchObject({ ok: true, skipped: true, reason: expect.stringMatching(/EGS-16/) })
+    expect(await generateAsset(kit.ctx(), entryOf('voice-x', 'voiceRef'))).toMatchObject({ ok: true, skipped: true, reason: expect.stringMatching(/EGS-17/) }) // voice is the next ticket
     expect(await generateAsset(kit.ctx(), entryOf('sheet-x', 'sheet'))).toMatchObject({ ok: true, skipped: true })
   })
 

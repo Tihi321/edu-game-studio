@@ -4,7 +4,9 @@ import sharp from 'sharp'
 import { languageInfo } from '../../shared/languages'
 import { ART_NEGATIVE } from '../../shared/art'
 import type { ArtPlanEntry, ArtPlanFile, ArtTarget } from '../../shared/art'
-import { FLOW_ENGINE, IMAGE_KINDS, parseCourseMedia } from '../../shared/media'
+import { AUDIO_KINDS, FLOW_ENGINE, IMAGE_KINDS, parseCourseMedia } from '../../shared/media'
+import { cuesOfPlan } from '../../shared/music'
+import type { MusicPlanFile } from '../../shared/music'
 import type { AssetEntry, AssetManifest, CourseMedia } from '../../shared/media'
 import type { QualityConfig } from '../../shared/schemas'
 import type { DesignData, Frame } from './authoring'
@@ -80,6 +82,10 @@ export interface AssetView {
   engine: string
   provider?: string
   warnings?: string[]
+  /** A sound: where it plays (`music:<area>` for each area of a track, the event of a sound effect), from the music plan. */
+  plays?: string[]
+  /** A track made by Chiptune Studio: where the loop starts and ends, in seconds (the player loops between them). */
+  loop?: { startSec: number; endSec: number }
 }
 
 export interface MediaSummary {
@@ -91,6 +97,12 @@ export interface MediaSummary {
   placeholders: number
   /** Pictures the art-critic rejected (they stay in the course). */
   rejected: number
+  /** Music tracks and sound effects in the manifest (EGS-16). */
+  audio: number
+  /** Sounds with a real file. */
+  audioMade: number
+  /** Sounds that only have a silent placeholder: the lint warns `PLACEHOLDER_ASSET` for each. */
+  audioPlaceholders: number
 }
 
 const DOWN = /unreachable|every ComfyUI lane|ECONNREFUSED|connection refused|not running|fetch failed|ENOTFOUND/i
@@ -171,11 +183,18 @@ export class MediaService {
     return this.svc.pipeline.readJson<ArtPlanFile>(slug, 'art.json')
   }
 
+  /** The composer's plan (`pipeline/music.json`), when there is one. */
+  readMusicPlan(slug: string): Promise<MusicPlanFile | undefined> {
+    return this.svc.pipeline.readJson<MusicPlanFile>(slug, 'music.json')
+  }
+
   /** The assets of a course for the tools: their files, versions, placeholders and review. */
   async list(slug: string, o: { kind?: string } = {}): Promise<AssetView[]> {
     const manifest = await this.loadManifest(slug)
     const plan = await this.readPlan(slug)
     const targets = new Map((plan?.entries ?? []).map((e) => [e.id, e.target]))
+    const music = await this.readMusicPlan(slug)
+    const plays = new Map<string, string[]>([...(music?.tracks ?? []).map((t) => [t.id, t.areas.map((a) => `music:${a}`)] as [string, string[]]), ...(music?.sfx ?? []).map((x) => [x.id, [x.event]] as [string, string[]])])
     const dir = this.courseDir(slug)
     return manifest.assets
       .filter((e) => !o.kind || e.kind === o.kind)
@@ -186,6 +205,7 @@ export class MediaService {
           id: e.id,
           kind: e.kind,
           ...(targets.has(e.id) ? { target: targets.get(e.id) } : {}),
+          ...(plays.has(e.id) ? { plays: plays.get(e.id) } : {}),
           selected: e.selected,
           versions: e.versions.length,
           ...(file ? { file: rel(e.id, path.basename(file)) } : e.placeholder ? { file: rel(e.id, e.placeholder.file) } : {}),
@@ -198,7 +218,8 @@ export class MediaService {
           ...(e.alt ? { alt: e.alt } : {}),
           engine: e.engine,
           ...(e.provider ? { provider: e.provider } : {}),
-          ...(v?.warnings?.length ? { warnings: v.warnings } : {})
+          ...(v?.warnings?.length ? { warnings: v.warnings } : {}),
+          ...(AUDIO_KINDS.has(e.kind) && v && v.loopStartSec != null && v.loopEndSec != null && v.loopEndSec > v.loopStartSec ? { loop: { startSec: v.loopStartSec, endSec: v.loopEndSec } } : {})
         }
       })
   }
@@ -208,7 +229,16 @@ export class MediaService {
     const dir = this.courseDir(slug)
     const images = manifest.assets.filter((e) => IMAGE_KINDS.has(e.kind))
     const made = images.filter((e) => resolveFile(dir, e)).length
-    return { images: images.length, made, placeholders: images.filter((e) => !resolveFile(dir, e) && e.placeholder).length, rejected: images.filter((e) => e.review?.status === 'rejected').length }
+    const sounds = manifest.assets.filter((e) => AUDIO_KINDS.has(e.kind))
+    return {
+      images: images.length,
+      made,
+      placeholders: images.filter((e) => !resolveFile(dir, e) && e.placeholder).length,
+      rejected: images.filter((e) => e.review?.status === 'rejected').length,
+      audio: sounds.length,
+      audioMade: sounds.filter((e) => resolveFile(dir, e)).length,
+      audioPlaceholders: sounds.filter((e) => !resolveFile(dir, e) && e.placeholder).length
+    }
   }
 
   // ---- the art plan ----
@@ -510,8 +540,23 @@ export class MediaService {
     const manifest = await this.loadManifest(slug)
     const plan = await this.readPlan(slug)
     const dir = this.courseDir(slug)
+    const musicOn = (await this.settings(slug)).music.enabled
+    const music = await this.readMusicPlan(slug)
+    /** With a music plan only its sounds are linked (an asset the plan dropped stays in the manifest, not in the build); with none, every audio asset that has a file. */
+    const planned = music ? new Set([...music.tracks.map((t) => t.id), ...music.sfx.map((x) => x.id)]) : null
     const assets: MediaLink[] = []
+    const loops: Record<string, { startSec: number; endSec: number }> = {}
     for (const e of manifest.assets) {
+      if (AUDIO_KINDS.has(e.kind)) {
+        if (!musicOn || (planned && !planned.has(e.id))) continue // music switched off: no sound is linked (and the cues of an earlier plan go)
+        const file = resolveFile(dir, e)
+        const name = file ? path.basename(file) : e.placeholder && existsSync(path.join(assetDir(dir, e.id), e.placeholder.file)) ? e.placeholder.file : undefined
+        if (!name) continue
+        assets.push({ id: e.id, kind: 'audio', file: rel(e.id, name), alt: e.alt ?? e.id, ...(file ? {} : { placeholder: true }) })
+        const v = e.versions.find((x) => x.n === e.selected)
+        if (file && e.source === 'generated' && v && v.loopStartSec != null && v.loopEndSec != null && v.loopEndSec > v.loopStartSec) loops[e.id] = { startSec: v.loopStartSec, endSec: v.loopEndSec }
+        continue
+      }
       if (!IMAGE_KINDS.has(e.kind)) continue
       const file = resolveFile(dir, e)
       const name = file ? path.basename(file) : e.placeholder && existsSync(path.join(assetDir(dir, e.id), e.placeholder.file)) ? e.placeholder.file : undefined
@@ -520,11 +565,13 @@ export class MediaService {
     }
     const targets: Record<string, ArtTarget> = {}
     for (const p of plan?.entries ?? []) targets[p.id] = p.target
-    return { assets, targets }
+    const linked = new Set(assets.map((a) => a.id))
+    const hasAudio = assets.some((a) => a.kind === 'audio')
+    return { assets, targets, ...(music ? { cues: cuesOfPlan(music, (id) => linked.has(id)) } : {}), ...(music || hasAudio ? { loops } : {}) }
   }
 
   /** Re-links the pack on disk to the manifest (after the tools changed it). Null when the course has no pack yet. */
-  async relink(slug: string): Promise<{ assets: number; links: number } | null> {
+  async relink(slug: string): Promise<{ assets: number; links: number; cues?: number } | null> {
     if (!existsSync(path.join(this.courseDir(slug), 'pack.json'))) return null
     return this.svc.courses.mergeMedia(slug, await this.mergeFor(slug))
   }
@@ -535,7 +582,7 @@ export class MediaService {
    * Queues a job of the media tools (`asset_plan`, `asset_generate`). Its id is `<slug>--<task>--q<time>--r0` (not a step of a run, so it works on a
    * hand-made course too); `params` are in the job file. Returns the job id.
    */
-  async queue(slug: string, task: 'asset_plan' | 'asset_generate', role: string, params: Record<string, unknown>, label: string): Promise<string> {
+  async queue(slug: string, task: 'asset_plan' | 'asset_generate' | 'asset_music_plan', role: string, params: Record<string, unknown>, label: string): Promise<string> {
     if (!(await this.svc.courseExists(slug))) throw new Error(`no course "${slug}"`)
     const id = `${slug}--${task}--q${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}--r0`
     await this.svc.deps.jobs.enqueue({ id, task, role, book: slug, requested_by: 'you', priority: 1, label, params } as never, `Media job ${task} for the course ${slug}.\n`)
@@ -553,7 +600,8 @@ export class MediaService {
 
   /** `edu_asset_set`: the prompt, the negative prompt, the provider or the engine of one asset. A prompt set by hand is kept by the art-director. */
   async setAsset(slug: string, id: string, o: { prompt?: string; negative?: string; provider?: 'comfy' | 'flow'; engine?: string }): Promise<AssetEntry> {
-    await this.entry(slug, id)
+    const current = await this.entry(slug, id)
+    if (o.provider !== undefined && AUDIO_KINDS.has(current.kind)) throw new Error(`${id} is a sound: the music provider is media.music.provider (edu_media_settings), then edu_music_plan and edu_asset_generate`)
     let out!: AssetEntry
     await this.mutate(slug, (m) => {
       const e = getEntry(m, id)!

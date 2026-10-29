@@ -51,3 +51,6 @@ export function pickChipSound(kind: ChipSoundKind, key: string, description: str
   const hit = find(table, tokens(key)) ?? find(table, tokens(description))
   return hit ? { sound: hit, guessed: false } : { sound: FALLBACK[kind], guessed: true }
 }
+
+/** The sound names `compose_sfx` knows, per kind (EGS-16: the composer is told them and its answer is checked against them). */
+export const CHIP_SOUNDS: Record<ChipSoundKind, string[]> = { sfx: SFX.map(([name]) => name), ambience: AMBIENCE.map(([name]) => name) }

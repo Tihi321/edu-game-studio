@@ -729,6 +729,7 @@ export const PROMPT_VARS = {
   'narrative-designer/scriptorium_brief': ['title', 'topic', 'audience', 'age', 'language', 'units', 'notes'],
   'art-director/plan': ['title', 'subject', 'audience', 'age', 'language', 'style', 'style_words', 'units', 'articles', 'items', 'slots', 'max_item_images', 'characters', 'shells'],
   'art-critic/review': ['title', 'asset_id', 'kind', 'target', 'prompt', 'alt', 'style', 'round', 'scores_example'],
+  'composer/plan': ['title', 'subject', 'audience', 'age', 'language', 'style', 'units', 'areas', 'events', 'moods', 'chips', 'chip', 'sounds', 'min_seconds', 'max_seconds', 'shells', 'sfx_engine'],
   'playtester/report': ['title', 'audience', 'age', 'units', 'personas', 'lint', 'scores_example'],
   'accessibility-reviewer/review': ['title', 'round', 'audience', 'age', 'level', 'language', 'content', 'scores_example'],
   'child-safety-reviewer/review': ['title', 'round', 'audience', 'age', 'language', 'content', 'scores_example'],

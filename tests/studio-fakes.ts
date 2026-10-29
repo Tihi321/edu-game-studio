@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
+import { toneWav } from '../src/engine/assets/wav'
 import type { ChiptuneClient, ComposeArgs, ComposeSfxArgs, RenderArgs } from '../src/engine/studios/chiptune'
 import { StudioError } from '../src/engine/studios/chiptune'
 import type { ImportArgs, ExportItem, PixelClient } from '../src/engine/studios/pixel'
@@ -72,7 +73,7 @@ export class FakeChiptune implements ChiptuneClient {
   calls: { tool: string; args: unknown }[] = []
   /** What the render says about the loop. */
   loop: { loopStartSec: number | null; loopEndSec: number | null } = { loopStartSec: 2, loopEndSec: 41.5 }
-  /** Pretend ffmpeg is missing: the file is a wav and a warning is returned. */
+  /** Pretend ffmpeg is missing: a warning is returned with the wav. (The fake always writes a real PCM wav, next to the asked path with a `.wav` extension: it has no ogg encoder.) */
   noFfmpeg = false
   failSave = false
   private n = 0
@@ -89,19 +90,19 @@ export class FakeChiptune implements ChiptuneClient {
     this.check()
     this.calls.push({ tool: 'compose_sfx', args })
     const id = `song-${++this.n}`
-    const actual = this.noFfmpeg ? args.path.replace(/\.[^.]+$/, '.wav') : args.path
+    const actual = args.path.replace(/\.[^.]+$/, '.wav')
     await mkdir(path.dirname(actual), { recursive: true })
-    await writeFile(actual, Buffer.from(`SFX:${args.kind}:${args.sound}`))
+    await writeFile(actual, toneWav(args.kind === 'ambience' ? 1 : 0.3, 500 + args.sound.length * 40))
     const ambience = args.kind === 'ambience'
     return { songId: id, kind: args.kind, sound: args.sound, chip: args.chip ?? (ambience ? 'snes' : 'nes'), seed: args.seed ?? 777, durationSec: ambience ? (args.seconds ?? 16) : 0.4, loop: ambience ? { startBar: 1, endBar: 8 } : null, path: actual, loopStartSec: ambience ? 0 : null, loopEndSec: ambience ? (args.seconds ?? 16) : null, ...(this.noFfmpeg ? { warning: 'ffmpeg not found: wrote wav' } : {}) }
   }
   async renderAudio(args: RenderArgs) {
     this.check()
     this.calls.push({ tool: 'render_audio', args })
-    const actual = this.noFfmpeg ? args.path.replace(/\.[^.]+$/, '.wav') : args.path
+    const actual = args.path.replace(/\.[^.]+$/, '.wav')
     await mkdir(path.dirname(actual), { recursive: true })
-    await writeFile(actual, Buffer.from(`AUDIO:${args.song}`))
-    return { path: actual, format: this.noFfmpeg ? 'wav' : (args.format ?? 'ogg'), sampleRate: 44100, durationSec: 41.5, ...this.loop, ...(this.noFfmpeg ? { warning: 'ffmpeg not found: wrote wav' } : {}) }
+    await writeFile(actual, toneWav(1, 330))
+    return { path: actual, format: 'wav', sampleRate: 44100, durationSec: 41.5, ...this.loop, ...(this.noFfmpeg ? { warning: 'ffmpeg not found: wrote wav' } : {}) }
   }
   async saveSong(args: { song?: string; path: string }) {
     this.check()

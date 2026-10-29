@@ -1,5 +1,6 @@
 import type { ArtTarget } from '../../shared/art'
 import type { TextCatalog } from '../../shared/course'
+import type { PackCue } from '../../shared/music'
 
 /**
  * The media merge of a course (EGS-15): how the assets of the manifest (`course/assets.json`) get into the pack. Pure: it works on the pack and
@@ -10,6 +11,10 @@ import type { TextCatalog } from '../../shared/course'
  *   catalog `asset.<id>.alt`         the alt text (a catalog key like every visible string)
  *   article.asset, item.asset        the picture of an article or an item (`backAsset` for a flashcard back; a hotspot keeps its own asset id)
  *   shells.config[shell].art         `{slot: assetId}`: the art of a shell, also of the shells the player does not have yet
+ *   pack.cues                        (EGS-16) the music and sound-effect cues of the music plan: `music:<area>` loops and one-shot events. The cues this merge
+ *                                    makes have ids `cue-music-*` and `cue-sfx-*`; other cues of the pack (a hand-made course's) are left alone
+ *   pack.extensions.audio.loops      (EGS-16) `{assetId: {startSec, endSec}}`: the loop points of a track that Chiptune Studio made (the cue schema is strict, so they
+ *                                    live in `extensions`; the player loops between them)
  */
 
 /** One asset that has a file (a selected version, a custom file or a placeholder). */
@@ -28,6 +33,10 @@ export interface MediaMerge {
   assets: MediaLink[]
   /** What each asset illustrates, by asset id (the art plan's targets). */
   targets: Record<string, ArtTarget>
+  /** The cues of the music plan (only for assets that have a file). Missing: the pack's cues are not touched. */
+  cues?: PackCue[]
+  /** The loop points of the audio assets (seconds), by asset id. */
+  loops?: Record<string, { startSec: number; endSec: number }>
 }
 
 export const altKey = (id: string): string => `asset.${id}.alt`
@@ -40,6 +49,8 @@ export interface MediaApplied {
   assets: number
   /** Links set (article.asset, item.asset, backAsset, shell art). */
   links: number
+  /** Cues of the music plan in the pack after the merge (only when the merge carried cues). */
+  cues?: number
 }
 
 /**
@@ -90,5 +101,21 @@ export function applyMedia(pack: Json, catalog: Pick<TextCatalog, 'strings'>, me
       links++
     }
   }
-  return { assets: merge.assets.length, links }
+  if (merge.cues) {
+    const ours = (id: unknown): boolean => typeof id === 'string' && /^cue-(?:music|sfx)-/.test(id)
+    const mine = new Set(merge.cues.map((c) => c.id))
+    const old = Array.isArray(pack.cues) ? (pack.cues as Json[]) : []
+    pack.cues = [...old.filter((c) => !mine.has(String(c.id)) && !ours(c.id)), ...merge.cues]
+  }
+  if (merge.loops) {
+    const ext: Json = isObj(pack.extensions) ? pack.extensions : (pack.extensions = {})
+    const audio: Json = isObj(ext.audio) ? (ext.audio as Json) : (ext.audio = {})
+    const loops: Json = isObj(audio.loops) ? { ...(audio.loops as Json) } : {}
+    for (const a of merge.assets) if (a.kind === 'audio') delete loops[a.id]
+    Object.assign(loops, merge.loops)
+    if (Object.keys(loops).length) audio.loops = loops
+    else delete audio.loops
+    if (Object.keys(audio).length === 0) delete ext.audio
+  }
+  return { assets: merge.assets.length, links, ...(merge.cues ? { cues: merge.cues.length } : {}) }
 }

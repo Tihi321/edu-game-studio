@@ -9,7 +9,7 @@ import type { ArtKind } from '../src/shared/art'
 import type { GenerateContext } from '../src/engine/assets/generate'
 import { FakeComfy } from './edu-helpers'
 import { FakeFlow } from './flow-fakes'
-import { FakePixel } from './studio-fakes'
+import { FakeChiptune, FakePixel } from './studio-fakes'
 
 sharp.cache(false)
 
@@ -19,12 +19,13 @@ export const SEED_PALETTES = path.resolve(__dirname, '..', 'seed', 'palettes')
 export const media = (over: Record<string, unknown> = {}): CourseMedia => parseCourseMedia(over)
 
 /** A manifest entry as the art plan makes it: no version yet. */
-export function entryOf(id: string, kind: ArtKind | 'sheet' | 'music', over: Partial<AssetEntry> = {}): AssetEntry {
-  const sizes = kind === 'music' || kind === 'sheet' ? undefined : artSizes(kind)
+export function entryOf(id: string, kind: ArtKind | 'sheet' | 'music' | 'sfx' | 'ambience' | 'voiceRef', over: Partial<AssetEntry> = {}): AssetEntry {
+  const plain = kind === 'music' || kind === 'sheet' || kind === 'sfx' || kind === 'ambience' || kind === 'voiceRef'
+  const sizes = plain ? undefined : artSizes(kind)
   return {
     id,
     kind,
-    prompt: kind === 'music' || kind === 'sheet' ? '' : composePrompt(kind, `a subject for ${id}`, kind === 'sprite' || kind === 'tileset' ? 'pixel' : 'illustrated'),
+    prompt: plain ? '' : composePrompt(kind, `a subject for ${id}`, kind === 'sprite' || kind === 'tileset' ? 'pixel' : 'illustrated'),
     engine: 'qwen-image-2.1',
     seed: null,
     size: sizes?.size ?? null,
@@ -42,6 +43,7 @@ export interface GenKit {
   dir: string
   comfy: FakeComfy
   pixel: FakePixel
+  chiptune: FakeChiptune
   flow: FakeFlow
   ctx: (over?: Partial<GenerateContext> & { media?: Record<string, unknown> }) => GenerateContext
   done: () => Promise<void>
@@ -54,15 +56,17 @@ export async function genKit(): Promise<GenKit> {
   await mkdir(dir, { recursive: true })
   const comfy = new FakeComfy()
   const pixel = new FakePixel()
+  const chiptune = new FakeChiptune()
   const flow = new FakeFlow()
   return {
     dir,
     comfy,
     pixel,
+    chiptune,
     flow,
     ctx: (over = {}) => {
       const { media: m, ...rest } = over
-      return { slug: 'demo', settings: media(m ?? {}), projectDir: dir, comfy, palettesDir: SEED_PALETTES, now: () => new Date('2026-02-03T04:05:06.000Z'), ...rest }
+      return { slug: 'demo', settings: media(m ?? {}), projectDir: dir, comfy, chiptune, palettesDir: SEED_PALETTES, now: () => new Date('2026-02-03T04:05:06.000Z'), ...rest }
     },
     done: () => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
   }

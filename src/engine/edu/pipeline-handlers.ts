@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AUDIO_KINDS, IMAGE_KINDS } from '../../shared/media'
 import { languageInfo } from '../../shared/languages'
 import type { ResolvedBrief } from '../../shared/brief'
 import type { TextCatalog } from '../../shared/course'
@@ -608,6 +609,29 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     { reviewing: true }
   )
 
+  // ---- music (EGS-16): plan, make ----
+
+  step('music_plan', async (h) => {
+    const src = await svc.music.sourceFromPipeline(h.slug)
+    const r = await svc.music.plan(h.ctx, h.slug, src)
+    return { note: `${r.plan.tracks.length} track(s) and ${r.plan.sfx.length} sound effect(s) planned${r.plan.source === 'fallback' ? ' (from the course text: the composer gave no usable answer)' : ''}, ${r.added.length} new, ${r.kept.length} kept from earlier${r.plan.warnings?.length ? `; ${r.plan.warnings[0]}` : ''}`, path: 'pipeline/music.json' }
+  })
+
+  step(
+    'music_generate',
+    async (h) => {
+      const rep = await svc.music.generate(h.slug, { signal: h.ctx.signal, log: (m) => h.ctx.log(m) })
+      const bits = [
+        `${rep.generated.length} sound(s) made`,
+        ...(rep.placeholders.length ? [`${rep.placeholders.length} placeholder(s) stand in (${rep.down ? `a provider is down: ${rep.down.slice(0, 160)}` : (rep.failed[0]?.error ?? 'failed').slice(0, 140)})`] : []),
+        ...(rep.skipped.length ? [`${rep.skipped.length} already there`] : []),
+        ...(rep.warnings.length ? [`${rep.warnings.length} warning(s): ${rep.warnings.slice(0, 2).map((w) => `${w.id}: ${w.warning}`).join('; ').slice(0, 200)}`] : [])
+      ]
+      return { note: bits.join(', '), path: `courses/${h.slug}/course/assets.json` }
+    },
+    { noModel: true }
+  )
+
   // the tools' own jobs (`edu_asset_plan`, `edu_asset_generate`): not steps of a run, so they work on a hand-made course too
   sched.register('asset_plan', async (ctx) => {
     const slug = ctx.job.book
@@ -618,15 +642,29 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     return { result: `${r.plan.entries.length} picture(s) planned (${r.plan.source}), ${r.added.length} new, ${r.kept.length} kept${linked ? `, pack linked to ${linked.assets} asset(s)` : ''}`, resultPath: 'pipeline/art.json' }
   })
 
+  sched.register('asset_music_plan', async (ctx) => {
+    const slug = ctx.job.book
+    if (!slug) throw new Error('the asset_music_plan job has no course')
+    const src = await svc.music.sourceFromPack(slug)
+    const r = await svc.music.plan(ctx, slug, src)
+    const linked = await svc.media.relink(slug)
+    return { result: `${r.plan.tracks.length} track(s) and ${r.plan.sfx.length} sound effect(s) planned (${r.plan.source}), ${r.added.length} new, ${r.kept.length} kept${linked ? `, pack linked to ${linked.assets} asset(s)` : ''}`, resultPath: 'pipeline/music.json' }
+  })
+
   sched.register(
     'asset_generate',
     async (ctx) => {
       const slug = ctx.job.book
       if (!slug) throw new Error('the asset_generate job has no course')
       const p = (ctx.job as { params?: { ids?: string[]; force?: boolean; kind?: string } }).params ?? {}
-      const rep = await svc.media.generate(slug, { ids: p.ids, force: p.force, kind: p.kind, signal: ctx.signal, log: (m) => ctx.log(m) })
+      const job = { ids: p.ids, force: p.force, kind: p.kind, signal: ctx.signal, log: (m: string) => ctx.log(m) }
+      // pictures and sounds: a kind says which (no kind: both)
+      const none = { generated: [], skipped: [], failed: [], placeholders: [], warnings: [] } as { generated: string[]; skipped: string[]; failed: unknown[]; placeholders: string[]; warnings: unknown[]; down?: string }
+      const rep = !p.kind || IMAGE_KINDS.has(p.kind) ? await svc.media.generate(slug, job) : none
+      const sounds = !p.kind || AUDIO_KINDS.has(p.kind) ? await svc.music.generate(slug, job) : none
       const linked = await svc.media.relink(slug)
-      return { result: `${rep.generated.length} made, ${rep.skipped.length} skipped, ${rep.placeholders.length} placeholder(s)${rep.down ? ` (down: ${rep.down.slice(0, 120)})` : ''}${linked ? `, pack linked (${linked.links} link(s))` : ''}`, resultPath: `courses/${slug}/course/assets.json` }
+      const down = rep.down ?? sounds.down
+      return { result: `${rep.generated.length + sounds.generated.length} made, ${rep.skipped.length + sounds.skipped.length} skipped, ${rep.placeholders.length + sounds.placeholders.length} placeholder(s)${down ? ` (down: ${down.slice(0, 120)})` : ''}${linked ? `, pack linked (${linked.links} link(s)${linked.cues !== undefined ? `, ${linked.cues} cue(s)` : ''})` : ''}`, resultPath: `courses/${slug}/course/assets.json` }
     },
     { noModel: true }
   )

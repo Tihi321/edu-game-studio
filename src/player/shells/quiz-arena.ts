@@ -2,6 +2,8 @@ import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
 import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
+import { unitArea } from '../../shared/music'
+import { GameAudio, loopsOf } from '../audio'
 import { button, clear, h, isTyping, pulse, type Child } from '../dom'
 import { buildFeedback, answerLines, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
@@ -103,6 +105,8 @@ class QuizArena {
   private confirmReset = false
   private hud: { score?: HTMLElement; combo?: HTMLElement; progress?: HTMLElement; timer?: HTMLElement } = {}
   private readonly rng: SeededRandom
+  /** The music of the area and the sound effects of the events (EGS-16). */
+  private readonly audio: GameAudio
   private readonly onKey = (e: KeyboardEvent): void => this.handleKey(e)
 
   constructor(private readonly host: ShellHost) {
@@ -115,6 +119,7 @@ class QuizArena {
     this.text = makeTextResolver(this.data.catalogs, this.lang, this.pack.targetLang)
     this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
     this.rng = rngFor(host.seed, 'arena')
+    this.audio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
     this.setLang(this.lang, false)
   }
 
@@ -128,6 +133,7 @@ class QuizArena {
 
   unmount(): void {
     document.removeEventListener('keydown', this.onKey)
+    this.audio.dispose()
     this.stopTimer()
     this.current?.view.destroy?.()
   }
@@ -190,6 +196,8 @@ class QuizArena {
       this.current = null
     }
     this.screen = screen
+    const area = this.musicArea(screen)
+    if (area !== undefined) this.audio.setArea(area)
     this.hud = {}
     const root = this.host.root
     clear(root)
@@ -204,6 +212,26 @@ class QuizArena {
     root.appendChild(app)
     this.publish()
     this.focusScreen()
+  }
+
+  /** The music area of a screen: the menu music on the title, the map and the review, the unit's or the boss's during a round, the end music at the end; the summary keeps what plays. */
+  private musicArea(screen: ScreenName): string | null | undefined {
+    switch (screen) {
+      case 'title':
+      case 'map':
+      case 'review':
+        return 'menu'
+      case 'item':
+      case 'feedback': {
+        const r = this.round
+        if (!r || r.kind === 'review') return 'menu'
+        return r.kind === 'boss' ? 'boss' : unitArea(r.unitId ?? '')
+      }
+      case 'end':
+        return 'end'
+      default:
+        return undefined
+    }
   }
 
   private focusScreen(): void {
@@ -284,9 +312,27 @@ class QuizArena {
             onchange: (e: Event) => {
               this.progress = { ...this.progress, settings: { ...this.progress.settings, sound: (e.target as HTMLInputElement).checked } }
               this.save()
+              this.audio.refresh()
             }
           }),
           h('span', { class: 'toggle-text' }, h('b', {}, ui('sound')))
+        )
+      : null
+    const reduceAudio = this.pack.cues.length
+      ? h(
+          'label',
+          { class: 'toggle' },
+          h('input', {
+            type: 'checkbox',
+            testid: 'setting-reduce-audio',
+            ...(this.progress.settings.reduceAudio ? { checked: true } : {}),
+            onchange: (e: Event) => {
+              this.progress = { ...this.progress, settings: { ...this.progress.settings, reduceAudio: (e.target as HTMLInputElement).checked } }
+              this.save()
+              this.audio.refresh()
+            }
+          }),
+          h('span', { class: 'toggle-text' }, h('b', {}, ui('reduceAudio')), h('small', {}, ui('reduceAudio.hint')))
         )
       : null
     const fileInput = h('input', {
@@ -322,7 +368,7 @@ class QuizArena {
       h('p', { class: 'audience' }, this.pack.audience),
       picker,
       shellPicker(this.host, ui, SHELL_ID),
-      h('div', { class: 'settings' }, timer, sound),
+      h('div', { class: 'settings' }, timer, sound, reduceAudio),
       h('div', { class: 'actions actions-center' }, button('start', started ? ui('continue') : ui('start'), () => this.go('map'), { class: 'btn btn-primary btn-big', ...(this.confirmReset ? {} : { 'data-autofocus': '' }) })),
       h(
         'div',
@@ -600,8 +646,11 @@ class QuizArena {
     this.screen = 'feedback'
     this.showFeedback(cur, feedback)
     this.updateHud()
-    this.playCue(result.correct ? 'correct' : 'wrong')
-    if (result.correct && [3, 5, 7, 10, 15, 20, 30].includes(this.combo)) this.burst(this.combo)
+    this.audio.sfx(result.correct ? 'correct' : 'wrong')
+    if (result.correct && [3, 5, 7, 10, 15, 20, 30].includes(this.combo)) {
+      this.burst(this.combo)
+      this.audio.sfx('combo')
+    }
     this.publish()
     return result
   }
@@ -654,21 +703,6 @@ class QuizArena {
     const el = h('div', { class: 'burst', testid: 'combo-burst' }, this.ui('burst', { n }), dust)
     layer.appendChild(el)
     window.setTimeout(() => el.remove(), 1400)
-  }
-
-  private playCue(on: string): void {
-    if (!this.progress.settings.sound) return
-    for (const cue of this.pack.cues.filter((c) => c.on === on && !c.loop)) {
-      const url = this.data.assets[cue.asset]
-      if (!url) continue
-      try {
-        const a = new Audio(url)
-        a.volume = cue.volume
-        void a.play().catch(() => undefined)
-      } catch {
-        /* a cue is never worth an error */
-      }
-    }
   }
 
   // ---- timer ----
@@ -803,7 +837,7 @@ class QuizArena {
       this.roundUnlocked = []
     }
     this.save()
-    this.playCue(rs.kind === 'boss' ? 'boss' : 'unit-complete')
+    if (rs.kind !== 'review') this.audio.sfx(rs.kind === 'boss' ? 'boss' : 'level-up')
     this.go('summary')
   }
 

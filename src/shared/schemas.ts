@@ -348,8 +348,8 @@ export type JobFrontmatter = z.output<typeof jobSchema>
 export const CONFIG_FILES = ['providers', 'roles', 'models', 'budget', 'quality', 'formats', 'factory', 'settings'] as const
 
 /**
- * The agent roles of Edu Studio (docs/design.md). The art-director and the art-critic joined with the images (EGS-15); the composer and the
- * voice-director join with the music and the voice (EGS-16, EGS-17). `src/renderer/ui/roles.ts` mirrors this list for the pickers (a test keeps
+ * The agent roles of Edu Studio (docs/design.md). The art-director and the art-critic joined with the images (EGS-15), the composer with the music (EGS-16); the
+ * voice-director joins with the voice (EGS-17). `src/renderer/ui/roles.ts` mirrors this list for the pickers (a test keeps
  * the two in step: the picker list may lag behind this one, it never has a role that is not here).
  */
 export const ROLES = [
@@ -366,6 +366,7 @@ export const ROLES = [
   'narrative-designer',
   'art-director',
   'art-critic',
+  'composer',
   'playtester',
   'accessibility-reviewer',
   'child-safety-reviewer',

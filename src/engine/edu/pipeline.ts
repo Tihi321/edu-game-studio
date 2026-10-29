@@ -19,7 +19,7 @@ import { assertSlug, coursesDir } from './paths'
  * ```
  * plan -> research x N -> factbase -> curriculum -> scope (language courses)
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
- *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music, voice (hooks, skipped until EGS-16, EGS-17) -> assemble
+ *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> voice (hook, skipped until EGS-17) -> assemble
  *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise) -> build -> lint -> playtest
  *   -> playtest_report -> publish (code: must-pass, threshold, hard gates; the publisher writes the blurb) -> summarize
  * ```
@@ -32,7 +32,7 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'assemble', 'review', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
 
 /** Which stage a task belongs to (for `restart from`). */
@@ -56,7 +56,8 @@ const STAGE_OF: Record<string, Stage> = {
   art_plan: 'art',
   art_generate: 'art',
   art_review: 'art',
-  music: 'art',
+  music_plan: 'music',
+  music_generate: 'music',
   voice: 'art',
   assemble: 'assemble',
   review_accessibility: 'review',
@@ -84,6 +85,7 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   design: ['design.json'],
   story: ['story.json'],
   art: ['art.json', 'reviews/art_review-*'],
+  music: ['music.json'],
   assemble: ['assembled.json', 'polish.json'],
   review: ['reviews/review-*'],
   lint: ['lint.json'],
@@ -91,14 +93,13 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   publish: ['publish.json']
 }
 
-/** The hooks of the generators that are not built yet (EGS-16 music, EGS-17 voice): recorded as skipped until a ticket fills them. Art is real since EGS-15. */
+/** The hook of the generator that is not built yet (EGS-17 voice): recorded as skipped until a ticket fills it. Art is real since EGS-15, music since EGS-16. */
 export interface MediaHook {
-  id: 'music' | 'voice'
+  id: 'voice'
   /** Why it did not run. */
   skipped: string
 }
 export const MEDIA_HOOKS: MediaHook[] = [
-  { id: 'music', skipped: 'EGS-16: music is made by the generators later' },
   { id: 'voice', skipped: 'EGS-17: voices are made by the generators later' }
 ]
 
@@ -491,6 +492,7 @@ export class Pipeline {
     if (R.brief.story === 'none') this.skip(c, 'story', null, 'no story asked (story: none)')
     else if ((await this.ensure(c, { task: 'story', role: 'narrative-designer', label: R.brief.story === 'frame' ? 'write the frame story' : 'hand the story to Scriptorium' })) !== 'done') return 'running'
     if ((await this.artFlow(c)) !== 'done') return 'running'
+    if ((await this.musicFlow(c)) !== 'done') return 'running'
     for (const h of MEDIA_HOOKS) this.skip(c, h.id, null, h.skipped)
 
     // assemble, then the audience reviews; a revise goes through polish and assemble again
@@ -564,6 +566,22 @@ export class Pipeline {
       if (!r?.revise?.length || k >= q.max_rounds) return 'done'
       if ((await this.ensure(c, { task: 'art_generate', role: 'art-director', round: k + 1, label: `make the pictures again with the critic's notes (round ${k + 1})` })) !== 'done') return 'wait'
     }
+  }
+
+  /**
+   * The music steps (EGS-16): the composer plans the music of every area and the sound effects (`music_plan`), the generators make them
+   * (`music_generate`, no model: Chiptune Studio, ComfyUI ACE-Step, Flow Music only on an explicit opt-in). A provider that is down gives silent
+   * placeholders and a note, never a failed run. With `media.music.enabled: false` both steps are skipped. 'done' when the flow is settled.
+   */
+  private async musicFlow(c: Ctx): Promise<'done' | 'wait'> {
+    const media = await this.svc.media.settings(c.slug)
+    if (!media.music.enabled) {
+      for (const t of ['music_plan', 'music_generate']) this.skip(c, t, null, 'media.music.enabled is false: the course has no music and no sound effects')
+      return 'done'
+    }
+    if ((await this.ensure(c, { task: 'music_plan', role: 'composer', label: 'plan the music and the sound effects' })) !== 'done') return 'wait'
+    if ((await this.ensure(c, { task: 'music_generate', role: 'composer', label: 'make the music and the sound effects' })) !== 'done') return 'wait'
+    return 'done'
   }
 
   /** The run is over (published or blocked): the director's summary, then the outcome. */

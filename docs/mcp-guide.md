@@ -28,7 +28,7 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 | Research | `edu_ask_researcher {slug, question, purpose?, wait?}` (the researcher answers with sourced facts; `wait` seconds returns the note's facts), `edu_factbase_get {slug, merge?}` (the course's facts with stable ids and numbered sources) |
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
-| Pictures | `edu_asset_list {slug, kind?}`, `edu_asset_plan {slug, fallback?}`, `edu_asset_generate {slug, ids?, force?, kind?}`, `edu_asset_set {slug, id, prompt?, negative?, provider?}`, `edu_asset_select {slug, id, version}`, `edu_asset_replace {slug, id, file}`, `edu_asset_lock {slug, id, locked}`, `edu_media_settings {slug, set?}` (see "Pictures") |
+| Pictures, music, sounds | `edu_asset_list {slug, kind?}`, `edu_asset_plan {slug, fallback?}`, `edu_music_plan {slug, fallback?}`, `edu_asset_generate {slug, ids?, force?, kind?}`, `edu_asset_set {slug, id, prompt?, negative?, provider?}`, `edu_asset_select {slug, id, version}`, `edu_asset_replace {slug, id, file}`, `edu_asset_lock {slug, id, locked}`, `edu_media_settings {slug, set?}` (see "Pictures" and "Music and sound effects") |
 | Generators | `edu_studios_status` (Pixel Studio, Chiptune Studio, flow-music-mcp; ComfyUI is `edu_comfy_status`), `edu_comfy_status`, `edu_comfy_free`, `edu_voice_status` |
 
 A job id is `<slug>--<task>--<unit>--r<run>`, so `edu_status {slug}` finds the jobs of a course by their prefix. A research job is `<slug>--research--q<hash>--r0` (the hash is of the question's words, so the same question is never asked twice for a course).
@@ -156,7 +156,13 @@ media:
     pixelProvider: pixel-studio # RPG tiles and sprites: pixel-studio (default) or builtin
     stylePrompt: ""        # replaces the default style words
     flowModel: ""          # flow only: the Flow model name; flowProject: the Flow project (default edu-<slug>)
-  music: {}                # EGS-16
+  music:                   # see "Music and sound effects"
+    enabled: true          # false: a silent course (no composer, no sound, no cue)
+    provider: comfy        # comfy (ACE-Step) | chiptune | flow (SPENDS CREDITS: needs flowCredits: true too)
+    flowCredits: false     # the explicit opt-in to spend Flow Music credits
+    chip: snes             # Chiptune Studio chip: nes gb genesis snes pce ps1 dreamcast
+  sound:
+    sfxEngine: chiptune    # the sound effects: chiptune (default), a ComfyUI audio engine, custom:<workflow>, or none (made by hand)
   voice: {}                # EGS-17
 ```
 
@@ -170,9 +176,9 @@ media:
 
 | Tool | What it does |
 |---|---|
-| `edu_asset_list {slug, kind?}` | the assets: id, kind, what each illustrates, selected version, file, `placeholder` (and why), review, prompt, provider, warnings; `summary`; the art settings |
+| `edu_asset_list {slug, kind?}` | the assets (pictures, music, sound effects): id, kind, what each illustrates (`target`) or where it plays (`plays`), selected version, file, `placeholder` (and why), review, prompt, provider, warnings, the `loop` points of a Chiptune track; `summary`; the art and music settings |
 | `edu_asset_plan {slug, fallback?}` | plan the pictures of a course, also a hand-made one: queues the art-director (a model job); `fallback: true` plans from the course text at once, with no model |
-| `edu_asset_generate {slug, ids?, force?, kind?}` | queues one job that makes the pictures that have no file yet (`force`: again; locked and hand-made ones are never touched); returns the job id |
+| `edu_asset_generate {slug, ids?, force?, kind?}` | queues one job that makes the pictures and the sounds that have no file yet (`kind`: an image kind, `music` or `sfx`; `force`: again; locked and hand-made ones are never touched); returns the job id |
 | `edu_asset_set {slug, id, prompt?, negative?, provider?}` | the prompt (kept by the art-director from then on), the negative prompt, or `comfy` / `flow` for this asset |
 | `edu_asset_select {slug, id, version}` | use an earlier version |
 | `edu_asset_replace {slug, id, file}` | use a file you made (png, jpg, webp, gif, avif, svg), copied as it is; `source: custom`, locked; removes a placeholder |
@@ -180,6 +186,32 @@ media:
 | `edu_media_settings {slug, set?}` | read, or change with a JSON merge patch, the `media` block of `course.md` |
 
 `edu_studios_status` shows Pixel Studio, Chiptune Studio and flow-music-mcp; ComfyUI is checked by `edu_comfy_status`.
+
+## Music and sound effects: the composer (EGS-16)
+
+A pipeline run makes the music and the sound effects of the course. `music_plan` (the composer) -> `music_generate` (no model: the generators) run after the art steps and before `assemble`. `assemble` links the sounds into the pack (audio assets, the cues, the loop points), so the build carries them and `edu_lint` finds no `ASSET_MISSING`. `restart from: music` runs them again (the stage `music` sits between `art` and `assemble`); `media.music.enabled: false` skips both steps with the reason.
+
+**The plan** (`courses/<slug>/pipeline/music.json`). The composer (role `composer`, prompt `prompts/composer/plan.md`) is shown the units and the shells and answers `{music: [{area, mood, prompt, alt, seconds?, units?, chip?, bpm?, key?, bars?}], sfx: [{event, sound, alt}], notes}`:
+- music by **area**: `menu` (title and map), `unit-<id>` (a round of that unit; several units of one mood may share a track: the line `unit-u1` with `units: ["u2"]`), `boss`, `end`, and an area for each shell the course has: `castle` (MindMaze), `rpg-overworld` and `rpg-battle` (RPG). Every area is covered exactly once. A track is calm, instrumental and loops;
+- sound effects by **event**: `correct`, `wrong`, `combo`, `level-up` (required) and `boss`. `sound` is one of Chiptune Studio's `compose_sfx` sounds (coin, chime, powerup, magic, cancel, alert ...).
+
+The answer is checked (areas and events exist, every area and required event covered, no area twice, prompts long enough) and sent back once in words; an answer that stays unusable is replaced by a deterministic plan made from the course text (`music.json` says `source: fallback`), so the step never blocks the course.
+
+**Stable ids**: `mus-<area>` (`mus-menu`, `mus-unit-u1`, `mus-boss`, `mus-end`, `mus-castle`, `mus-rpg-overworld`, `mus-rpg-battle`; a merged track has the id of its first area) and `sfx-<event>` (`sfx-correct`, `sfx-level-up` ...). A rerun of the plan (`restart from: music`, `edu_music_plan`) keeps the ids and the versions already made; an asset that is `locked`, a hand-made file, or has a prompt set by hand (`edu_asset_set`) keeps its prompt.
+
+**Providers.** Chiptune Studio (MCP 7458: `compose_track`, `render_audio`, `compose_sfx`; ogg, with the loop points) makes **every sound effect** and the **RPG and castle music** (and all the music of a pixel-style course); ComfyUI (ACE-Step, `media.music.engine`) makes the other music. **Flow Music spends credits, so it is never a default**: it is used only when the course sets `music.provider: flow` AND `music.flowCredits: true`, and then at most `flowMusicMaxSongs` songs (`config/studios.md`, default 4: the tracks beyond the cap are made by the default provider and carry a warning). `music.provider: flow` without `flowCredits` makes the default providers and says so in the plan (`warnings`). A course whose *art* provider is flow does not use Flow Music. `sound.sfxEngine` picks another engine for the effects (a ComfyUI audio engine, `custom:<workflow>`; `none` makes them import-only: placeholders until `edu_asset_replace`). The generators are autostarted like the art ones (`config/autostart.md`, `EDU_AUTOSTART=0` off).
+
+**Placeholders.** A provider that is down (after the autostart, or with it off) or a sound that fails does **not** fail the run: the asset gets `assets/<id>/placeholder.wav` (a second of silence), the step says why, the pack links it (the cue points at it), the build carries it, and `edu_lint` warns `PLACEHOLDER_ASSET` for each. A provider found down once is not asked again in the same run. `edu_status {slug}` has `media.audio`, `audioMade` and `audioPlaceholders`. When the provider is back, `edu_asset_generate` makes the sounds and removes the placeholders.
+
+**In the pack.** Each sound is an asset `{id, kind: audio, file: assets/<id>/v<n>.ogg, alt: asset.<id>.alt}` and the cues are `{id: cue-music-<area>, on: music:<area>, asset, loop: true, volume}` for music (one per area a track plays in) and `{id: cue-sfx-<event>, on: <event>, asset, loop: false, volume}` for effects. The cue schema is strict, so the **loop points** of a Chiptune track are in `pack.extensions.audio.loops = {<assetId>: {startSec, endSec}}`; the player jumps from the end point back to the start point. (No course schema change: `cues` and `extensions` already existed.)
+
+**The player** (`src/player/audio.ts`, see `docs/player.md`) plays the music of the area as a loop (one track at a time, a short fade when the area changes), the effects on `correct`, `wrong`, `combo` (the combo burst), `level-up` (a unit round ends; the old name `unit-complete` works too) and `boss`. The title screen has the toggles `setting-sound` (nothing plays) and `setting-reduce-audio` (no music, quieter effects), kept with the progress.
+
+| Tool | What it does |
+|---|---|
+| `edu_music_plan {slug, fallback?}` | plan the music and the sound effects of a course, also a hand-made one: queues the composer (a model job); `fallback: true` plans from the course text at once, with no model. The plan is merged into the manifest and the pack is re-linked. Nothing is generated here (`edu_asset_generate`) |
+| `edu_asset_list {slug, kind?}`, `edu_asset_generate {slug, ids?, force?, kind?}`, `edu_asset_set`, `edu_asset_select`, `edu_asset_replace`, `edu_asset_lock` | the same tools as for pictures; `kind` is `music` or `sfx` for the sounds (an audio file for `edu_asset_replace`: ogg, mp3, wav, opus, flac, m4a) |
+| `edu_media_settings {slug, set?}` | the `media.music` and `media.sound` settings; run `edu_music_plan` again after changing them |
 
 **The bot's media check.** `scripts/play.mjs` loads every asset URL of `game-data.json` in the page (an image must decode; audio must reach `canplaythrough` or `loadedmetadata`). A failure is a `mediaErrors` entry of its summary and fails the run, like a console error (`--no-media-check` turns it off). The player logs `console.error` when an image or an audio element fails to load.
 
@@ -278,5 +310,5 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 ## Notes
 
 - Paths you pass are paths on the machine that runs Edu Studio.
-- Image generation (ComfyUI, Pixel Studio, Flow) has its tools since EGS-15 (`edu_asset_*`, see "Pictures"); music (Chiptune Studio) and voice (local TTS) arrive in EGS-16 and EGS-17. `edu_studios_status`, `edu_comfy_status` and `edu_voice_status` check that the generators are up.
+- Image generation (ComfyUI, Pixel Studio, Flow) has its tools since EGS-15 (`edu_asset_*`, see "Pictures"); music and sound effects (Chiptune Studio, ComfyUI ACE-Step, Flow Music on an opt-in) since EGS-16 (`edu_music_plan` and the same `edu_asset_*` tools, see "Music and sound effects"); voice (local TTS) arrives in EGS-17. `edu_studios_status`, `edu_comfy_status` and `edu_voice_status` check that the generators are up.
 - Never start the hub's book factory (Scriptorium) from here: Edu Studio only calls it over MCP when a game needs a story.

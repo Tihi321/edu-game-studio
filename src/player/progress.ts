@@ -51,7 +51,8 @@ export interface Progress {
   /** Answers given and answers right the first time, over all sessions (for the end screen). */
   answered: number
   right: number
-  settings: { lang?: string; timer: boolean; sound: boolean }
+  /** `sound`: sounds on (false: nothing plays). `reduceAudio` (EGS-16): no music and quieter sound effects; missing in an older save means false. */
+  settings: { lang?: string; timer: boolean; sound: boolean; reduceAudio?: boolean }
   /** Epoch ms of the last save. */
   updatedAt: number
   /** Progress of the other game shells, by shell id (the quiz arena's stars are `units` and `boss` above). */
@@ -72,7 +73,7 @@ export function newProgress(packId: string): Progress {
     bestCombo: 0,
     answered: 0,
     right: 0,
-    settings: { timer: false, sound: true },
+    settings: { timer: false, sound: true, reduceAudio: false },
     updatedAt: 0,
     shells: {}
   }
@@ -196,6 +197,7 @@ export function parseProgress(text: string, pack: Pick<CoursePack, 'id' | 'units
     p.settings = {
       timer: src.settings.timer === true,
       sound: src.settings.sound !== false,
+      reduceAudio: src.settings.reduceAudio === true,
       ...(typeof src.settings.lang === 'string' ? { lang: src.settings.lang } : {})
     }
   }

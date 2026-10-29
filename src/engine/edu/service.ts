@@ -37,6 +37,7 @@ import { FactBase } from './factbase'
 import { briefSchema, resolveBrief } from '../../shared/brief'
 import type { BriefInput } from '../../shared/brief'
 import { MediaService } from './media'
+import { MusicService } from './music-service'
 import { Pipeline } from './pipeline'
 import type { RunResult } from './pipeline'
 import { registerPipelineHandlers } from './pipeline-handlers'
@@ -115,6 +116,8 @@ export class EduService {
   readonly pipeline: Pipeline
   /** The media of a course: settings, the asset manifest, the art plan, generation, review and the merge into the pack (EGS-15). */
   readonly media: MediaService
+  /** The music and sound effects of a course: the composer's plan and the generation (EGS-16). */
+  readonly music: MusicService
   /** Set by the pipeline handlers: called when a research job finished its work. */
   afterResearch?: (slug: string, jobId: string) => Promise<void>
   /** `course.md` models by course: the cache `courseModel` answers from (see there). */
@@ -126,6 +129,7 @@ export class EduService {
     this.research = new ResearchService({ dataDir: deps.dataDir, jobs: deps.jobs, agents: deps.agents, getFactory: deps.getFactory, log: (m) => this.log(m), kick: () => deps.kick?.(), emit: deps.emit })
     this.pipeline = new Pipeline(this)
     this.media = new MediaService(this)
+    this.music = new MusicService(this)
     this.factbase = new FactBase(deps.dataDir, this.research.store, { allowUnverified: () => deps.getFactory().allow_unverified_facts })
   }
 

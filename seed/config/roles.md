@@ -23,6 +23,8 @@ roles:
     models: [paid, strata, lmstudio]
   art-critic:
     models: [gemini/gemini-2.5-flash, anthropic/claude-sonnet-4-5, lmstudio]
+  composer:
+    models: [paid, strata, lmstudio]
   publisher:
     models: [paid, strata, lmstudio]
   researcher:
@@ -56,6 +58,7 @@ The Edu Studio team (docs/design.md):
 - `narrative-designer`: the frame story and characters, or the brief for a longer story.
 - `art-director`: plans the pictures of a course: one for every encyclopedia article, the art of each shell (quiz arena backdrops, castle rooms, RPG tiles and sprites ...) and a picture for an item only where it helps; writes the prompt and the alt text of each. A plan the model cannot get right after the repair round is replaced by one made from the course text.
 - `art-critic`: looks at each generated picture (it needs a model with `vision: true`) and says pass or revise against the plan line; a revise makes the picture again with its note, up to `max_rounds` (`config/quality.md`). **Not must-pass**: a picture that is still rejected after the last round stays in the course. Without a vision model, or with `media.art.review: false`, the check is skipped and the step says why.
+- `composer`: plans the music of the course by area (menu, one per unit or group of units, boss, end, and the castle / RPG areas of those shells) and the sound effects of the events (correct, wrong, combo, level-up, boss): mood, tempo, chip or prompt, length, and the Chiptune Studio sound of each effect. Chiptune Studio makes the RPG and castle music and every sound effect, ComfyUI (ACE-Step) the other music; Flow Music only when the course opts in to spend credits. A plan the model cannot get right after the repair round is replaced by one made from the course text.
 - `playtester`: reads the bot's play of the built game and reports flow, difficulty and dead ends.
 - `accessibility-reviewer`: reading level, plain wording, no meaning carried by colour alone, alt text. **Must pass.**
 - `child-safety-reviewer`: age fit and safety of a course for children. **Must pass** (it reviews kids' courses only).
@@ -65,6 +68,6 @@ Starting choices, all of them first guesses to be tuned in the model picker:
 - Writers and designers (and the director and publisher): the paid default, with Strata and then LM Studio as fallbacks.
 - Researcher and fact-checker: Strata with thinking on `low` (named directly, it is not the Strata default), then LM Studio, then the paid default.
 - Other reviewers and the playtester: Strata (a model family different from the paid writers, and free), then LM Studio, then the paid default.
-- The art-director is a writer (paid first). The art-critic must be a vision model, so it starts with Gemini 2.5 Flash, then Claude Sonnet (both see images), then LM Studio (only when a model there has `vision: true` in `config/providers.md`); the model picker offers it vision models only.
+- The art-director and the composer are writers (paid first). The art-critic must be a vision model, so it starts with Gemini 2.5 Flash, then Claude Sonnet (both see images), then LM Studio (only when a model there has `vision: true` in `config/providers.md`); the model picker offers it vision models only.
 
 Reviewer jobs prefer a model family different from the one that wrote the content. Changing a default here applies at once: a running job asks its current request again on the new model. `fallback_shared` in `config/settings.md` (the Models page's "One fallback order for every role") gives every role the fallback rows top to bottom instead. The engine rewrites this file when you change a role default in the UI, so comments in the YAML are not kept. The text below the frontmatter is.
