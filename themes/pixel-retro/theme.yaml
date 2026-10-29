@@ -1,0 +1,45 @@
+name: pixel-retro
+label: Pixel retro
+description: For pixel-art books. Square boxes, a bright arcade palette and Pixelify Sans (OFL, covers Croatian). The build turns on nearest-neighbour scaling.
+light: false
+pixel: true
+colors:
+  accent: "#ffcc33"
+  background: "#14122b"
+  text: "#ffffff"
+  idle: "#9a96c4"
+  hover: "#ffe680"
+  selected: "#ffffff"
+  insensitive: "#9a96c47f"
+  muted: "#3a3470"
+textbox:
+  color: "#1b1840"
+  opacity: 0.94
+  borderColor: "#ffcc33"
+  radius: 0
+namebox:
+  color: "#3a3470"
+  opacity: 1
+  radius: 0
+  textColor: "#ffcc33"
+fonts:
+  text: PixelifySans-Regular.ttf
+  scripts: [latin, cyrillic, greek]
+sizes:
+  text: 38
+  name: 46
+  interface: 36
+  label: 40
+  title: 84
+  choice: 38
+choice:
+  color: "#1b1840f0"
+  hoverColor: "#3a3470"
+  borderColor: "#ffcc33"
+  radius: 0
+  textColor: "#c8c4f0"
+  hoverTextColor: "#ffe680"
+transitions:
+  dissolve: 0.3
+  show: 0.12
+  fade: 0.4

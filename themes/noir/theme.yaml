@@ -1,0 +1,48 @@
+name: noir
+label: Noir
+description: Dark and moody for mysteries, horror and thrillers. A near-black textbox, a red accent and Courier Prime (OFL, covers Croatian).
+light: false
+pixel: false
+colors:
+  accent: "#c0392b"
+  background: "#0a0a0a"
+  text: "#e8e4dc"
+  idle: "#7a7670"
+  hover: "#e05a4a"
+  selected: "#ffffff"
+  insensitive: "#7a76707f"
+  muted: "#3a1511"
+textbox:
+  color: "#000000"
+  opacity: 0.86
+  borderColor: "#c0392b"
+  radius: 0
+namebox:
+  color: "#1a0a08"
+  opacity: 0.95
+  radius: 0
+  textColor: "#e05a4a"
+fonts:
+  text: CourierPrime-Regular.ttf
+  name: CourierPrime-Bold.ttf
+  interface: CourierPrime-Regular.ttf
+  bold: CourierPrime-Bold.ttf
+  scripts: [latin]
+sizes:
+  text: 34
+  name: 44
+  interface: 32
+  label: 36
+  title: 78
+  choice: 34
+choice:
+  color: "#000000d0"
+  hoverColor: "#3a1511f0"
+  borderColor: "#c0392b"
+  radius: 0
+  textColor: "#b8b2a8"
+  hoverTextColor: "#ffffff"
+transitions:
+  dissolve: 0.9
+  show: 0.35
+  fade: 1.0

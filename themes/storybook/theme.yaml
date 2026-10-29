@@ -1,0 +1,48 @@
+name: storybook
+label: Storybook
+description: Bright and friendly for kids. Large rounded text (Quicksand, OFL), a warm cream textbox and big buttons.
+light: true
+pixel: false
+colors:
+  accent: "#e8743b"
+  background: "#fff4e0"
+  text: "#3a2a1e"
+  idle: "#8a6d52"
+  hover: "#e8743b"
+  selected: "#3a2a1e"
+  insensitive: "#8a6d527f"
+  muted: "#f4c9a5"
+textbox:
+  color: "#fff8ea"
+  opacity: 0.93
+  borderColor: "#e8743b"
+  radius: 28
+namebox:
+  color: "#ffd166"
+  opacity: 1
+  radius: 22
+  textColor: "#3a2a1e"
+fonts:
+  text: Quicksand-Medium.ttf
+  name: Quicksand-Bold.ttf
+  interface: Quicksand-Medium.ttf
+  bold: Quicksand-Bold.ttf
+  scripts: [latin]
+sizes:
+  text: 40
+  name: 50
+  interface: 36
+  label: 40
+  title: 84
+  choice: 40
+choice:
+  color: "#fff8eaf2"
+  hoverColor: "#ffd166"
+  borderColor: "#e8743b"
+  radius: 26
+  textColor: "#5a4030"
+  hoverTextColor: "#3a2a1e"
+transitions:
+  dissolve: 0.7
+  show: 0.3
+  fade: 0.7

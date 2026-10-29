@@ -1,0 +1,108 @@
+{
+ "band": "medium",
+ "difficulty": {
+  "rules": {
+   "direct": 3,
+   "split": 1
+  },
+  "score": 7,
+  "steps": 4
+ },
+ "format": 1,
+ "kind": "knights",
+ "names": {
+  "k1": "Aldo",
+  "k2": "Brin",
+  "k3": "Cass",
+  "k4": "Dara"
+ },
+ "seed": 3,
+ "size": 4,
+ "solution": {
+  "k1": "knave",
+  "k2": "knave",
+  "k3": "knight",
+  "k4": "knight"
+ },
+ "speakers": [
+  "k1",
+  "k2",
+  "k3",
+  "k4"
+ ],
+ "statements": [
+  {
+   "claim": {
+    "a": "k2",
+    "b": "k4",
+    "type": "same"
+   },
+   "id": "t1",
+   "speaker": "k1"
+  },
+  {
+   "claim": {
+    "a": "k2",
+    "b": "k3",
+    "type": "diff"
+   },
+   "id": "t2",
+   "speaker": "k4"
+  },
+  {
+   "claim": {
+    "k": 2,
+    "of": [
+     "k2",
+     "k3"
+    ],
+    "type": "exactly"
+   },
+   "id": "t3",
+   "speaker": "k2"
+  },
+  {
+   "claim": {
+    "a": "k2",
+    "b": "k4",
+    "type": "same"
+   },
+   "id": "t4",
+   "speaker": "k2"
+  }
+ ],
+ "steps": [
+  {
+   "rule": "direct",
+   "statement": "t4",
+   "value": "knight",
+   "who": "k4"
+  },
+  {
+   "contradicts": "knight",
+   "rule": "split",
+   "statement": "t3",
+   "value": "knave",
+   "who": "k1"
+  },
+  {
+   "rule": "direct",
+   "statement": "t1",
+   "value": "knave",
+   "who": "k2"
+  },
+  {
+   "rule": "direct",
+   "statement": "t2",
+   "value": "knight",
+   "who": "k3"
+  }
+ ],
+ "text": {
+  "intro": "On this island knights always tell the truth and knaves always lie. Who is a knight and who is a knave?",
+  "t1": "Aldo says: \"Brin and Dara are the same kind.\"",
+  "t2": "Dara says: \"Brin and Cass are different kinds.\"",
+  "t3": "Brin says: \"Exactly 2 of Brin and Cass are knights.\"",
+  "t4": "Brin says: \"Brin and Dara are the same kind.\""
+ }
+}

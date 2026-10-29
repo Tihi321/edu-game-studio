@@ -1,0 +1,325 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { Engine } from '../src/engine/engine'
+import { ClientProvider, ClientTaskQueue } from '../src/engine/models/client'
+import { checkBaseUrl, keyNameOf, removeCustomProviderEntry, slugOf, upsertCustomProvider } from '../src/engine/models/customProviders'
+import { deleteStoredKey, getStoredKey } from '../src/engine/models/keys'
+import { ModelRegistry } from '../src/engine/models/registry'
+import { initDataFolder } from '../src/engine/store/dataFolder'
+import { parseMd } from '../src/shared/md'
+import type { EngineEvent } from '../src/shared/protocol'
+import { collect } from '../src/engine/models/types'
+import { seedDir } from './helpers'
+
+let dir: string
+let keysToClean: string[] = []
+beforeEach(async () => {
+  dir = await mkdtemp(path.join(os.tmpdir(), 'edu-custom-'))
+  await initDataFolder(dir, seedDir)
+})
+afterEach(async () => {
+  for (const k of keysToClean) deleteStoredKey(k)
+  keysToClean = []
+  await rm(dir, { recursive: true, force: true })
+})
+
+const file = (...p: string[]) => path.join(dir, 'config', ...p)
+const readConfig = async (name: string) => parseMd(await readFile(file(name), 'utf8'))
+/** A name no other test run uses, so the real credential store entry of the test is its own. */
+const uniqueName = () => `Edu Test ${Math.random().toString(36).slice(2, 8)}`
+
+function makeEngine(fetchImpl?: typeof fetch) {
+  const events: EngineEvent[] = []
+  const logs: string[] = []
+  const engine = new Engine({ dataDir: dir, emit: (e) => events.push(e), log: (m) => logs.push(m), registry: { fetchImpl }, discover: false })
+  const last = <T extends EngineEvent['type']>(type: T) => [...events].reverse().find((e) => e.type === type) as Extract<EngineEvent, { type: T }> | undefined
+  return { engine, events, logs, last }
+}
+
+async function started(fetchImpl?: typeof fetch) {
+  const e = makeEngine(fetchImpl)
+  await e.engine.loadSettings()
+  await e.engine.registry.load()
+  return e
+}
+
+describe('custom provider entries in providers.md', () => {
+  it('makes the id from the name, the key name from the id, and checks the URL', () => {
+    expect(slugOf('ACP proxy (home)')).toBe('acp-proxy-home')
+    expect(slugOf('  Café #2 ')).toBe('cafe-2')
+    expect(slugOf('???')).toBe('')
+    expect(keyNameOf('acp-proxy-home')).toBe('CUSTOM_ACP_PROXY_HOME_API_KEY')
+    expect(checkBaseUrl(' http://127.0.0.1:7461/v1/ ')).toEqual({ url: 'http://127.0.0.1:7461/v1' })
+    expect(checkBaseUrl('ftp://host/v1')).toHaveProperty('error')
+    expect(checkBaseUrl('not a url')).toHaveProperty('error')
+  })
+
+  it('adds, edits and removes only custom entries, keeping comments, the other providers and the text below', async () => {
+    const seed = await readFile(file('providers.md'), 'utf8')
+    const input = { name: 'ACP proxy (home)', baseUrl: 'http://127.0.0.1:7461/v1', hasKey: false, free: true, jsonSchema: false, concurrency: 2, enabled: true }
+    const added = upsertCustomProvider(seed, input)
+    expect(added.id).toBe('acp-proxy-home')
+    expect(added.text).toContain('# to verify') // comments of the seed stay
+    expect(added.text.endsWith(seed.slice(seed.lastIndexOf('---\n') + 4))).toBe(true) // the body stays
+    const entry = (parseMd(added.text).data.providers as Record<string, unknown>[]).find((p) => p.id === 'acp-proxy-home')
+    expect(entry).toEqual({ id: 'acp-proxy-home', name: 'ACP proxy (home)', custom: true, kind: 'openai-compat', enabled: true, base_url: 'http://127.0.0.1:7461/v1', local: true, json_schema: false, concurrency: 2, discover: true, models: [] })
+    // a paid one always names its key variable, a free one with a key too
+    const paid = upsertCustomProvider(added.text, { ...input, name: 'Paid One', free: false, concurrency: 'auto' })
+    expect((parseMd(paid.text).data.providers as Record<string, unknown>[]).find((p) => p.id === 'paid-one')).toMatchObject({ local: false, api_key_env: 'CUSTOM_PAID_ONE_API_KEY', concurrency: 'auto' })
+    expect((parseMd(upsertCustomProvider(seed, { ...input, hasKey: true }).text).data.providers as Record<string, unknown>[]).find((p) => p.id === 'acp-proxy-home')).toMatchObject({ api_key_env: 'CUSTOM_ACP_PROXY_HOME_API_KEY' })
+
+    // edit: fields change in place, the models and a hand-written field stay
+    const withModel = added.text.replace('    models: []\n  # The ACP proxy', '    models: []\n  # The ACP proxy') // untouched seed text
+    const hand = withModel.replace(/(- id: acp-proxy-home[\s\S]*?models: \[\])/, '$1\n    my_note: keep me')
+    const edited = upsertCustomProvider(hand, { ...input, id: 'acp-proxy-home', name: 'Renamed', baseUrl: 'https://example.org/v1/', free: false, jsonSchema: true, concurrency: 5, enabled: false })
+    expect(edited.id).toBe('acp-proxy-home')
+    expect((parseMd(edited.text).data.providers as Record<string, unknown>[]).find((p) => p.id === 'acp-proxy-home')).toMatchObject({ name: 'Renamed', base_url: 'https://example.org/v1', local: false, json_schema: true, concurrency: 5, enabled: false, my_note: 'keep me', api_key_env: 'CUSTOM_ACP_PROXY_HOME_API_KEY' })
+
+    // remove: back to the seed's providers, with the comments
+    const removed = removeCustomProviderEntry(added.text, 'acp-proxy-home')
+    expect(removed.keyEnv).toBeUndefined()
+    expect(parseMd(removed.text).data).toEqual(parseMd(seed).data)
+    expect(removed.text).toContain('# to verify')
+    expect(removeCustomProviderEntry(paid.text, 'paid-one').keyEnv).toBe('CUSTOM_PAID_ONE_API_KEY')
+  })
+
+  it('refuses a seed id, a taken id, a bad URL, an empty name, and editing or removing a seed provider', async () => {
+    const seed = await readFile(file('providers.md'), 'utf8')
+    const input = { name: 'x', baseUrl: 'http://localhost:1/v1', hasKey: false, free: true, jsonSchema: false, concurrency: 1, enabled: true }
+    for (const name of ['DeepSeek', 'LMStudio', 'strata', 'ACP', 'Paid', 'Client']) expect(() => upsertCustomProvider(seed, { ...input, name }), name).toThrow(/built-in/)
+    const once = upsertCustomProvider(seed, { ...input, name: 'My Server' }).text
+    expect(() => upsertCustomProvider(once, { ...input, name: 'my server' })).toThrow(/exists already/)
+    expect(() => upsertCustomProvider(seed, { ...input, name: '!!!' })).toThrow(/letter or digit/)
+    expect(() => upsertCustomProvider(seed, { ...input, name: 'Ok', baseUrl: 'file:///x' })).toThrow(/http/)
+    expect(() => upsertCustomProvider(seed, { ...input, id: 'deepseek', name: 'Ok' })).toThrow(/not a custom provider/)
+    expect(() => removeCustomProviderEntry(seed, 'lmstudio')).toThrow(/not a custom provider/)
+    expect(() => removeCustomProviderEntry(seed, 'nope')).toThrow(/not a custom provider/)
+  })
+})
+
+describe('custom providers in the engine', () => {
+  it('a free provider is its own group, its alias resolves, its model can be the art-critic vision model, and it can be removed again', async () => {
+    const { engine, last } = await started()
+    const name = uniqueName()
+    const id = name.toLowerCase().replace(/ /g, '-')
+    await engine.handleCommand({ type: 'saveCustomProvider', name, baseUrl: 'http://127.0.0.1:7461/v1', free: true, jsonSchema: false, concurrency: 2, enabled: true })
+    expect(last('provider.saved')).toMatchObject({ ok: true, id })
+    const p = engine.registry.providers.get(id)!
+    expect(p).toMatchObject({ custom: true, local: true, name, kind: 'openai-compat', available: true, concurrency: 2, jsonSchema: false, enabled: true })
+    expect(p.apiKeyEnv).toBeUndefined()
+    const summary = (await engine.snapshot()).providers.find((x) => x.id === id)!
+    expect(summary).toMatchObject({ name, custom: true, enabled: true, baseUrl: 'http://127.0.0.1:7461/v1', jsonSchema: false, local: true, canList: true })
+
+    // models: a free provider needs no price; a vision model is kept
+    await engine.handleCommand({ type: 'addModel', provider: id, id: 'claude-opus-5-5', context: 200000, vision: true })
+    await engine.handleCommand({ type: 'addModel', provider: id, id: 'qwen3.8-flash' })
+    expect(engine.registry.models.get(`${id}/claude-opus-5-5`)).toMatchObject({ picked: true, vision: true, priceIn: 0, priceOut: 0, context: 200000 })
+    expect(engine.registry.models.get(`${id}/qwen3.8-flash`)).toMatchObject({ vision: false })
+    const snap = await engine.snapshot()
+    expect(snap.models.find((m) => m.ref === `${id}/claude-opus-5-5`)).toMatchObject({ group: id, vision: true, local: true })
+    expect(snap.models.find((m) => m.ref === 'deepseek/deepseek-flash')?.group).toBe('paid')
+    expect(snap.models.find((m) => m.ref === 'strata/qwen3.8-flash-next')?.group).toBe('strata')
+    expect(snap.models.find((m) => m.ref === 'client/claude-code')?.group).toBeUndefined()
+
+    // the alias: without a row it names no model; once added to fallbacks it resolves to that row
+    expect(engine.registry.resolve(id)).toBe(id)
+    expect(engine.registry.kindOf(id)).toBe(id)
+    await engine.handleCommand({ type: 'saveSettings', fallbacks: [`${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'] })
+    expect(engine.registry.resolve(id)).toBe(`${id}/qwen3.8-flash`)
+    expect((await readConfig('settings.md')).data.fallbacks).toEqual([`${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'])
+    await engine.setRoleModel('script-analyst', id) // roles.md names the provider id like an alias
+    expect(engine.registry.roleModelRefs('script-analyst')[0]).toBe(`${id}/qwen3.8-flash`)
+    await engine.handleCommand({ type: 'saveSettings', fallbacks: ['strata/qwen3.8-flash-next', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'], fallbackShared: false })
+    expect(engine.registry.roleEntries('director')).toEqual(['paid', 'strata', 'lmstudio']) // roles.md entries kept with shared false
+    expect(engine.registry.roleEntries('script-analyst')[0]).toBe(id)
+    expect((await engine.snapshot()).settings.fallbacks).toEqual(['strata/qwen3.8-flash-next', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'])
+
+    // limits and a hidden model are stored for it too
+    await engine.handleCommand({ type: 'setProviderLimits', provider: id, rpm: 10 })
+    await engine.handleCommand({ type: 'showModels', refs: [`${id}/qwen3.8-flash`], shown: false })
+
+    // remove: the entry, its models.md refs, its group default and its place in the order go; roles.md is left
+    await engine.handleCommand({ type: 'removeCustomProvider', id })
+    expect(last('provider.saved')).toMatchObject({ ok: true, id, removed: true })
+    expect(engine.registry.providers.has(id)).toBe(false)
+    const models = (await readConfig('models.md')).data
+    expect(JSON.stringify(models)).not.toContain(id)
+    const settings = (await readConfig('settings.md')).data
+    expect(settings.fallbacks).toEqual(['strata/qwen3.8-flash-next', 'deepseek/deepseek-flash'])
+    expect(settings).not.toHaveProperty('group_defaults')
+    expect(JSON.stringify((await readConfig('roles.md')).data)).toContain(id)
+    expect(await readFile(file('providers.md'), 'utf8')).not.toContain(id)
+    expect((await readFile(file('providers.md'), 'utf8'))).toContain('# to verify') // comments stay
+    // an unknown or seed provider is refused
+    await engine.handleCommand({ type: 'removeCustomProvider', id: 'deepseek' })
+    expect(last('provider.saved')).toMatchObject({ ok: false, id: 'deepseek' })
+    expect(engine.registry.providers.has('deepseek')).toBe(true)
+  })
+
+  it('a paid provider stores its key, takes the key through setSecret, needs prices, is its own group, and its key is deleted on remove', async () => {
+    const { engine, last } = await started()
+    const name = uniqueName()
+    const id = name.toLowerCase().replace(/ /g, '-')
+    const keyName = keyNameOf(id)
+    keysToClean.push(keyName)
+    await engine.handleCommand({ type: 'saveCustomProvider', name, baseUrl: 'https://api.example.org/v1', apiKey: 'sk-custom-1', free: false, jsonSchema: true, concurrency: 'auto', enabled: true })
+    expect(last('provider.saved')).toMatchObject({ ok: true, id })
+    expect(getStoredKey(keyName)).toBe('sk-custom-1')
+    expect(JSON.stringify((await readConfig('providers.md')).data)).not.toContain('sk-custom-1') // never in a file
+    const p = engine.registry.providers.get(id)!
+    expect(p).toMatchObject({ custom: true, local: false, apiKeyEnv: keyName, available: true, concurrencyAuto: true, jsonSchema: true })
+    expect(engine.allowedSecrets()).toContain(keyName)
+    expect((await engine.snapshot()).keyNames).toContain(keyName)
+    expect((await engine.snapshot()).secretsSet).toContain(keyName)
+    expect((await engine.snapshot()).providers.find((x) => x.id === id)).toMatchObject({ keyName, keySet: true, custom: true })
+    // setSecret accepts the name (and still refuses others)
+    await engine.handleCommand({ type: 'setSecret', name: keyName, value: 'sk-custom-2' })
+    expect(getStoredKey(keyName)).toBe('sk-custom-2')
+    await engine.handleCommand({ type: 'setSecret', name: 'CUSTOM_NOT_A_PROVIDER_API_KEY', value: 'x' })
+    expect(getStoredKey('CUSTOM_NOT_A_PROVIDER_API_KEY')).toBeUndefined()
+
+    // a paid model needs both prices, and it is the provider's own group, not `paid`
+    await engine.handleCommand({ type: 'addModel', provider: id, id: 'big-model' })
+    expect(engine.registry.models.has(`${id}/big-model`)).toBe(false)
+    await engine.handleCommand({ type: 'addModel', provider: id, id: 'big-model', priceIn: 2, priceOut: 8 })
+    expect(engine.registry.models.get(`${id}/big-model`)).toMatchObject({ priceIn: 2, priceOut: 8 })
+    expect(engine.registry.groupOf(`${id}/big-model`)).toBe(id)
+
+    // an edit with an empty key keeps the stored one; a new key replaces it
+    await engine.handleCommand({ type: 'saveCustomProvider', id, name: `${name} 2`, baseUrl: 'https://api.example.org/v2', free: false, jsonSchema: false, concurrency: 3, enabled: true })
+    expect(getStoredKey(keyName)).toBe('sk-custom-2')
+    expect(engine.registry.providers.get(id)).toMatchObject({ name: `${name} 2`, baseUrl: 'https://api.example.org/v2', concurrency: 3, jsonSchema: false })
+    expect(engine.registry.models.has(`${id}/big-model`)).toBe(true) // the models stay
+    await engine.handleCommand({ type: 'saveCustomProvider', id, name, baseUrl: 'https://api.example.org/v2', apiKey: 'sk-custom-3', free: false, jsonSchema: false, concurrency: 3, enabled: false })
+    expect(getStoredKey(keyName)).toBe('sk-custom-3')
+    expect(engine.registry.providers.get(id)).toMatchObject({ enabled: false, available: false })
+
+    await engine.handleCommand({ type: 'removeCustomProvider', id })
+    expect(getStoredKey(keyName)).toBeUndefined() // the key goes with the provider
+    expect(engine.allowedSecrets()).not.toContain(keyName)
+    expect(JSON.stringify((await readConfig('models.md')).data)).not.toContain(id)
+  })
+
+  it('refuses a seed name, a duplicate and a bad address, and says why in provider.saved', async () => {
+    const { engine, last, logs } = await started()
+    const save = (name: string, baseUrl = 'http://127.0.0.1:1/v1') => engine.handleCommand({ type: 'saveCustomProvider', name, baseUrl, free: true, jsonSchema: false, concurrency: 1, enabled: true })
+    const before = await readFile(file('providers.md'), 'utf8')
+    await save('DeepSeek')
+    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/built-in/) })
+    await save('Fine', 'gopher://x')
+    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/http/) })
+    expect(await readFile(file('providers.md'), 'utf8')).toBe(before)
+    await save('Twice')
+    expect(last('provider.saved')).toMatchObject({ ok: true, id: 'twice' })
+    await save('twice')
+    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/exists already/) })
+    expect(logs.join('\n')).toMatch(/saveCustomProvider/)
+    await engine.handleCommand({ type: 'removeCustomProvider', id: 'twice' })
+  })
+
+  it('testCustomProvider lists GET /models with the key and says how many models, or why not', async () => {
+    const seen: { url: string; auth: string | null }[] = []
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      seen.push({ url: String(url), auth: new Headers(init?.headers).get('authorization') })
+      if (String(url).startsWith('http://good.test/')) return new Response(JSON.stringify({ data: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }))
+      if (String(url).startsWith('http://denied.test/')) return new Response('nope', { status: 401 })
+      throw new Error('connect ECONNREFUSED')
+    }) as unknown as typeof fetch
+    const { engine, last } = await started(fetchImpl)
+    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://good.test/v1/', apiKey: ' sk-try ' })
+    expect(last('provider.tested')).toMatchObject({ ok: true, count: 3 })
+    expect(seen.at(-1)).toEqual({ url: 'http://good.test/v1/models', auth: 'Bearer sk-try' })
+    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://good.test/v1' })
+    expect(seen.at(-1)!.auth).toBeNull()
+    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://denied.test/v1' })
+    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/401/) })
+    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://down.test/v1' })
+    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/ECONNREFUSED/) })
+    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'ftp://x' })
+    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/http/) })
+    expect(await readFile(file('providers.md'), 'utf8')).not.toContain('good.test') // a test stores nothing
+  })
+})
+
+describe('fallbacks and the settings migration', () => {
+  it('reads default_*_model of an older settings.md, and writes only fallbacks when anything is saved', async () => {
+    const body = '# My settings\n\nhand notes\n'
+    await writeFile(file('settings.md'), `---\nkind: settings\ndefault_paid_model: deepseek/deepseek-v4-pro\ndefault_strata_model: strata/qwen3.8-flash-next-low\ndefault_lmstudio_model: lmstudio/nail-qwen3.6-35b-a3b-mtp\nmodel_order: [lmstudio, paid]\nlmstudio_parallel: 2\nscriptoriumData: ~/Scriptorium\n---\n${body}`)
+    const { engine } = await started()
+    expect((await engine.snapshot()).settings).toMatchObject({
+      fallbacks: ['lmstudio/nail-qwen3.6-35b-a3b-mtp', 'deepseek/deepseek-v4-pro', 'strata/qwen3.8-flash-next-low'],
+      fallbackShared: true
+    })
+    expect(engine.registry.resolve('paid')).toBe('deepseek/deepseek-v4-pro')
+    expect(engine.registry.resolve('lmstudio')).toBe('lmstudio/nail-qwen3.6-35b-a3b-mtp')
+    expect(await readFile(file('settings.md'), 'utf8')).toContain('default_paid_model') // reading does not rewrite the file
+
+    await engine.handleCommand({ type: 'saveSettings', fallbacks: ['strata/qwen3.8-flash-next', 'deepseek/deepseek-v4-pro', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'], fallbackShared: true })
+    const saved = await readFile(file('settings.md'), 'utf8')
+    expect(saved).not.toMatch(/default_(paid|strata|lmstudio)_model/)
+    expect(saved).not.toContain('group_defaults')
+    expect(saved).toContain(body)
+    expect(parseMd(saved).data).toMatchObject({
+      fallbacks: ['strata/qwen3.8-flash-next', 'deepseek/deepseek-v4-pro', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'],
+      fallback_shared: true,
+      lmstudio_parallel: 2
+    })
+    expect(engine.registry.resolve('paid')).toBe('deepseek/deepseek-v4-pro')
+  })
+
+  it('a settings.md with neither shape gets the built-in defaults; fallbacks wins over the old fields', async () => {
+    await writeFile(file('settings.md'), '---\nkind: settings\n---\n')
+    const a = await started()
+    expect((await a.engine.snapshot()).settings.fallbacks).toEqual(['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
+    await writeFile(file('settings.md'), '---\nkind: settings\ndefault_paid_model: deepseek/old\nfallbacks:\n  - deepseek/new\n---\n')
+    const b = await started()
+    expect(b.engine.registry.resolve('paid')).toBe('deepseek/new')
+  })
+
+  it('the seed settings.md uses fallbacks, and a fresh data folder has the acp provider (off) and both client models', async () => {
+    const settings = (await readConfig('settings.md')).data
+    expect(settings.fallbacks).toEqual(['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
+    expect(settings.fallback_shared).toBe(false)
+    expect(settings).not.toHaveProperty('group_defaults')
+    expect(settings).not.toHaveProperty('default_paid_model')
+    const registry = new ModelRegistry(dir, { keys: () => undefined })
+    await registry.load()
+    expect(registry.providers.get('acp')).toMatchObject({ kind: 'openai-compat', enabled: false, local: true, custom: false, baseUrl: 'http://127.0.0.1:7461/v1', concurrency: 2, jsonSchema: false, discover: true, available: false })
+    expect(registry.kindOf('acp/anything')).toBe('acp')
+    expect(registry.getModel('client/claude-code')).toMatchObject({ vision: true, context: 200000 })
+    expect(registry.getModel('client/antigravity')).toMatchObject({ vision: true, context: 1000000, priceIn: 0 })
+    expect(registry.providers.get('client')!.local).toBe(true)
+  })
+})
+
+describe('named MCP clients', () => {
+  const user = [{ role: 'user' as const, content: 'hi' }]
+
+  it('a task for antigravity is not leased without client, and a claude-code task is leased without it', () => {
+    const q = new ClientTaskQueue()
+    const a = q.add({ client: 'antigravity', messages: user }, { job: 'j1', role: 'writer' }).task
+    const c = q.add({ client: 'claude-code', messages: user }, { job: 'j2', role: 'writer' }).task
+    const none = q.add({ messages: user }, { job: 'j3', role: 'writer' }).task // no client named: claude-code
+    expect([a.client, c.client, none.client]).toEqual(['antigravity', 'claude-code', 'claude-code'])
+    expect(q.list().map((t) => t.client)).toEqual(['antigravity', 'claude-code', 'claude-code'])
+    expect(q.lease({})?.id).toBe('j2#1') // not the older antigravity task
+    expect(q.lease({ client: 'claude-code' })?.id).toBe('j3#1')
+    expect(q.lease({})).toBeNull() // only antigravity's task is left
+    expect(q.lease({ client: 'other' })).toBeNull()
+    expect(q.lease({ client: 'antigravity', role: 'writer' })?.id).toBe('j1#1')
+    expect(q.counts()).toEqual({ waiting: 0, leased: 3 })
+  })
+
+  it('ClientProvider takes the client from the model id of the request', async () => {
+    const q = new ClientTaskQueue()
+    const provider = new ClientProvider('client', q)
+    const run = collect(provider.chat({ model: 'antigravity', messages: user, meta: { job: 'j9', role: 'writer' } }))
+    expect(q.lease({})).toBeNull()
+    const task = q.lease({ client: 'antigravity' })!
+    expect(task).toMatchObject({ id: 'j9#1', client: 'antigravity' })
+    expect(q.submit(task.id, 'answer')).toEqual({ accepted: true })
+    expect((await run).text).toBe('answer')
+  })
+})

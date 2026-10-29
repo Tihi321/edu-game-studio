@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.claude/temp/
+.yarn/
+.pnp.*
+__pycache__/
+*.pyc
+test-results/
+playwright-report/

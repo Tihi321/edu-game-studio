@@ -1,0 +1,44 @@
+name: classic-dark
+label: Classic dark
+description: The default look. A dark translucent textbox, a teal accent and DejaVu Sans (an installed system font, covers Croatian).
+light: false
+pixel: false
+colors:
+  accent: "#00b8c3"
+  background: "#0b0f14"
+  text: "#ffffff"
+  idle: "#888888"
+  hover: "#66d4db"
+  selected: "#ffffff"
+  insensitive: "#8888887f"
+  muted: "#00494e"
+textbox:
+  color: "#05080c"
+  opacity: 0.78
+  borderColor: "#00b8c3"
+  radius: 0
+namebox:
+  color: "#00494e"
+  opacity: 0.92
+  radius: 6
+fonts:
+  text: DejaVuSans.ttf
+  scripts: [latin, cyrillic, greek, arabic, hebrew]
+sizes:
+  text: 33
+  name: 45
+  interface: 33
+  label: 36
+  title: 75
+  choice: 33
+choice:
+  color: "#05080ccc"
+  hoverColor: "#00494ee6"
+  borderColor: "#00b8c3"
+  radius: 10
+  textColor: "#cfd8dc"
+  hoverTextColor: "#ffffff"
+transitions:
+  dissolve: 0.6
+  show: 0.25
+  fade: 0.6

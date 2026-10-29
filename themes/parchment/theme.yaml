@@ -1,0 +1,48 @@
+name: parchment
+label: Parchment
+description: Old-book look for fantasy and historical stories. A parchment textbox with dark ink and Lora (OFL, covers Croatian).
+light: true
+pixel: false
+colors:
+  accent: "#8b4a1f"
+  background: "#e9dbb8"
+  text: "#2b1d10"
+  idle: "#6b5238"
+  hover: "#a0561f"
+  selected: "#2b1d10"
+  insensitive: "#6b52387f"
+  muted: "#d6c192"
+textbox:
+  color: "#ecdcb0"
+  opacity: 0.94
+  borderColor: "#8b4a1f"
+  radius: 4
+namebox:
+  color: "#8b4a1f"
+  opacity: 0.96
+  radius: 4
+  textColor: "#f6ead0"
+fonts:
+  text: Lora-Regular.ttf
+  name: Lora-Bold.ttf
+  interface: Lora-Regular.ttf
+  bold: Lora-Bold.ttf
+  scripts: [latin, cyrillic]
+sizes:
+  text: 35
+  name: 44
+  interface: 33
+  label: 36
+  title: 78
+  choice: 35
+choice:
+  color: "#ecdcb0f0"
+  hoverColor: "#d6b56a"
+  borderColor: "#8b4a1f"
+  radius: 4
+  textColor: "#4a3420"
+  hoverTextColor: "#2b1d10"
+transitions:
+  dissolve: 0.8
+  show: 0.3
+  fade: 0.8

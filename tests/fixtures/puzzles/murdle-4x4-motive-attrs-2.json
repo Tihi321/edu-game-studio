@@ -1,0 +1,1690 @@
+{
+ "band": "medium",
+ "categories": [
+  {
+   "items": [
+    "s1",
+    "s2",
+    "s3",
+    "s4"
+   ],
+   "key": "suspect"
+  },
+  {
+   "items": [
+    "w1",
+    "w2",
+    "w3",
+    "w4"
+   ],
+   "key": "weapon"
+  },
+  {
+   "items": [
+    "p1",
+    "p2",
+    "p3",
+    "p4"
+   ],
+   "key": "place"
+  },
+  {
+   "items": [
+    "m1",
+    "m2",
+    "m3",
+    "m4"
+   ],
+   "key": "motive"
+  }
+ ],
+ "clues": [
+  {
+   "a": "w4",
+   "b": "m3",
+   "id": "c1",
+   "type": "not"
+  },
+  {
+   "a": "s2",
+   "b": [
+    "p3",
+    "p2"
+   ],
+   "descr": [
+    "p3"
+   ],
+   "id": "c2",
+   "type": "either"
+  },
+  {
+   "a": "p1",
+   "b": [
+    "s4",
+    "s2"
+   ],
+   "descr": [
+    "s4",
+    "s2"
+   ],
+   "id": "c3",
+   "type": "either"
+  },
+  {
+   "a": "p1",
+   "b": [
+    "w2",
+    "w4"
+   ],
+   "descr": [
+    "p1",
+    "w2",
+    "w4"
+   ],
+   "id": "c4",
+   "type": "either"
+  },
+  {
+   "a": "w3",
+   "b": "p2",
+   "id": "c5",
+   "type": "not"
+  },
+  {
+   "a": "s1",
+   "b": [
+    "m4",
+    "m3"
+   ],
+   "descr": [
+    "s1"
+   ],
+   "id": "c6",
+   "type": "either"
+  },
+  {
+   "a": "m4",
+   "b": [
+    "s3",
+    "s2"
+   ],
+   "descr": [
+    "s2"
+   ],
+   "id": "c7",
+   "type": "either"
+  },
+  {
+   "a": "w2",
+   "b": [
+    "p3",
+    "p1"
+   ],
+   "descr": [
+    "p3"
+   ],
+   "id": "c8",
+   "type": "either"
+  },
+  {
+   "a": "s2",
+   "b": [
+    "w3",
+    "w2"
+   ],
+   "descr": [
+    "w3"
+   ],
+   "id": "c9",
+   "type": "either"
+  },
+  {
+   "a": "w1",
+   "b": [
+    "m2",
+    "m1"
+   ],
+   "id": "c10",
+   "type": "either"
+  },
+  {
+   "a": "s4",
+   "b": "m1",
+   "descr": [
+    "s4"
+   ],
+   "id": "c11",
+   "type": "is"
+  }
+ ],
+ "descr": {
+  "p1": "the room upstairs",
+  "p2": "the room by the stairs",
+  "p3": "the room with the fire",
+  "p4": "the room below ground",
+  "s1": "the tall guest",
+  "s2": "the left-handed guest",
+  "s3": "the youngest guest",
+  "s4": "the quiet guest",
+  "w1": "the heavy weapon",
+  "w2": "the metal weapon",
+  "w3": "the sharp weapon",
+  "w4": "the silent weapon"
+ },
+ "difficulty": {
+  "rules": {
+   "clue": 19,
+   "elim": 46,
+   "last": 16,
+   "trans": 15
+  },
+  "score": 142,
+  "steps": 96
+ },
+ "format": 1,
+ "kind": "murdle",
+ "murder": {
+  "answer": {
+   "motive": "m4",
+   "place": "p3",
+   "suspect": "s2",
+   "weapon": "w2"
+  },
+  "place": "p3"
+ },
+ "names": {
+  "m1": "jealousy",
+  "m2": "greed",
+  "m3": "revenge",
+  "m4": "fear",
+  "p1": "library",
+  "p2": "kitchen",
+  "p3": "garden",
+  "p4": "cellar",
+  "s1": "Colonel Ash",
+  "s2": "Doctor Birch",
+  "s3": "Miss Cole",
+  "s4": "Lady Dunn",
+  "w1": "rope",
+  "w2": "candlestick",
+  "w3": "poison",
+  "w4": "dagger"
+ },
+ "seed": 2,
+ "size": 4,
+ "solution": {
+  "s1": {
+   "motive": "m3",
+   "place": "p4",
+   "weapon": "w3"
+  },
+  "s2": {
+   "motive": "m4",
+   "place": "p3",
+   "weapon": "w2"
+  },
+  "s3": {
+   "motive": "m2",
+   "place": "p2",
+   "weapon": "w1"
+  },
+  "s4": {
+   "motive": "m1",
+   "place": "p1",
+   "weapon": "w4"
+  }
+ },
+ "steps": [
+  {
+   "cell": [
+    "w4",
+    "m3"
+   ],
+   "clue": "c1",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "p1"
+   ],
+   "clue": "c2",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "p4"
+   ],
+   "clue": "c2",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "p1"
+   ],
+   "clue": "c3",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "p1"
+   ],
+   "clue": "c3",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "p1"
+   ],
+   "clue": "c4",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "p1"
+   ],
+   "clue": "c4",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "p2"
+   ],
+   "clue": "c5",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "m1"
+   ],
+   "clue": "c6",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "m2"
+   ],
+   "clue": "c6",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "m4"
+   ],
+   "clue": "c7",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "m4"
+   ],
+   "clue": "c7",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "p2"
+   ],
+   "clue": "c8",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "p4"
+   ],
+   "clue": "c8",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "w1"
+   ],
+   "clue": "c9",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "w4"
+   ],
+   "clue": "c9",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "m3"
+   ],
+   "clue": "c10",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "m4"
+   ],
+   "clue": "c10",
+   "rule": "clue",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "m1"
+   ],
+   "clue": "c11",
+   "rule": "clue",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s4",
+    "m2"
+   ],
+   "from": [
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "m3"
+   ],
+   "from": [
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "m1"
+   ],
+   "from": [
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "m1"
+   ],
+   "from": [
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "p1"
+   ],
+   "from": [
+    [
+     "s1",
+     "p1"
+    ],
+    [
+     "s2",
+     "p1"
+    ],
+    [
+     "s3",
+     "p1"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s4",
+    "p2"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "p3"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "p4"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "m3"
+   ],
+   "from": [
+    [
+     "s1",
+     "m1"
+    ],
+    [
+     "s1",
+     "m2"
+    ],
+    [
+     "s1",
+     "m4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s2",
+    "m3"
+   ],
+   "from": [
+    [
+     "s1",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "m3"
+   ],
+   "from": [
+    [
+     "s1",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p1",
+    "m1"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ],
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "p1",
+    "m2"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p1",
+    "m3"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p1",
+    "m4"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p2",
+    "m1"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p3",
+    "m1"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p4",
+    "m1"
+   ],
+   "from": [
+    [
+     "p1",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "w1"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ],
+    [
+     "w1",
+     "p1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "w3"
+   ],
+   "from": [
+    [
+     "s4",
+     "p1"
+    ],
+    [
+     "w3",
+     "p1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "w1"
+   ],
+   "from": [
+    [
+     "s1",
+     "m3"
+    ],
+    [
+     "w1",
+     "m3"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "w1"
+   ],
+   "from": [
+    [
+     "s1",
+     "w1"
+    ],
+    [
+     "s2",
+     "w1"
+    ],
+    [
+     "s4",
+     "w1"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s3",
+    "w2"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "w3"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "w4"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "m1"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ],
+    [
+     "s3",
+     "m1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "m2"
+   ],
+   "from": [
+    [
+     "w1",
+     "m1"
+    ],
+    [
+     "w1",
+     "m3"
+    ],
+    [
+     "w1",
+     "m4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w2",
+    "m2"
+   ],
+   "from": [
+    [
+     "w1",
+     "m2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "m2"
+   ],
+   "from": [
+    [
+     "w1",
+     "m2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w4",
+    "m2"
+   ],
+   "from": [
+    [
+     "w1",
+     "m2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "m2"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ],
+    [
+     "w1",
+     "m2"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s3",
+    "m4"
+   ],
+   "from": [
+    [
+     "s3",
+     "m2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "m2"
+   ],
+   "from": [
+    [
+     "s3",
+     "m2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "m4"
+   ],
+   "from": [
+    [
+     "s2",
+     "m1"
+    ],
+    [
+     "s2",
+     "m2"
+    ],
+    [
+     "s2",
+     "m3"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s1",
+    "w4"
+   ],
+   "from": [
+    [
+     "s1",
+     "m3"
+    ],
+    [
+     "w4",
+     "m3"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s4",
+    "w4"
+   ],
+   "from": [
+    [
+     "s1",
+     "w4"
+    ],
+    [
+     "s2",
+     "w4"
+    ],
+    [
+     "s3",
+     "w4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s4",
+    "w2"
+   ],
+   "from": [
+    [
+     "s4",
+     "w4"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w4",
+    "p1"
+   ],
+   "from": [
+    [
+     "s4",
+     "w4"
+    ],
+    [
+     "s4",
+     "p1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w4",
+    "p2"
+   ],
+   "from": [
+    [
+     "w4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w4",
+    "p3"
+   ],
+   "from": [
+    [
+     "w4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w4",
+    "p4"
+   ],
+   "from": [
+    [
+     "w4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "p1"
+   ],
+   "from": [
+    [
+     "w4",
+     "p1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "p3"
+   ],
+   "from": [
+    [
+     "w2",
+     "p1"
+    ],
+    [
+     "w2",
+     "p2"
+    ],
+    [
+     "w2",
+     "p4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w1",
+    "p3"
+   ],
+   "from": [
+    [
+     "w2",
+     "p3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "p3"
+   ],
+   "from": [
+    [
+     "w2",
+     "p3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "p4"
+   ],
+   "from": [
+    [
+     "w3",
+     "p1"
+    ],
+    [
+     "w3",
+     "p2"
+    ],
+    [
+     "w3",
+     "p3"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w1",
+    "p4"
+   ],
+   "from": [
+    [
+     "w3",
+     "p4"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w1",
+    "p2"
+   ],
+   "from": [
+    [
+     "w1",
+     "p1"
+    ],
+    [
+     "w1",
+     "p3"
+    ],
+    [
+     "w1",
+     "p4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s3",
+    "p2"
+   ],
+   "from": [
+    [
+     "s3",
+     "w1"
+    ],
+    [
+     "w1",
+     "p2"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s3",
+    "p3"
+   ],
+   "from": [
+    [
+     "s3",
+     "p2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s3",
+    "p4"
+   ],
+   "from": [
+    [
+     "s3",
+     "p2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "p2"
+   ],
+   "from": [
+    [
+     "s3",
+     "p2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "p2"
+   ],
+   "from": [
+    [
+     "s3",
+     "p2"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "p3"
+   ],
+   "from": [
+    [
+     "s2",
+     "p1"
+    ],
+    [
+     "s2",
+     "p2"
+    ],
+    [
+     "s2",
+     "p4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s1",
+    "p3"
+   ],
+   "from": [
+    [
+     "s2",
+     "p3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "p4"
+   ],
+   "from": [
+    [
+     "s1",
+     "p1"
+    ],
+    [
+     "s1",
+     "p2"
+    ],
+    [
+     "s1",
+     "p3"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w4",
+    "m1"
+   ],
+   "from": [
+    [
+     "s4",
+     "w4"
+    ],
+    [
+     "s4",
+     "m1"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w4",
+    "m4"
+   ],
+   "from": [
+    [
+     "w4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "m1"
+   ],
+   "from": [
+    [
+     "w4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w3",
+    "m1"
+   ],
+   "from": [
+    [
+     "w4",
+     "m1"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p4",
+    "m2"
+   ],
+   "from": [
+    [
+     "s1",
+     "p4"
+    ],
+    [
+     "s1",
+     "m2"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p4",
+    "m3"
+   ],
+   "from": [
+    [
+     "s1",
+     "p4"
+    ],
+    [
+     "s1",
+     "m3"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "p4",
+    "m4"
+   ],
+   "from": [
+    [
+     "p4",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p2",
+    "m3"
+   ],
+   "from": [
+    [
+     "p4",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p3",
+    "m3"
+   ],
+   "from": [
+    [
+     "p4",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "w2"
+   ],
+   "from": [
+    [
+     "s1",
+     "p4"
+    ],
+    [
+     "w2",
+     "p4"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s1",
+    "w3"
+   ],
+   "from": [
+    [
+     "s1",
+     "w1"
+    ],
+    [
+     "s1",
+     "w2"
+    ],
+    [
+     "s1",
+     "w4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "s2",
+    "w3"
+   ],
+   "from": [
+    [
+     "s1",
+     "w3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "s2",
+    "w2"
+   ],
+   "from": [
+    [
+     "s2",
+     "w1"
+    ],
+    [
+     "s2",
+     "w3"
+    ],
+    [
+     "s2",
+     "w4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w3",
+    "m3"
+   ],
+   "from": [
+    [
+     "s1",
+     "w3"
+    ],
+    [
+     "s1",
+     "m3"
+    ]
+   ],
+   "rule": "trans",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "w3",
+    "m4"
+   ],
+   "from": [
+    [
+     "w3",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "m3"
+   ],
+   "from": [
+    [
+     "w3",
+     "m3"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "w2",
+    "m4"
+   ],
+   "from": [
+    [
+     "w2",
+     "m1"
+    ],
+    [
+     "w2",
+     "m2"
+    ],
+    [
+     "w2",
+     "m3"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "p3",
+    "m2"
+   ],
+   "from": [
+    [
+     "s2",
+     "p3"
+    ],
+    [
+     "s2",
+     "m2"
+    ]
+   ],
+   "rule": "trans",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p3",
+    "m4"
+   ],
+   "from": [
+    [
+     "p3",
+     "m1"
+    ],
+    [
+     "p3",
+     "m2"
+    ],
+    [
+     "p3",
+     "m3"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  },
+  {
+   "cell": [
+    "p2",
+    "m4"
+   ],
+   "from": [
+    [
+     "p3",
+     "m4"
+    ]
+   ],
+   "rule": "elim",
+   "value": "no"
+  },
+  {
+   "cell": [
+    "p2",
+    "m2"
+   ],
+   "from": [
+    [
+     "p2",
+     "m1"
+    ],
+    [
+     "p2",
+     "m3"
+    ],
+    [
+     "p2",
+     "m4"
+    ]
+   ],
+   "rule": "last",
+   "value": "yes"
+  }
+ ],
+ "text": {
+  "c1": "Whoever had the dagger did not act out of revenge.",
+  "c10": "Whoever had the rope acted out of either greed or jealousy.",
+  "c11": "The quiet guest acted out of jealousy.",
+  "c2": "Doctor Birch was either in the room with the fire or the kitchen.",
+  "c3": "Either the quiet guest or the left-handed guest was in the library.",
+  "c4": "Either the metal weapon or the silent weapon was in the room upstairs.",
+  "c5": "Whoever had the poison was not in the kitchen.",
+  "c6": "The tall guest acted out of either fear or revenge.",
+  "c7": "Either Miss Cole or the left-handed guest acted out of fear.",
+  "c8": "The candlestick was either in the room with the fire or the library.",
+  "c9": "Doctor Birch had either the sharp weapon or the candlestick.",
+  "murder": "The body was found in the garden."
+ }
+}
