@@ -2,7 +2,7 @@
 
 Our own runtime (plain TypeScript and DOM, no game engine, no React) that plays a built course in a browser, over `file://`. The sources are in `src/player/`; `yarn build:player` bundles them into **one IIFE** `out/player/player.js` and `out/player/player.css` (no code splitting, no external imports, no CDN, no web fonts). The engine's build copies both next to `index.html`, `game-data.js` and `assets/` (the layout is in `src/shared/game-data.ts`).
 
-The autoplay bot (EGS-04) and Playwright drive the game **only through `data-testid`s and `window.EduEngine.getState()`**, both documented here.
+The autoplay bot (EGS-04, `scripts/play.mjs`) and Playwright drive the game **only through `data-testid`s and `window.EduEngine.getState()`**, both documented here, plus the small solver hook `window.EduEngine.debug` (below).
 
 ## Pieces
 
@@ -14,6 +14,7 @@ The autoplay bot (EGS-04) and Playwright drive the game **only through `data-tes
 | `round.ts` | Pure round logic: adaptive pick, in-session retry queue, due-card preference, interleaving, accuracy, grades, timer rule |
 | `progress.ts` | Pure progress model (stars, unlocking, review queue, export/import validation) and `ProgressStore` (localStorage) |
 | `feedback.ts` | Pure feedback text: why of the chosen distractor, answer lines, notes, did-you-know |
+| `debug.ts` | The bot's solver hook `EduEngine.debug` (`solve`, `wrong`) |
 | `state.ts` | Pure `getState()` snapshot builder |
 | `i18n.ts` | The player's own words (English, Croatian; a course catalog can override any string with `ui.<key>`) |
 | `items/*.ts` | One renderer per item kind |
@@ -28,8 +29,12 @@ EduEngine.version                       // '1.0.0'
 EduEngine.registerShell(id, shell)      // a shell is { id, mount(host), unmount? }
 EduEngine.registerItemKind(kind, renderer) // { kind, ownsPrompt?, render(ctx) -> { el, focus, reveal, key?, destroy? } }
 EduEngine.getState()                    // JSON-safe snapshot, below
+EduEngine.debug.solve(itemId)           // an answer the checker accepts (shape of src/shared/edu/checkers.ts), in the edition being played
+EduEngine.debug.wrong(itemId)           // an answer the checker rejects (a distractor with an explanation where there is one)
 EduEngine.start()                       // mounts the shell named by GameData.shell (called by the bundle itself)
 ```
+
+`debug` is for the autoplay bot: it is read-only (it computes with the shared `solveItem` on the game data the page already holds, changes no state and draws nothing, so no answer appears in the UI). `solve` returns the answer shapes of the checkers (an option id, `true`/`false`, a list of ids, `{gapId: text}`, the typed text, `{leftId: rightId}`, an id order, `{itemId: groupId}`, a region id, a flashcard grade, `{wordId: text}` for a crossword, a list of `{start, end}` cell lines for a word search); `wrong` returns the same shape, wrong (an empty list for a word search = give up). An unknown item or kind gives `undefined`. A word bank in a cloze is answered by the bot through `bank-<gapId>-<wordKey>`.
 
 A later shell or item kind is one more `register...` call (before `start()`). `GameData.shell` picks the shell, falling back to `quiz-arena`. A question whose kind has no renderer is skipped with a `console.warn`, never a crash.
 

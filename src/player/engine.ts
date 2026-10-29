@@ -1,4 +1,5 @@
 import { DEFAULT_SHELL, GAME_DATA_FORMAT, PLAYER_ROOT_ID, type GameData } from '../shared/game-data'
+import { createDebug } from './debug'
 import { clear, h } from './dom'
 import { makeUi } from './i18n'
 import type { EduEngineApi, ItemRenderer, PlayerState, Shell } from './types'
@@ -60,6 +61,7 @@ export function createEngine(): EduEngineApi {
     getState() {
       return JSON.parse(JSON.stringify(state)) as PlayerState
     },
+    debug: createDebug(() => state),
     start() {
       if (started) return
       const root = document.getElementById(PLAYER_ROOT_ID)

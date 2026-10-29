@@ -6,19 +6,14 @@ Every phase ends in something that can be checked: a command, a screenshot set, 
 
 ## Where it stands (2026-10-29)
 
-- **In progress:** EGS-01, the repository skeleton (branch `EGS-01_skeleton`): the generic engine core copied from VN Studio and stripped of everything about visual novels, renamed to Edu Studio, with a headless MCP server on port 7463 and a minimal desktop shell. Typecheck, lint and the unit tests pass; the MCP handshake and `yarn build` were run. `yarn dev` (the desktop window) has not been opened yet.
-- **Next:** EGS-02, the course contract.
+- **Phase 0 and phase 1 are done** (EGS-01 to EGS-04, branches stacked on `EGS-01_skeleton`, not merged yet): the engine core copied from VN Studio, the course contract with 13 item kinds, SM-2 and adaptive difficulty, our own browser player with the chalkboard quiz arena, the build, `edu_lint`, the course MCP tools and CLI, and the autoplay bot. Both golden fixtures build, lint clean and pass the bot in all three runs with 0 console errors.
+- **Not checked yet:** `yarn dev` (the desktop window) has not been opened; real audio, touch devices and a measured contrast run wait for phase 2 and 6.
+- **Next:** EGS-05, the design system and the studio UI.
 - **The pilot** (EGS-09) is a history and geography course; the exact topic is chosen then. It is done only when the user has played it.
 
 ## Tasks, in order
 
 The phase numbers are the ones of the hub plan.
-
-### Phase 1: course contract, player runtime and bot (no language model: code and hand-written fixtures)
-
-- **EGS-02** the course contract: `src/shared/course.ts` with zod schemas (pack, text catalog, objectives, prerequisite graph, items with answer keys), the item kinds with their checkers (choice, true/false, multi-select, cloze, typed answer with tolerant matching, match pairs, order, sort, map hotspot, listening, flashcard), the spaced-repetition scheduler in pure TypeScript, a validator, and golden fixtures (a solar-system course in en and hr, a Croatian A1 greetings course).
-- **EGS-03** the player runtime and the quiz arena: our own DOM/CSS + Canvas 2D runtime that emits `index.html`, `player.js`, `player.css` and `game-data.js` and works over `file://`; shells as plugins on `window.EduEngine`; progress and the review queue in localStorage with export and import; `data-testid` on every interactive element; the native lint (`edu_lint`: one key per item, distinct distractors, two or more forms per objective, assets exist, no cycles, no placeholders); `edu_build`; `edu_create_course` and the item tools; `eduCli` build and lint.
-- **EGS-04** the autoplay bot: `scripts/play.mjs` with Playwright Chromium plays a built game in three runs (perfect, all wrong, a seeded random learner), saves a screenshot of every screen and fails on a console error.
 
 ### Phase 2: design system and the studio UI
 
@@ -59,7 +54,10 @@ Each shell: the bot plays a fixture course through it (perfect, wrong, random ru
 
 ## Done
 
-- **EGS-01** (in progress; plan `.claude/tickets/EGS-01-skeleton/plan.md`, branch `EGS-01_skeleton`): see "Where it stands". It moves here once the commit is made and the desktop window has been opened.
+- **EGS-01** the repository skeleton: VN Studio's generic engine core (models, router, queue, budget, agents, MCP, client provider, ComfyUI and studio clients), renamed to Edu Studio, MCP on port 7463. Plan `.claude/tickets/EGS-01-skeleton/`.
+- **EGS-02** the course contract (`src/shared/course.ts`), 13 item kinds with pure-TS checkers in a registry, tolerant matching, SM-2, adaptive difficulty, seeded crossword and word search, the validator, and the golden fixtures (solar system en + hr, Croatian A1 greetings). Plan `.claude/tickets/EGS-02-course-contract/`.
+- **EGS-03** the player runtime (`window.EduEngine`, quiz arena, all item renderers, localStorage progress with export and import), the build into a `file://` folder, `edu_lint` with a broken fixture, the course MCP tools and CLI. Plan `.claude/tickets/EGS-03-player-runtime/`.
+- **EGS-04** the autoplay bot (`scripts/play.mjs`, perfect / wrong / random runs, screenshots) and its e2e test on both fixtures. Plan `.claude/tickets/EGS-04-autoplay-bot/`.
 
 ## Later
 

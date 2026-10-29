@@ -90,11 +90,21 @@ export interface Shell {
   unmount?(): void
 }
 
+/** Read-only helper for the autoplay bot: answers in the shapes of `src/shared/edu/checkers.ts`, in the edition being played. */
+export interface EduDebugApi {
+  /** An answer the checker accepts (`undefined` for an unknown item or kind). */
+  solve(itemId: string): unknown
+  /** An answer the checker rejects (`undefined` for an unknown item or kind). */
+  wrong(itemId: string): unknown
+}
+
 export interface EduEngineApi {
   version: string
   registerShell(id: string, shell: Shell): void
   registerItemKind(kind: string, renderer: ItemRenderer): void
   getState(): PlayerState
+  /** The bot's solver hook (see `docs/player.md`). */
+  debug: EduDebugApi
   /** Mounts the shell named by the game data (idempotent). */
   start(): void
 }

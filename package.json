@@ -18,6 +18,7 @@
     "engine": "yarn build:engine && node out/engine/index.js",
     "mcp": "yarn build:engine && node out/engine/index.js --mcp-only",
     "key:set": "yarn build:engine && node out/engine/index.js key-set",
+    "play": "node scripts/play.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.player.json",
     "lint": "eslint ."
