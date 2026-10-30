@@ -1159,7 +1159,8 @@
     "enabled": [
       "quiz-arena",
       "encyclopedia",
-      "mindmaze"
+      "mindmaze",
+      "rpg"
     ],
     "config": {
       "quiz-arena": {
@@ -1803,6 +1804,296 @@
           "name": "maze.throne",
           "description": "maze.throne.desc",
           "size": 8
+        }
+      },
+      "rpg": {
+        "hero": {
+          "name": "rpg.hero"
+        },
+        "story": {
+          "intro": [
+            "rpg.story.1",
+            "rpg.story.2",
+            "rpg.story.3"
+          ],
+          "outro": [
+            "rpg.story.end"
+          ]
+        },
+        "areas": [
+          {
+            "id": "a-sun",
+            "unit": "u-sun-planets",
+            "name": "rpg.a.sun",
+            "map": [
+              "##############",
+              "#T...T..~~...#",
+              "#..,,,,,.~~..#",
+              "#@,,..N,,,...G",
+              "#..T..,..T.B.#",
+              "#.,,,,,,,,,..#",
+              "#T..~~..T..T.#",
+              "#...~~.......#",
+              "##############"
+            ],
+            "npcs": [
+              {
+                "id": "n-vela",
+                "name": "rpg.n.vela",
+                "at": [
+                  6,
+                  3
+                ],
+                "lines": [
+                  "rpg.n.vela.1",
+                  "rpg.n.vela.2",
+                  "rpg.n.vela.3"
+                ],
+                "quest": true
+              }
+            ],
+            "foes": [
+              {
+                "id": "f-sunplanet",
+                "name": "rpg.f.sunplanet",
+                "at": [
+                  5,
+                  5
+                ],
+                "hp": 200,
+                "items": [
+                  "q-sun-mcq",
+                  "q-sun-tf"
+                ]
+              },
+              {
+                "id": "f-order",
+                "name": "rpg.f.order",
+                "at": [
+                  11,
+                  2
+                ],
+                "hp": 200,
+                "items": [
+                  "q-order-mcq",
+                  "q-order-card",
+                  "q-order-hotspot",
+                  "q-order-seq",
+                  "q-planets-ws"
+                ]
+              },
+              {
+                "id": "f-light",
+                "name": "rpg.f.light",
+                "at": [
+                  9,
+                  6
+                ],
+                "hp": 200,
+                "items": [
+                  "q-sun-cloze",
+                  "q-sun-beeps"
+                ]
+              }
+            ],
+            "boss": {
+              "id": "b-corona",
+              "name": "rpg.b.corona",
+              "at": [
+                11,
+                4
+              ],
+              "hp": 400
+            }
+          },
+          {
+            "id": "a-rocky",
+            "unit": "u-rocky-giant",
+            "name": "rpg.a.rocky",
+            "map": [
+              "###############",
+              "#..T..~~~~~..T#",
+              "#,,,,.~~~~~...#",
+              "#@..N,,,,,,,,.G",
+              "#.T..,~~~~~..B#",
+              "#..T.,,,,,,.N.#",
+              "#T...,..~~..T.#",
+              "#..T......~..T#",
+              "###############"
+            ],
+            "npcs": [
+              {
+                "id": "n-rho",
+                "name": "rpg.n.rho",
+                "at": [
+                  4,
+                  3
+                ],
+                "lines": [
+                  "rpg.n.rho.1",
+                  "rpg.n.rho.2",
+                  "rpg.n.rho.3"
+                ],
+                "quest": true
+              },
+              {
+                "id": "n-lamp",
+                "name": "rpg.n.lamp",
+                "at": [
+                  12,
+                  5
+                ],
+                "lines": [
+                  "rpg.n.lamp.1",
+                  "rpg.n.lamp.2"
+                ]
+              }
+            ],
+            "foes": [
+              {
+                "id": "f-mercury",
+                "name": "rpg.f.mercury",
+                "at": [
+                  8,
+                  5
+                ],
+                "hp": 200,
+                "items": [
+                  "q-venus-mcq",
+                  "q-venus-cloze",
+                  "q-venus-tf"
+                ]
+              },
+              {
+                "id": "f-allrock",
+                "name": "rpg.f.allrock",
+                "at": [
+                  6,
+                  6
+                ],
+                "hp": 200,
+                "items": [
+                  "q-types-sort",
+                  "q-types-mcq"
+                ]
+              },
+              {
+                "id": "f-tiny",
+                "name": "rpg.f.tiny",
+                "at": [
+                  11,
+                  2
+                ],
+                "hp": 200,
+                "items": [
+                  "q-giants-typed",
+                  "q-giants-hotspot",
+                  "q-giants-multi",
+                  "q-facts-match",
+                  "q-facts-cross"
+                ]
+              }
+            ],
+            "boss": {
+              "id": "b-giants",
+              "name": "rpg.b.giants",
+              "at": [
+                13,
+                4
+              ],
+              "hp": 400
+            }
+          },
+          {
+            "id": "a-moons",
+            "unit": "u-moons-beyond",
+            "name": "rpg.a.moons",
+            "map": [
+              "#############",
+              "#.T...T..~..#",
+              "#..,,,,..~T.#",
+              "#@,,..N,,,..G",
+              "#.T..,...,B.#",
+              "#..~~,,,,,..#",
+              "#T.~~...T..T#",
+              "#...........#",
+              "#############"
+            ],
+            "npcs": [
+              {
+                "id": "n-luna",
+                "name": "rpg.n.luna",
+                "at": [
+                  6,
+                  3
+                ],
+                "lines": [
+                  "rpg.n.luna.1",
+                  "rpg.n.luna.2",
+                  "rpg.n.luna.3"
+                ],
+                "quest": true
+              }
+            ],
+            "foes": [
+              {
+                "id": "f-pluto",
+                "name": "rpg.f.pluto",
+                "at": [
+                  8,
+                  5
+                ],
+                "hp": 200,
+                "items": [
+                  "q-beyond-mcq",
+                  "q-beyond-order",
+                  "q-beyond-cloze"
+                ]
+              },
+              {
+                "id": "f-dull",
+                "name": "rpg.f.dull",
+                "at": [
+                  11,
+                  1
+                ],
+                "hp": 200,
+                "items": [
+                  "q-moons-match",
+                  "q-moons-mcq",
+                  "q-moons-card",
+                  "q-moons-typed"
+                ]
+              },
+              {
+                "id": "f-nobody",
+                "name": "rpg.f.nobody",
+                "at": [
+                  4,
+                  7
+                ],
+                "hp": 200,
+                "items": [
+                  "q-explore-timeline",
+                  "q-explore-mcq"
+                ]
+              }
+            ],
+            "boss": {
+              "id": "b-warden",
+              "name": "rpg.b.warden",
+              "at": [
+                10,
+                4
+              ],
+              "hp": 400
+            }
+          }
+        ],
+        "finalBoss": {
+          "name": "rpg.final",
+          "hp": 800,
+          "size": 10
         }
       }
     }

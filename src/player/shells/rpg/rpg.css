@@ -1,0 +1,715 @@
+/*
+ * The RPG quest shell (EGS-12): world, dialogue, battle, areas, scrolls. Every selector starts with `.edu-stage`; colours come only from
+ * the theme's `--edu-*` slots and the `--pixel-*` palette defined right here out of them (the canvas reads the same `--pixel-*`
+ * variables at runtime, so the pixel art follows the theme). No hex colours: the stage, the hard shadows and the stepped corners of the
+ * `pixel` theme (src/design/themes/pixel.css) are used as they are.
+ */
+
+/* ---- the pixel palette (the canvas and the CSS share it) ---- */
+
+.edu-stage[data-shell='rpg'] {
+  --pixel-ink: color-mix(in srgb, var(--edu-bg-2) 50%, black);
+  --pixel-white: var(--edu-text);
+  --pixel-gold: var(--edu-accent);
+  --pixel-gold-dark: color-mix(in srgb, var(--edu-accent) 58%, black);
+  --pixel-skin: color-mix(in srgb, var(--edu-series-5) 42%, var(--edu-text));
+  --pixel-skin-shade: color-mix(in srgb, var(--edu-series-5) 80%, black);
+  --pixel-hair: color-mix(in srgb, var(--edu-series-5) 50%, black);
+  --pixel-tunic: color-mix(in srgb, var(--edu-mark) 70%, var(--edu-surface-2));
+  --pixel-tunic-dark: color-mix(in srgb, var(--pixel-tunic) 55%, black);
+  --pixel-cape: var(--edu-bad);
+  --pixel-cape-dark: color-mix(in srgb, var(--edu-bad) 55%, black);
+  --pixel-red: var(--edu-bad);
+  --pixel-red-dark: color-mix(in srgb, var(--edu-bad) 55%, black);
+  --pixel-green: var(--edu-accent-2);
+  --pixel-green-dark: color-mix(in srgb, var(--edu-accent-2) 55%, black);
+  --pixel-purple: var(--edu-series-6);
+  --pixel-purple-dark: color-mix(in srgb, var(--edu-series-6) 58%, black);
+  --pixel-orange: var(--edu-series-5);
+  --pixel-cyan: var(--edu-mark);
+  --pixel-brown: color-mix(in srgb, var(--edu-series-5) 48%, black);
+  --pixel-stone: color-mix(in srgb, var(--edu-line-strong) 72%, var(--edu-surface));
+  --pixel-stone-dark: color-mix(in srgb, var(--edu-line-strong) 45%, var(--edu-bg));
+
+  --pixel-grass-1: color-mix(in srgb, var(--edu-accent-2) 52%, var(--edu-bg));
+  --pixel-grass-2: color-mix(in srgb, var(--edu-accent-2) 38%, var(--edu-bg));
+  --pixel-grass-3: color-mix(in srgb, var(--edu-accent-2) 70%, var(--edu-bg));
+  --pixel-flower-1: var(--edu-series-3);
+  --pixel-flower-2: var(--edu-accent);
+  --pixel-path-1: color-mix(in srgb, var(--edu-accent) 38%, var(--edu-surface-2));
+  --pixel-path-2: color-mix(in srgb, var(--edu-accent) 28%, var(--edu-surface-2));
+  --pixel-path-3: color-mix(in srgb, var(--edu-accent) 52%, var(--edu-surface-2));
+  --pixel-water-1: color-mix(in srgb, var(--edu-mark) 38%, var(--edu-bg));
+  --pixel-water-2: color-mix(in srgb, var(--edu-mark) 62%, var(--edu-bg));
+  --pixel-water-3: color-mix(in srgb, var(--edu-text) 72%, var(--edu-mark));
+  --pixel-leaf-1: color-mix(in srgb, var(--edu-accent-2) 66%, black);
+  --pixel-leaf-2: color-mix(in srgb, var(--edu-accent-2) 84%, black);
+  --pixel-leaf-3: color-mix(in srgb, var(--edu-accent-2) 90%, var(--edu-text));
+  --pixel-trunk: color-mix(in srgb, var(--edu-series-5) 46%, black);
+  --pixel-wall-1: color-mix(in srgb, var(--edu-line) 62%, var(--edu-bg-2));
+  --pixel-wall-2: color-mix(in srgb, var(--edu-line) 30%, var(--edu-bg-2));
+  --pixel-wall-3: color-mix(in srgb, var(--edu-line-strong) 70%, var(--edu-line));
+  --pixel-sky-1: color-mix(in srgb, var(--edu-bg-2) 70%, black);
+  --pixel-sky-2: var(--edu-bg-2);
+  --pixel-sky-3: var(--edu-bg);
+  --pixel-sky-4: color-mix(in srgb, var(--edu-surface) 80%, var(--edu-bg));
+  --pixel-sky-5: var(--edu-surface);
+  --pixel-moon: color-mix(in srgb, var(--edu-accent) 55%, var(--edu-text));
+  --pixel-hill-1: color-mix(in srgb, var(--edu-surface-2) 70%, var(--edu-bg-2));
+  --pixel-hill-2: color-mix(in srgb, var(--edu-line) 62%, var(--edu-bg-2));
+  --pixel-gate: color-mix(in srgb, var(--edu-series-5) 55%, var(--edu-bg));
+  --pixel-gate-dark: color-mix(in srgb, var(--edu-series-5) 40%, black);
+  --pixel-glow: color-mix(in srgb, var(--edu-accent) 65%, var(--edu-text));
+}
+
+/* ---- shared bits ---- */
+
+.edu-stage .rpg-panel {
+  padding: var(--edu-space-3) var(--edu-space-4);
+  background: var(--edu-bg-2);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  box-shadow: var(--edu-shadow-1);
+  color: var(--edu-text);
+}
+
+.edu-stage .rpg-panel > h2 {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-m);
+  color: var(--edu-accent);
+  margin-bottom: var(--edu-space-2);
+}
+
+.edu-stage .rpg-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  background: var(--pixel-ink);
+  border: 4px solid var(--pixel-ink);
+  outline: 3px solid var(--edu-line-strong);
+  outline-offset: 0;
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .hp-line {
+  display: flex;
+  align-items: center;
+  gap: var(--edu-space-2);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  color: var(--edu-text);
+  white-space: nowrap;
+}
+
+.edu-stage .hp-bar {
+  flex: 1 1 auto;
+  min-width: 72px;
+  height: 14px;
+  background: var(--pixel-ink);
+  border: 2px solid var(--edu-line-strong);
+  padding: 1px;
+}
+
+.edu-stage .hp-fill {
+  display: block;
+  height: 100%;
+  background: var(--edu-good);
+  background-image: linear-gradient(rgb(255 255 255 / 0.28) 0 30%, transparent 30%);
+  transition: width var(--edu-dur-med) steps(6, end);
+}
+
+.edu-stage .hp-fill.is-foe {
+  background-color: var(--edu-bad);
+}
+
+.edu-stage .hp-fill.is-low {
+  background-color: var(--edu-warn);
+}
+
+/* ---- title ---- */
+
+.edu-stage .rpg-banner {
+  display: block;
+  width: min(100%, 480px);
+  height: auto;
+  image-rendering: pixelated;
+  border: 4px solid var(--pixel-ink);
+  outline: 3px solid var(--edu-line-strong);
+  box-shadow: var(--edu-shadow-2);
+}
+
+/* ---- the story and the dialogue ---- */
+
+.edu-stage .rpg-story,
+.edu-stage .rpg-dialogue {
+  display: grid;
+  gap: var(--edu-space-4);
+  justify-items: center;
+  width: min(100%, 720px);
+  margin: 0 auto;
+}
+
+.edu-stage .rpg-textbox {
+  position: relative;
+  width: 100%;
+  padding: var(--edu-space-4) var(--edu-space-5);
+  background: var(--edu-bg-2);
+  color: var(--edu-text);
+  border: 4px solid var(--edu-text);
+  outline: 4px solid var(--pixel-ink);
+  box-shadow: var(--edu-shadow-2);
+  font-size: var(--edu-text-l);
+  line-height: 1.45;
+  min-height: 7.5rem;
+}
+
+.edu-stage .rpg-textbox .rpg-count {
+  display: block;
+  margin-top: var(--edu-space-3);
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .rpg-speaker {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--edu-space-4);
+  width: 100%;
+}
+
+.edu-stage .rpg-portrait {
+  flex: 0 0 auto;
+  width: 112px;
+  height: 112px;
+  image-rendering: pixelated;
+  background: var(--edu-surface);
+  border: 4px solid var(--pixel-ink);
+  outline: 3px solid var(--edu-line-strong);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .rpg-speaker .rpg-textbox {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.edu-stage .rpg-name {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-xl);
+  color: var(--edu-accent);
+  text-shadow: 2px 2px 0 var(--pixel-ink);
+}
+
+.edu-stage .rpg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-3);
+  justify-content: center;
+}
+
+/* ---- the world ---- */
+
+.edu-stage .rpg-world {
+  display: grid;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .rpg-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--edu-space-2) var(--edu-space-4);
+}
+
+.edu-stage .rpg-hud .rpg-area-name {
+  font-size: var(--edu-text-xl);
+  line-height: 1.1;
+  color: var(--edu-accent);
+  text-shadow: 3px 3px 0 var(--pixel-ink);
+}
+
+.edu-stage .rpg-hud .rpg-area-name:focus {
+  outline: none;
+}
+
+.edu-stage .rpg-hud-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--edu-space-2) var(--edu-space-3);
+}
+
+.edu-stage .rpg-hud .hp-line {
+  min-width: 150px;
+}
+
+.edu-stage .rpg-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+  gap: var(--edu-space-4);
+  align-items: start;
+}
+
+.edu-stage .rpg-view {
+  display: grid;
+  gap: var(--edu-space-3);
+  min-width: 0;
+}
+
+.edu-stage .rpg-side {
+  display: grid;
+  gap: var(--edu-space-3);
+  min-width: 0;
+}
+
+.edu-stage .rpg-note {
+  min-height: 2.9em;
+  padding: var(--edu-space-2) var(--edu-space-3);
+  background: var(--edu-bg-2);
+  border-left: 4px solid var(--edu-accent);
+  color: var(--edu-text);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .rpg-note p + p {
+  margin-top: var(--edu-space-1);
+}
+
+.edu-stage .rpg-note .rpg-message {
+  color: var(--edu-accent);
+}
+
+.edu-stage .rpg-pad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--edu-tap));
+  grid-template-rows: repeat(3, var(--edu-tap));
+  gap: 4px;
+  justify-content: center;
+  align-content: center;
+}
+
+.edu-stage .rpg-pad .pad-btn {
+  min-width: var(--edu-tap);
+  min-height: var(--edu-tap);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  line-height: 1;
+  color: var(--edu-text);
+  background: var(--edu-surface);
+  border: 3px solid var(--edu-text);
+  box-shadow: var(--edu-shadow-1);
+  touch-action: manipulation;
+}
+
+.edu-stage .rpg-pad .pad-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.edu-stage .rpg-pad .pad-up {
+  grid-area: 1 / 2;
+}
+
+.edu-stage .rpg-pad .pad-left {
+  grid-area: 2 / 1;
+}
+
+.edu-stage .rpg-pad .pad-talk {
+  grid-area: 2 / 2;
+  font-size: var(--edu-text-xs);
+  color: var(--edu-accent-ink);
+  background: var(--edu-accent);
+  border-color: var(--edu-accent);
+}
+
+.edu-stage .rpg-pad .pad-talk[aria-disabled='true'] {
+  color: var(--edu-text-dim);
+  background: var(--edu-bg-2);
+  border-color: var(--edu-line-strong);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.edu-stage .rpg-pad .pad-right {
+  grid-area: 2 / 3;
+}
+
+.edu-stage .rpg-pad .pad-down {
+  grid-area: 3 / 2;
+}
+
+.edu-stage .rpg-keys {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  text-align: center;
+}
+
+.edu-stage .rpg-targets {
+  display: grid;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .rpg-targets .btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.edu-stage .rpg-quest ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--edu-space-1);
+}
+
+.edu-stage .rpg-quest li {
+  display: flex;
+  gap: var(--edu-space-2);
+  align-items: baseline;
+  font-size: var(--edu-text-s);
+  color: var(--edu-text);
+}
+
+.edu-stage .rpg-quest li.is-done {
+  color: var(--edu-good);
+}
+
+.edu-stage .rpg-quest li .tick {
+  font-family: var(--edu-font-display);
+  flex: 0 0 auto;
+}
+
+/* ---- the battle ---- */
+
+.edu-stage .rpg-scene {
+  display: grid;
+  gap: var(--edu-space-2);
+  width: min(100%, 560px);
+  margin: 0 auto;
+}
+
+.edu-stage .rpg-scene-bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .rpg-scene-bars .rpg-panel {
+  display: grid;
+  gap: var(--edu-space-1);
+  padding: var(--edu-space-2) var(--edu-space-3);
+}
+
+.edu-stage .rpg-scene-bars .rpg-who {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  color: var(--edu-accent);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .rpg-scene-bars .hp-line {
+  white-space: normal;
+}
+
+.edu-stage .rpg-scene-view {
+  position: relative;
+}
+
+.edu-stage .rpg-scene-view .rpg-canvas {
+  box-shadow: none;
+}
+
+.edu-stage .rpg-scene-view.is-hit .rpg-canvas {
+  animation: edu-shake var(--edu-dur-med) steps(4, end);
+}
+
+.edu-stage .rpg-pop {
+  position: absolute;
+  top: 18%;
+  right: 18%;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-2xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--edu-accent);
+  text-shadow:
+    3px 3px 0 var(--pixel-ink),
+    -2px 0 0 var(--pixel-ink),
+    2px 0 0 var(--pixel-ink),
+    0 -2px 0 var(--pixel-ink);
+  animation: edu-rise var(--edu-dur-slow) steps(6, end) both;
+  pointer-events: none;
+}
+
+.edu-stage .rpg-pop.is-hero {
+  right: auto;
+  left: 18%;
+  top: 40%;
+  color: var(--edu-bad);
+}
+
+.edu-stage .rpg-streak {
+  text-align: center;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .rpg-streak.is-hot {
+  color: var(--edu-accent);
+}
+
+.edu-stage .rpg-battle {
+  display: grid;
+  gap: var(--edu-space-4);
+  justify-items: center;
+}
+
+.edu-stage .rpg-battle .rpg-textbox {
+  width: min(100%, 560px);
+  min-height: 0;
+  font-size: var(--edu-text-m);
+}
+
+/* ---- the world map of areas ---- */
+
+.edu-stage .rpg-areas {
+  display: grid;
+  gap: var(--edu-space-4);
+  justify-items: center;
+}
+
+.edu-stage .rpg-area-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: var(--edu-space-4);
+}
+
+.edu-stage .rpg-area-card {
+  display: grid;
+  gap: var(--edu-space-2);
+  justify-items: center;
+  align-content: start;
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  padding: var(--edu-space-3);
+  text-align: center;
+  color: var(--edu-text);
+  background: var(--edu-surface);
+  border: 4px solid var(--edu-text);
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .rpg-area-card:hover:not(:disabled) {
+  background: var(--edu-surface-2);
+}
+
+.edu-stage .rpg-area-card:disabled {
+  color: var(--edu-text-dim);
+  background: var(--edu-bg-2);
+  border-style: dashed;
+  border-color: var(--edu-line-strong);
+  box-shadow: none;
+}
+
+.edu-stage .rpg-area-card.is-mastered {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .rpg-area-card .rpg-mini {
+  width: 100%;
+  max-width: 192px;
+  height: auto;
+  image-rendering: pixelated;
+  border: 3px solid var(--pixel-ink);
+}
+
+.edu-stage .rpg-area-card .rpg-area-title {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  color: var(--edu-accent);
+}
+
+.edu-stage .rpg-area-card:disabled .rpg-area-title {
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .rpg-area-card .rpg-area-unit,
+.edu-stage .rpg-area-card .rpg-area-need {
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .rpg-area-card:not(:disabled) .rpg-area-unit {
+  color: var(--edu-text);
+}
+
+.edu-stage .rpg-final {
+  width: min(100%, 520px);
+}
+
+/* ---- the scrolls ---- */
+
+.edu-stage .rpg-scrolls {
+  display: grid;
+  gap: var(--edu-space-3);
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .rpg-scroll {
+  position: relative;
+  padding: var(--edu-space-3) var(--edu-space-4) var(--edu-space-3) var(--edu-space-6);
+  background: var(--edu-surface);
+  color: var(--edu-text);
+  border: 3px solid var(--edu-line-strong);
+  border-left: 12px solid var(--edu-accent);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .rpg-scroll .scroll-from {
+  display: block;
+  margin-top: var(--edu-space-1);
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+/* ---- the quest-done and end screens ---- */
+
+.edu-stage .rpg-done {
+  display: grid;
+  gap: var(--edu-space-4);
+  justify-items: center;
+  text-align: center;
+}
+
+.edu-stage .rpg-done .stars {
+  font-size: 3rem;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .rpg-done .star.on {
+  color: var(--edu-accent);
+}
+
+.edu-stage .rpg-done .star.off {
+  color: var(--edu-text-dim);
+}
+
+/* ---- the buttons keep the theme's stepped corners ---- */
+
+.edu-stage .rpg-pad .pad-btn:not(:focus-visible),
+.edu-stage .rpg-area-card:not(:focus-visible),
+.edu-stage .rpg-targets .btn:not(:focus-visible) {
+  clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+}
+
+/* ---- phones ---- */
+
+@media (max-width: 860px) {
+  .edu-stage .rpg-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .edu-stage .rpg-speaker {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .edu-stage .rpg-speaker .rpg-textbox {
+    width: 100%;
+  }
+
+  .edu-stage .rpg-textbox {
+    padding: var(--edu-space-3);
+    font-size: var(--edu-text-m);
+  }
+
+  .edu-stage .rpg-portrait {
+    width: 88px;
+    height: 88px;
+  }
+
+  .edu-stage .rpg-hud .hp-line {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .edu-stage .rpg-pop {
+    font-size: var(--edu-text-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edu-stage .hp-fill {
+    transition: none;
+  }
+}
+
+/* ---- polish after the first look ---- */
+
+.edu-stage .rpg-title-art {
+  display: grid;
+  justify-items: center;
+  gap: var(--edu-space-3);
+  margin: var(--edu-space-3) auto;
+  max-width: 560px;
+}
+
+.edu-stage .rpg-opening {
+  text-align: center;
+  color: var(--edu-text);
+}
+
+.edu-stage .rpg-targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.edu-stage .rpg-note:has(.rpg-message:empty) {
+  background: transparent;
+  border-left-color: transparent;
+}
+
+.edu-stage .rpg-inventory {
+  display: grid;
+  gap: var(--edu-space-4);
+  justify-items: center;
+  text-align: center;
+}
+
+.edu-stage .rpg-inventory .rpg-scrolls {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  text-align: left;
+  width: min(100%, 980px);
+}
+
+.edu-stage .rpg-scene-bars .hp-line {
+  flex-wrap: wrap;
+}
+
+.edu-stage .rpg-scene-bars .hp-text {
+  white-space: nowrap;
+}
+
+.edu-stage .rpg-scene-bars .hp-bar {
+  flex: 1 1 100%;
+}

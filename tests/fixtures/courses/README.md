@@ -30,5 +30,6 @@ A fixture enables a shell in `shells.enabled` and may author its section in `she
 
 - `encyclopedia` (EGS-10): `solar-system` has a timeline of 8 events, a map with 9 pins on `solar-system.svg` and a hunt of 3 steps per unit; `european-capitals` has 12 events, a pin per capital on `europe.svg` and 3 hunts (4, 4 and 3 steps). Every hunt sends you to an article whose body holds the answer.
 - `mindmaze` (EGS-11): `solar-system` and `european-capitals` have 3 wings of 6 rooms each (characters whose lines and hints come from the course facts, two routes per wing, every item of a unit asked at some door) and an authored throne room.
+- `rpg` (EGS-12): `solar-system` has 3 hand-written areas, a frame story (a young astronomer restarting the orrery, true to the facts), quest givers who teach, 9 foes named after misconceptions, 3 area bosses and a final boss.
 
-The broken shell fixtures (`broken-encyclopedia/`, `broken-mindmaze/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.
+The broken shell fixtures (`broken-encyclopedia/`, `broken-mindmaze/`, `broken-rpg/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.

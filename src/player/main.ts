@@ -12,6 +12,7 @@ import { BUILTIN_RENDERERS } from './items'
 import { encyclopediaShell } from './shells/encyclopedia'
 import { mindmazeShell } from './shells/mindmaze'
 import { quizArenaShell } from './shells/quiz-arena'
+import { rpgShell } from './shells/rpg'
 
 /**
  * The entry of the browser bundle (`out/player/player.js`, one IIFE). Creates `window.EduEngine`, registers the built-in item renderers
@@ -23,6 +24,7 @@ for (const r of BUILTIN_RENDERERS) engine.registerItemKind(r.kind, r)
 engine.registerShell(quizArenaShell.id, quizArenaShell)
 engine.registerShell(encyclopediaShell.id, encyclopediaShell)
 engine.registerShell(mindmazeShell.id, mindmazeShell)
+engine.registerShell(rpgShell.id, rpgShell)
 window.EduEngine = engine
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => engine.start())

@@ -8,9 +8,11 @@
 import * as encyclopedia from './encyclopedia.mjs'
 import * as mindmaze from './mindmaze.mjs'
 import * as quizArena from './quiz-arena.mjs'
+import * as rpg from './rpg.mjs'
 
 export const DRIVERS = {
   'quiz-arena': quizArena,
   encyclopedia,
-  mindmaze
+  mindmaze,
+  rpg
 }

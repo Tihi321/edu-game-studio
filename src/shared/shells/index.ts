@@ -3,6 +3,7 @@ import type { Problem, TextRef } from '../edu/registry'
 import type { TextResolver } from '../edu/text'
 import { encyclopediaShell } from './encyclopedia'
 import { mindmazeShell } from './mindmaze'
+import { rpgShell } from './rpg'
 import type { ShellDef, ShellLintContext, ShellLintProblem } from './types'
 
 export type { ShellDef, ShellLintContext, ShellLintProblem } from './types'
@@ -22,7 +23,8 @@ export const SHELL_DEFS: ReadonlyMap<string, ShellDef> = new Map<string, ShellDe
   (
     [
       encyclopediaShell,
-      mindmazeShell
+      mindmazeShell,
+      rpgShell
     ] as ShellDef[]
   ).map((d) => [d.id, d])
 )
