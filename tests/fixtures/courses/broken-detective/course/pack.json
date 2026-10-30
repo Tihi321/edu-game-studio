@@ -1,0 +1,330 @@
+{
+  "schema": 1,
+  "id": "broken-detective",
+  "slug": "broken-detective",
+  "sourceLang": "en",
+  "languages": [
+    "en"
+  ],
+  "subject": "A case file that is wrong on purpose",
+  "audience": "tests",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-a",
+      "requires": [],
+      "title": "unit.u-a.title"
+    },
+    {
+      "id": "u-b",
+      "requires": [
+        "u-a"
+      ],
+      "title": "unit.u-b.title"
+    },
+    {
+      "id": "u-c",
+      "requires": [
+        "u-a"
+      ],
+      "title": "unit.u-c.title"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "o-a",
+      "unit": "u-a",
+      "bloom": "remember",
+      "text": "obj.o-a.text",
+      "facts": []
+    },
+    {
+      "id": "o-b",
+      "unit": "u-b",
+      "bloom": "remember",
+      "text": "obj.o-b.text",
+      "facts": []
+    },
+    {
+      "id": "o-c",
+      "unit": "u-c",
+      "bloom": "remember",
+      "text": "obj.o-c.text",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "i-a1",
+      "kind": "mcq",
+      "objective": "o-a",
+      "prompt": "i-a1.prompt",
+      "explanation": "i-a1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-a1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-a1.o.w1",
+          "why": "i-a1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-a1.o.w2",
+          "why": "i-a1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-a2",
+      "kind": "true-false",
+      "objective": "o-a",
+      "prompt": "i-a2.prompt",
+      "explanation": "i-a2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-a2.why"
+    },
+    {
+      "id": "i-b1",
+      "kind": "mcq",
+      "objective": "o-b",
+      "prompt": "i-b1.prompt",
+      "explanation": "i-b1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-b1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-b1.o.w1",
+          "why": "i-b1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-b1.o.w2",
+          "why": "i-b1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-b2",
+      "kind": "true-false",
+      "objective": "o-b",
+      "prompt": "i-b2.prompt",
+      "explanation": "i-b2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-b2.why"
+    },
+    {
+      "id": "i-c1",
+      "kind": "mcq",
+      "objective": "o-c",
+      "prompt": "i-c1.prompt",
+      "explanation": "i-c1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-c1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-c1.o.w1",
+          "why": "i-c1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-c1.o.w2",
+          "why": "i-c1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-c2",
+      "kind": "true-false",
+      "objective": "o-c",
+      "prompt": "i-c2.prompt",
+      "explanation": "i-c2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-c2.why"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "detective"
+    ],
+    "config": {
+      "quiz-arena": {},
+      "detective": {
+        "rooms": [
+          {
+            "id": "room-a",
+            "unit": "u-a",
+            "title": "det.room-a",
+            "story": "det.room-a.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 3,
+              "band": "easy",
+              "names": {
+                "s2": "det.n.7",
+                "s3": "det.n.8",
+                "w1": "det.n.0",
+                "w2": "det.n.1",
+                "w3": "det.n.2",
+                "p1": "det.n.3",
+                "p2": "det.n.4",
+                "p3": "det.n.5"
+              },
+              "aliases": {
+                "w1": "det.alias.zebra"
+              },
+              "items": [
+                "i-a1",
+                "i-a2",
+                "i-gone"
+              ]
+            }
+          },
+          {
+            "id": "room-b",
+            "unit": "u-nope",
+            "title": "det.room-b",
+            "story": "det.room-b.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 3,
+              "band": "easy",
+              "names": {
+                "s1": "det.n.6",
+                "s2": "det.n.7",
+                "s3": "det.n.8",
+                "w1": "det.n.0",
+                "w2": "det.n.1",
+                "w3": "det.n.2",
+                "p1": "det.n.3",
+                "p2": "det.n.4",
+                "p3": "det.n.5"
+              },
+              "aliases": {},
+              "items": [
+                "i-b1",
+                "i-b2",
+                "i-c1",
+                "i-a1",
+                "i-a2"
+              ]
+            }
+          },
+          {
+            "id": "room-loose",
+            "title": "det.room-loose",
+            "story": "det.room-loose.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 3,
+              "band": "easy",
+              "names": {
+                "s1": "det.n.6",
+                "s2": "det.n.7",
+                "s3": "det.n.8",
+                "w1": "det.n.0",
+                "w2": "det.n.1",
+                "w3": "det.n.2",
+                "p1": "det.n.3",
+                "p2": "det.n.4",
+                "p3": "det.n.5"
+              },
+              "aliases": {},
+              "items": [
+                "i-a1",
+                "i-a2",
+                "i-b1",
+                "i-b2",
+                "i-c1"
+              ]
+            }
+          }
+        ],
+        "final": "room-gone",
+        "chase": {
+          "suspect": "det.chase.suspect",
+          "start": "p-one",
+          "map": "det-map",
+          "places": [
+            {
+              "id": "p-one",
+              "name": "det.p.one",
+              "x": 100,
+              "y": 100
+            },
+            {
+              "id": "p-two",
+              "name": "det.p.two",
+              "x": 300,
+              "y": 200
+            },
+            {
+              "id": "p-three",
+              "name": "det.p.three",
+              "x": 500,
+              "y": 300
+            }
+          ],
+          "route": [
+            {
+              "from": "p-one",
+              "to": "p-two",
+              "item": "i-a1",
+              "decoys": []
+            },
+            {
+              "from": "p-nine",
+              "to": "p-three",
+              "item": "i-gone",
+              "decoys": [
+                "p-one"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "det-map",
+      "kind": "image",
+      "file": "assets/det-map.svg",
+      "alt": "det.map.alt"
+    }
+  ],
+  "cues": []
+}

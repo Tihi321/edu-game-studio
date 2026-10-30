@@ -1160,7 +1160,8 @@
       "quiz-arena",
       "encyclopedia",
       "mindmaze",
-      "rpg"
+      "rpg",
+      "detective"
     ],
     "config": {
       "quiz-arena": {
@@ -2095,6 +2096,173 @@
           "hp": 800,
           "size": 10
         }
+      },
+      "detective": {
+        "rooms": [
+          {
+            "id": "room-sun",
+            "unit": "u-sun-planets",
+            "title": "det.room.sun",
+            "story": "det.room.sun.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 3,
+              "band": "easy",
+              "names": {
+                "s1": "ss.name.mercury",
+                "s2": "ss.name.venus",
+                "s3": "ss.name.earth",
+                "w1": "det.n.telescope",
+                "w2": "det.n.lens",
+                "w3": "det.n.chart",
+                "p1": "det.n.dome",
+                "p2": "det.n.lab",
+                "p3": "det.n.deck"
+              },
+              "aliases": {
+                "s1": "det.alias.mercury",
+                "s3": "det.alias.earth"
+              },
+              "items": [
+                "q-order-mcq",
+                "q-order-seq",
+                "q-order-hotspot",
+                "q-order-card",
+                "q-sun-mcq",
+                "q-sun-tf",
+                "q-sun-cloze",
+                "q-sun-beeps"
+              ]
+            }
+          },
+          {
+            "id": "room-types",
+            "unit": "u-rocky-giant",
+            "title": "det.room.types",
+            "story": "det.room.types.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 9,
+              "band": "medium",
+              "names": {
+                "s1": "ss.name.jupiter",
+                "s2": "ss.name.saturn",
+                "s3": "ss.name.neptune",
+                "w1": "det.n.antenna",
+                "w2": "det.n.battery",
+                "w3": "det.n.toolbox",
+                "p1": "det.n.hangar",
+                "p2": "det.n.bridge",
+                "p3": "det.n.greenhouse"
+              },
+              "aliases": {
+                "s1": "det.alias.jupiter",
+                "s2": "det.alias.saturn",
+                "s3": "det.alias.neptune"
+              },
+              "items": [
+                "q-types-mcq",
+                "q-types-sort",
+                "q-venus-mcq",
+                "q-venus-tf",
+                "q-venus-cloze",
+                "q-giants-multi",
+                "q-giants-typed",
+                "q-giants-hotspot",
+                "q-facts-match"
+              ]
+            }
+          },
+          {
+            "id": "room-moons",
+            "unit": "u-moons-beyond",
+            "title": "det.room.moons",
+            "story": "det.room.moons.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 17,
+              "band": "easy",
+              "names": {
+                "s1": "det.n.voyager",
+                "s2": "det.n.horizons",
+                "s3": "det.n.apollo",
+                "w1": "det.n.camera",
+                "w2": "det.n.sample",
+                "w3": "det.n.radio",
+                "p1": "det.n.airlock",
+                "p2": "det.n.cargo",
+                "p3": "det.n.canteen"
+              },
+              "aliases": {
+                "s1": "det.alias.voyager",
+                "s2": "det.alias.horizons",
+                "s3": "det.alias.apollo"
+              },
+              "labels": {
+                "suspect": "det.label.craft"
+              },
+              "items": [
+                "q-moons-match",
+                "q-moons-typed",
+                "q-moons-mcq",
+                "q-beyond-mcq",
+                "q-beyond-order",
+                "q-beyond-cloze",
+                "q-explore-timeline",
+                "q-explore-mcq",
+                "q-moons-card"
+              ]
+            }
+          },
+          {
+            "id": "room-final",
+            "title": "det.room.final",
+            "story": "det.room.final.story",
+            "case": {
+              "kind": "murdle",
+              "size": 4,
+              "seed": 5,
+              "band": "easy",
+              "names": {
+                "s1": "ss.name.neptune",
+                "s2": "det.n.sputnik",
+                "s3": "ss.name.mercury",
+                "s4": "det.n.apollo",
+                "w1": "det.n.telescope",
+                "w2": "det.n.rocket",
+                "w3": "det.n.compass",
+                "w4": "det.n.lens",
+                "p1": "det.n.library",
+                "p2": "det.n.engine",
+                "p3": "det.n.dome",
+                "p4": "det.n.deck"
+              },
+              "aliases": {
+                "s1": "det.alias.neptune",
+                "s2": "det.alias.sputnik",
+                "s3": "det.alias.mercury",
+                "s4": "det.alias.apollo"
+              },
+              "items": [
+                "q-order-mcq",
+                "q-sun-tf",
+                "q-sun-mcq",
+                "q-types-mcq",
+                "q-venus-mcq",
+                "q-giants-typed",
+                "q-giants-multi",
+                "q-moons-mcq",
+                "q-beyond-mcq",
+                "q-explore-mcq",
+                "q-moons-typed"
+              ]
+            }
+          }
+        ],
+        "final": "room-final"
       }
     }
   },

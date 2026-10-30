@@ -1336,7 +1336,8 @@
     "enabled": [
       "quiz-arena",
       "encyclopedia",
-      "mindmaze"
+      "mindmaze",
+      "detective"
     ],
     "config": {
       "quiz-arena": {
@@ -2042,6 +2043,310 @@
           "name": "maze.throne",
           "description": "maze.throne.desc",
           "size": 8
+        }
+      },
+      "detective": {
+        "rooms": [
+          {
+            "id": "room-west",
+            "unit": "u-west",
+            "title": "det.room.west",
+            "story": "det.room.west.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 17,
+              "band": "easy",
+              "names": {
+                "s1": "ec.city.paris",
+                "s2": "ec.city.london",
+                "s3": "ec.city.lisbon",
+                "w1": "det.n.map",
+                "w2": "det.n.key",
+                "w3": "det.n.passport",
+                "p1": "det.n.station",
+                "p2": "det.n.harbour",
+                "p3": "det.n.market"
+              },
+              "aliases": {
+                "s1": "det.alias.paris",
+                "s2": "det.alias.london",
+                "s3": "det.alias.lisbon"
+              },
+              "items": [
+                "q-west-mcq",
+                "q-west-hotspot",
+                "q-west-typed",
+                "q-west-cloze",
+                "q-west-match",
+                "q-west-card",
+                "q-west-river-mcq",
+                "q-west-river-typed",
+                "q-west-sort",
+                "q-west-tf"
+              ]
+            }
+          },
+          {
+            "id": "room-central",
+            "unit": "u-central",
+            "title": "det.room.central",
+            "story": "det.room.central.story",
+            "case": {
+              "kind": "logic",
+              "size": 3,
+              "seed": 1,
+              "band": "easy",
+              "names": {
+                "d1": "det.n.day1",
+                "d2": "det.n.day2",
+                "d3": "det.n.day3",
+                "c1": "ec.city.vienna",
+                "c2": "ec.city.prague",
+                "c3": "ec.city.budapest",
+                "k1": "det.n.parcel",
+                "k2": "det.n.ticket",
+                "k3": "det.n.coin",
+                "t1": "det.n.museum",
+                "t2": "det.n.hotel",
+                "t3": "det.n.cafe"
+              },
+              "aliases": {
+                "c1": "det.alias.vienna",
+                "c2": "det.alias.prague",
+                "c3": "det.alias.budapest"
+              },
+              "labels": {
+                "day": "det.label.day",
+                "customer": "det.label.visitor",
+                "cake": "det.label.gift",
+                "town": "det.label.hall"
+              },
+              "items": [
+                "q-cen-mcq",
+                "q-cen-hotspot",
+                "q-cen-typed",
+                "q-cen-cloze",
+                "q-cen-tf",
+                "q-cen-card",
+                "q-cen-sort",
+                "q-cen-match",
+                "q-cen-typed-danube",
+                "q-cen-mcq-wall",
+                "q-cen-cloze-bridge",
+                "q-cen-order"
+              ]
+            }
+          },
+          {
+            "id": "room-south",
+            "unit": "u-south",
+            "title": "det.room.south",
+            "story": "det.room.south.story",
+            "case": {
+              "kind": "murdle",
+              "size": 3,
+              "seed": 3,
+              "band": "easy",
+              "names": {
+                "s1": "ec.city.rome",
+                "s2": "ec.city.athens",
+                "s3": "ec.city.valletta",
+                "w1": "det.n.ticket",
+                "w2": "det.n.key",
+                "w3": "det.n.compass",
+                "p1": "det.n.museum",
+                "p2": "det.n.library",
+                "p3": "det.n.cafe"
+              },
+              "aliases": {
+                "s1": "det.alias.rome",
+                "s2": "det.alias.athens"
+              },
+              "items": [
+                "q-south-mcq",
+                "q-south-hotspot",
+                "q-south-typed",
+                "q-south-cloze",
+                "q-south-tiber",
+                "q-south-tf",
+                "q-south-multi",
+                "q-south-order",
+                "q-south-oldest"
+              ]
+            }
+          },
+          {
+            "id": "room-final",
+            "title": "det.room.final",
+            "story": "det.room.final.story",
+            "case": {
+              "kind": "murdle",
+              "size": 4,
+              "seed": 5,
+              "band": "easy",
+              "names": {
+                "s1": "ec.city.berlin",
+                "s2": "ec.city.rome",
+                "s3": "ec.city.paris",
+                "s4": "ec.city.vienna",
+                "w1": "det.n.map",
+                "w2": "det.n.coin",
+                "w3": "det.n.passport",
+                "w4": "det.n.key",
+                "p1": "det.n.station",
+                "p2": "det.n.hotel",
+                "p3": "det.n.market",
+                "p4": "det.n.harbour"
+              },
+              "aliases": {
+                "s1": "det.alias.berlin",
+                "s2": "det.alias.rome",
+                "s3": "det.alias.paris",
+                "s4": "det.alias.vienna"
+              },
+              "items": [
+                "q-west-river-mcq",
+                "q-west-typed",
+                "q-cen-mcq",
+                "q-cen-mcq-wall",
+                "q-cen-typed-danube",
+                "q-south-mcq",
+                "q-south-tiber",
+                "q-south-tf",
+                "q-west-tf",
+                "q-cen-tf",
+                "q-west-multi"
+              ]
+            }
+          }
+        ],
+        "final": "room-final",
+        "chase": {
+          "final": true,
+          "title": "det.chase.title",
+          "story": "det.chase.story",
+          "suspect": "det.chase.suspect",
+          "start": "p-dublin",
+          "map": "img-europe",
+          "width": 800,
+          "height": 600,
+          "places": [
+            {
+              "id": "p-dublin",
+              "name": "ec.city.dublin",
+              "x": 92.5,
+              "y": 176.5
+            },
+            {
+              "id": "p-london",
+              "name": "ec.city.london",
+              "x": 212.1,
+              "y": 219.1
+            },
+            {
+              "id": "p-paris",
+              "name": "ec.city.paris",
+              "x": 260.5,
+              "y": 280.2
+            },
+            {
+              "id": "p-prague",
+              "name": "ec.city.prague",
+              "x": 496,
+              "y": 251.8
+            },
+            {
+              "id": "p-vienna",
+              "name": "ec.city.vienna",
+              "x": 534.1,
+              "y": 295.2
+            },
+            {
+              "id": "p-rome",
+              "name": "ec.city.rome",
+              "x": 458.5,
+              "y": 440.7
+            },
+            {
+              "id": "p-berlin",
+              "name": "ec.city.berlin",
+              "x": 476.2,
+              "y": 195.7
+            },
+            {
+              "id": "p-budapest",
+              "name": "ec.city.budapest",
+              "x": 586.1,
+              "y": 311.6
+            },
+            {
+              "id": "p-madrid",
+              "name": "ec.city.madrid",
+              "x": 142.4,
+              "y": 475
+            },
+            {
+              "id": "p-athens",
+              "name": "ec.city.athens",
+              "x": 677.6,
+              "y": 531.1
+            }
+          ],
+          "route": [
+            {
+              "from": "p-dublin",
+              "to": "p-london",
+              "item": "q-west-river-typed",
+              "decoys": [
+                "p-madrid",
+                "p-paris"
+              ],
+              "clue": "det.w.london"
+            },
+            {
+              "from": "p-london",
+              "to": "p-paris",
+              "item": "q-west-river-mcq",
+              "decoys": [
+                "p-dublin",
+                "p-berlin",
+                "p-madrid"
+              ],
+              "clue": "det.w.paris"
+            },
+            {
+              "from": "p-paris",
+              "to": "p-prague",
+              "item": "q-cen-cloze",
+              "decoys": [
+                "p-berlin",
+                "p-vienna"
+              ],
+              "clue": "det.w.prague"
+            },
+            {
+              "from": "p-prague",
+              "to": "p-vienna",
+              "item": "q-cen-mcq",
+              "decoys": [
+                "p-budapest",
+                "p-berlin",
+                "p-rome"
+              ],
+              "clue": "det.w.vienna"
+            },
+            {
+              "from": "p-vienna",
+              "to": "p-rome",
+              "item": "q-south-tiber",
+              "decoys": [
+                "p-athens",
+                "p-budapest"
+              ],
+              "clue": "det.w.rome"
+            }
+          ]
         }
       }
     }

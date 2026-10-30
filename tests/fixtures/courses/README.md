@@ -32,5 +32,6 @@ A fixture enables a shell in `shells.enabled` and may author its section in `she
 - `mindmaze` (EGS-11): `solar-system` and `european-capitals` have 3 wings of 6 rooms each (characters whose lines and hints come from the course facts, two routes per wing, every item of a unit asked at some door) and an authored throne room.
 - `rpg` (EGS-12): `solar-system` has 3 hand-written areas, a frame story (a young astronomer restarting the orrery, true to the facts), quest givers who teach, 9 foes named after misconceptions, 3 area bosses and a final boss.
 - `roleplay` (EGS-13): `hr-a1-greetings` has a scene per unit (a café in Zagreb, a language school in Split, a hotel desk), a finale, and the garden words of the course. The Croatian is A1 and was written without a native speaker: review is welcome.
+- `detective` (EGS-14): `solar-system` has 3 escape rooms and a final room; `european-capitals` has a room per unit (one a logic grid), a final room and a chase across 6 capitals. Entities are course things, aliases are course facts; every case is generated from its seed and proved unique and deducible by the lint.
 
-The broken shell fixtures (`broken-encyclopedia/`, `broken-mindmaze/`, `broken-rpg/`, `broken-roleplay/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.
+The broken shell fixtures (`broken-encyclopedia/`, `broken-mindmaze/`, `broken-rpg/`, `broken-roleplay/`, `broken-detective/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.

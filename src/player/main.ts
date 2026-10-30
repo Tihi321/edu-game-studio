@@ -9,6 +9,7 @@ import './style/arena.css'
 import './kit/kit.css'
 import { createEngine } from './engine'
 import { BUILTIN_RENDERERS } from './items'
+import { detectiveShell } from './shells/detective'
 import { encyclopediaShell } from './shells/encyclopedia'
 import { mindmazeShell } from './shells/mindmaze'
 import { quizArenaShell } from './shells/quiz-arena'
@@ -27,6 +28,7 @@ engine.registerShell(encyclopediaShell.id, encyclopediaShell)
 engine.registerShell(mindmazeShell.id, mindmazeShell)
 engine.registerShell(rpgShell.id, rpgShell)
 engine.registerShell(roleplayShell.id, roleplayShell)
+engine.registerShell(detectiveShell.id, detectiveShell)
 window.EduEngine = engine
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => engine.start())

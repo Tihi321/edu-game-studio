@@ -7,7 +7,7 @@ Every phase ends in something that can be checked: a command, a screenshot set, 
 ## Where it stands (2026-10-30)
 
 - **Phase 0, phase 1 and phase 2 are done** (EGS-01 to EGS-05, branches stacked on `EGS-01_skeleton`, not merged yet): the engine core copied from VN Studio, the course contract with 13 item kinds, SM-2 and adaptive difficulty, our own browser player with the chalkboard quiz arena, the build, `edu_lint`, the course MCP tools and CLI, and the autoplay bot; the design system (tokens, four themes in a registry, bundled fonts) and the studio pages. Both golden fixtures build, lint clean and pass the bot in all three runs with 0 console errors, also keyboard-only, with 0 axe-core violations; every studio page passes axe-core too.
-- **Phase 5, shells so far** (EGS-10 to EGS-13, stacked on `EGS-05_design-system`, not merged yet): the encyclopedia explorer, MindMaze castle, RPG quest and language role-play, each on the shared shell kit with its course section, its lint, a bot driver (perfect, wrong and random runs, keyboard-only and axe-core) and a broken fixture. No human has played them yet.
+- **Phase 5 is done** (EGS-10 to EGS-14, stacked on `EGS-05_design-system`, not merged yet): the encyclopedia explorer, MindMaze castle, RPG quest, language role-play and detective / escape room, each on the shared shell kit with its course section, its lint, a bot driver (perfect, wrong and random runs, keyboard-only and axe-core) and a broken fixture. No human has played them yet.
 - **Not checked yet:** `yarn dev` (the desktop window) has not been opened; the studio was checked in Chromium with a mocked engine. Real audio and touch devices wait for phase 6.
 - **Next:** phase 3 (EGS-06 to EGS-08, the roles and the content pipeline), being done in parallel; the studio's Brief, Curriculum notes, research and Playtest history have empty slots that it fills.
 - **The pilot** (EGS-09) is a history and geography course; the exact topic is chosen then. It is done only when the user has played it.
@@ -26,11 +26,6 @@ The phase numbers are the ones of the hub plan.
 
 - **EGS-09** the pilot course (history and geography), built only through the MCP, played in the quiz arena and then in the encyclopedia explorer, with a production log in `runs/<slug>.md`. Done when the user has played it.
 
-### Phase 5: more shells (one ticket per shell)
-
-- **EGS-14** the detective / escape room, with the copied puzzle generator and its proofs.
-
-Each shell: the bot plays a fixture course through it (perfect, wrong, random runs), the shell-specific lint passes (every room reachable, every door's question exists, the quest graph can be finished, puzzles proved unique), and the screenshots go to the user.
 
 ### Phase 6: media
 
@@ -56,6 +51,7 @@ Each shell: the bot plays a fixture course through it (perfect, wrong, random ru
 - **EGS-11** the MindMaze castle (castle stone: a wing per unit, doors that are questions, torches and a ghost that leads you back instead of a dead end, characters with hints, keys at mastery, the throne room gauntlet, mini-maps). Plan `.claude/tickets/EGS-11-mindmaze/`.
 - **EGS-12** the RPG quest (pixel quest: a Canvas 2D tile map from a seeded generator, quest givers, turn battles where the moves are answers with streaks and partial credit, an inn instead of game over, scrolls of learned facts, area bosses and a final boss; the frame story hand-written in the fixture, Scriptorium later). Plan `.claude/tickets/EGS-12-rpg/`.
 - **EGS-13** the language role-play (Adriatic postcard theme: dialogue scenes answered by choosing or typing in the target language, translations on demand, recovery lines, CEFR shown, a vocabulary garden that grows with SM-2 recall). Plan `.claude/tickets/EGS-13-roleplay/`.
+- **EGS-14** the detective / escape room (case file noir: cases from VN Studio's proved puzzle generator whose clue cards are turned by answering course items, a grid, hints, accusations that never dead-end, escape rooms per unit and a Carmen-Sandiego chase; every case proved unique at lint time, 200 seeds per kind and size in the tests). Plan `.claude/tickets/EGS-14-detective/`.
 
 ## Later
 

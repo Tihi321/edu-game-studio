@@ -93,7 +93,7 @@ describe('runs over any pool (the round logic every shell asks from)', () => {
 
 describe('the shell section registry', () => {
   it('knows the quiz arena and the game shells', () => {
-    expect(KNOWN_SHELLS).toEqual(expect.arrayContaining(['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg', 'roleplay']))
+    expect(KNOWN_SHELLS).toEqual(expect.arrayContaining(['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg', 'roleplay', 'detective']))
     for (const def of SHELL_DEFS.values()) {
       expect(def.id).toMatch(/^[a-z]+$/)
       for (const c of def.codes) expect(c).toMatch(/^[A-Z][A-Z0-9_]+$/)

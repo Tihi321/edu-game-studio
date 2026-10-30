@@ -19,7 +19,8 @@ const THEMES = [
   ['castle', 'Castle stone'],
   ['parchment', 'Parchment and brass'],
   ['pixel', 'Pixel quest'],
-  ['postcard', 'Adriatic postcard']
+  ['postcard', 'Adriatic postcard'],
+  ['noir', 'Case file noir']
 ]
 const VIEWPORTS = [
   ['desktop', { width: 1280, height: 800 }],

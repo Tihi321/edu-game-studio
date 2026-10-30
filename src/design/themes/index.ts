@@ -13,6 +13,7 @@ export type ThemeId =
   | 'parchment'
   | 'pixel'
   | 'postcard'
+  | 'noir'
 
 export interface ThemeInfo {
   id: ThemeId
@@ -89,6 +90,17 @@ export const THEMES: readonly ThemeInfo[] = [
     scheme: 'light',
     fonts: ['young-serif', 'atkinson-hyperlegible-next'],
     swatch: { bg: '#f4e9d0', surface: '#fffaf0', text: '#1d2a44', accent: '#17608c', accent2: '#a23d22' },
+    display: "'Young Serif', Georgia, 'Times New Roman', serif",
+    body: "'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif"
+  },
+  {
+    id: 'noir',
+    label: 'Case file noir',
+    description: 'A case file on a desk at night: a manila folder in the pool of a desk lamp, typewritten labels, a cork board with red string and a stamped SOLVED.',
+    shell: 'detective',
+    scheme: 'dark',
+    fonts: ['young-serif', 'atkinson-hyperlegible-next'],
+    swatch: { bg: '#15181d', surface: '#262a2f', text: '#f0e9d8', accent: '#f2b84b', accent2: '#ef6f5e' },
     display: "'Young Serif', Georgia, 'Times New Roman', serif",
     body: "'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif"
   }

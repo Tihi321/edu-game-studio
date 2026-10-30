@@ -1,6 +1,7 @@
 import type { CoursePack, TextCatalog } from '../course'
 import type { Problem, TextRef } from '../edu/registry'
 import type { TextResolver } from '../edu/text'
+import { detectiveShell } from './detective'
 import { encyclopediaShell } from './encyclopedia'
 import { mindmazeShell } from './mindmaze'
 import { roleplayShell } from './roleplay'
@@ -26,7 +27,8 @@ export const SHELL_DEFS: ReadonlyMap<string, ShellDef> = new Map<string, ShellDe
       encyclopediaShell,
       mindmazeShell,
       rpgShell,
-      roleplayShell
+      roleplayShell,
+      detectiveShell
     ] as ShellDef[]
   ).map((d) => [d.id, d])
 )

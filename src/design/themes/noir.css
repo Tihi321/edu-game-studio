@@ -1,0 +1,107 @@
+/*
+ * Theme "noir" (detective / escape room): a case file on a desk at night. A dark, slightly warm desk, a manila folder for the board, lamp
+ * amber for the primary voice and the red of a pushpin and its string for the second; Young Serif (a newspaper headline face) for titles
+ * over Atkinson Hyperlegible Next for text, and the monospace slot for the typewritten labels. Dark ground; AA contrast for every slot.
+ * Motion: a file slides up onto the desk (opacity and a short rise only; off under reduced motion).
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="noir"]`. The paper of a clue card, the cork of the board and the
+ * red string are `--noir-*` variables: the shell never defines a colour of its own. No new font is bundled (Young Serif and Atkinson
+ * Hyperlegible Next are already in src/design/fonts/).
+ */
+@import '../fonts/young-serif/font.css';
+@import '../fonts/atkinson-hyperlegible-next/font.css';
+
+[data-edu-theme='noir'] {
+  color-scheme: dark;
+
+  --edu-bg: #15181d;
+  --edu-bg-2: #0f1216;
+  --edu-surface: #262a2f;
+  --edu-surface-2: #32363c;
+  --edu-line: #454a52;
+  --edu-line-strong: #9a9486;
+  --edu-text: #f0e9d8;
+  --edu-text-dim: #c9c0aa;
+  --edu-accent: #f2b84b;
+  --edu-accent-ink: #1a1305;
+  --edu-accent-2: #ef6f5e;
+  --edu-good: #86d79c;
+  --edu-good-ink: #0b2014;
+  --edu-bad: #f58f80;
+  --edu-bad-ink: #2b0e0a;
+  --edu-warn: #f3c56b;
+  --edu-warn-bg: #3a2d12;
+  --edu-mark: #f1d98a;
+  --edu-mark-ink: #2a2208;
+  --edu-focus: #f2b84b;
+  --edu-shadow-1: 0 1px 0 rgb(0 0 0 / 0.5), 0 3px 8px rgb(0 0 0 / 0.4);
+  --edu-shadow-2: 0 2px 0 rgb(0 0 0 / 0.5), 0 16px 34px rgb(0 0 0 / 0.6);
+  --edu-series-1: #f2b84b;
+  --edu-series-2: #8fb8d8;
+  --edu-series-3: #e59ab0;
+  --edu-series-4: #8fcf9a;
+  --edu-series-5: #ef9566;
+  --edu-series-6: #b6a2e0;
+  --edu-series-ink: #1a1305;
+
+  --edu-font-display: 'Young Serif', Georgia, 'Times New Roman', serif;
+  --edu-font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  /* the typewriter: labels on folders, the clock, case numbers */
+  --edu-font-mono: 'Courier New', Courier, ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --edu-radius-s: 2px;
+  --edu-radius-m: 3px;
+  --edu-radius-l: 5px;
+  --edu-border: 2px;
+
+  --edu-enter-name: edu-enter-rise;
+  --edu-enter-scale: 1;
+  --edu-enter-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* noir-only: paper, cork, string and the lamp */
+  --noir-paper: #e8dcba;
+  --noir-paper-2: #d9c99d;
+  --noir-paper-edge: #b8a577;
+  --noir-ink: #231b10;
+  --noir-ink-dim: #5a4a32;
+  --noir-stamp: #8e1f17; /* red ink on paper (6.5:1) */
+  --noir-cork: #5b4328;
+  --noir-cork-2: #6d5132;
+  --noir-pin: #d3382a;
+  --noir-string: #e24c3b;
+  --noir-lamp: rgb(242 184 75 / 0.2);
+  --noir-lamp-soft: rgb(242 184 75 / 0.07);
+  --noir-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .8 0 0 0 0 .6 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.1'/%3E%3C/svg%3E");
+}
+
+/* the desk at night, with the lamp's warm pool of light from the upper left */
+[data-edu-theme='noir'] .frame {
+  padding: clamp(6px, 1.2vw, 14px);
+  border: 2px solid var(--edu-line);
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse 70% 60% at 12% 0%, var(--noir-lamp), transparent 70%),
+    repeating-linear-gradient(92deg, rgb(255 255 255 / 0.018) 0 2px, transparent 2px 9px),
+    var(--edu-bg-2);
+  box-shadow: 0 0 0 3px #07090b, var(--edu-shadow-2);
+}
+
+/* the open case folder lying on the desk */
+[data-edu-theme='noir'] .board {
+  border: 2px solid var(--edu-line);
+  border-radius: 2px 6px 4px 4px;
+  background:
+    var(--noir-grain),
+    radial-gradient(ellipse 80% 55% at 8% 0%, var(--noir-lamp-soft), transparent 75%),
+    linear-gradient(180deg, var(--edu-surface), var(--edu-bg));
+  box-shadow: inset 0 0 70px rgb(0 0 0 / 0.5);
+}
+
+[data-edu-theme='noir'] :is(.screen-title, .prompt) {
+  letter-spacing: 0.01em;
+}
+
+/* typewritten labels */
+[data-edu-theme='noir'] :is(.eyebrow, .q-meta, .hud-unit) {
+  font-family: var(--edu-font-mono);
+}
