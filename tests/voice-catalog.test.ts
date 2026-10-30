@@ -88,7 +88,7 @@ describe('pickVoices', () => {
 })
 
 describe('course voice settings', () => {
-  it('loads an old settings block: provider vibetts is comfy, flowStyles becomes styles, only Flow voice ids survive', () => {
+  it('loads an old settings block: provider vibetts stays vibetts, flow becomes gemini, flowStyles becomes styles, only Flow voice ids survive', () => {
     const base = { slug: 's', primaryLang: 'en' }
     const old = courseSettingsSchema.parse({
       ...base,
@@ -100,7 +100,7 @@ describe('course voice settings', () => {
         voices: { narrator: 'omni:petra', mara: 'supertonic:F2', lena: 'gemini:Charon', ana: 'windows:Zira', ivo: { en: 'af_heart', hr: 'supertonic:M1', de: 'gemini:Vega' } }
       }
     })
-    expect(old.voice.provider).toBe('comfy')
+    expect(old.voice.provider).toBe('vibetts')
     expect(old.voice.engine).toBe('omnivoice')
     expect(old.voice.styles).toEqual({ narrator: 'calm', mara: 'bright' })
     expect(old.voice.voices).toEqual({ lena: { en: 'gemini:Charon' }, ana: { en: 'windows:Zira' }, ivo: { de: 'gemini:Vega' } })
@@ -109,6 +109,7 @@ describe('course voice settings', () => {
     expect(old.voice.engines).toEqual({})
     expect(old.voice.refTexts).toEqual({})
     expect(courseSettingsSchema.parse(base).voice.voices).toEqual({}) // no voice block
+    expect(courseSettingsSchema.parse({ ...base, voice: { provider: 'flow' } }).voice.provider).toBe('gemini') // the old Flow provider is Gemini now
   })
 
   it('keeps a styles entry written today over an old flowStyles note of the same speaker', () => {

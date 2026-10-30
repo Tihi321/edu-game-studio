@@ -7,6 +7,7 @@ import { toneWav } from '../src/engine/assets/wav'
 import type { ChiptuneClient, ComposeArgs, ComposeSfxArgs, RenderArgs } from '../src/engine/studios/chiptune'
 import { StudioError } from '../src/engine/studios/chiptune'
 import type { ImportArgs, ExportItem, PixelClient } from '../src/engine/studios/pixel'
+import type { VibeItem, VibeResult, VibeTtsClient, VibeVoices } from '../src/engine/studios/vibetts'
 
 /** What a tool of the fake MCP server answers: its text items (the last is usually the JSON object), or an error. */
 export interface FakeTool {
@@ -213,5 +214,72 @@ export class FakePixel implements PixelClient {
   async listTools() {
     this.check()
     return [{ name: 'import_image' }, { name: 'draw_grid' }]
+  }
+}
+
+/**
+ * VibeTTS as a fake client (EGS-17): `list_voices` answers the voices of `voices` (Kokoro reads English, Supertonic English and Croatian), `synthesize_batch`
+ * writes a real PCM wav (a tone) for every clip and records the calls. `down` makes every call fail as the real client does when the tray app is not running.
+ */
+export class FakeVibeTts implements VibeTtsClient {
+  url = 'http://fake/vibetts'
+  down = false
+  calls: { tool: string; args: unknown }[] = []
+  /** Texts whose clip fails on its own (the rest of the batch goes on). */
+  failTexts = new Set<string>()
+  voices: VibeVoices = {
+    voices: [
+      { id: 'am_michael', label: 'Michael', engine: 'kokoro', languages: ['en'] },
+      { id: 'af_heart', label: 'Heart', engine: 'kokoro', languages: ['en'] },
+      { id: 'supertonic:F1', label: 'Supertonic F1', engine: 'supertonic', languages: ['en', 'hr', 'de'] }
+    ],
+    languages: [
+      { code: 'en', name: 'English' },
+      { code: 'hr', name: 'Croatian' },
+      { code: 'de', name: 'German' }
+    ],
+    languageVoices: { en: 'am_michael', hr: 'supertonic:F1' },
+    readLanguage: 'auto',
+    supertonicInstalled: true,
+    higgsInstalled: false
+  }
+  private check(): void {
+    if (this.down) throw new StudioError('VibeTTS is not running at http://fake/vibetts. Start the VibeTTS app (it sits in the tray) and turn its MCP server on; Edu Studio never starts it.', 'unreachable')
+  }
+  async listVoices(): Promise<VibeVoices> {
+    this.check()
+    this.calls.push({ tool: 'list_voices', args: {} })
+    return this.voices
+  }
+  /** The clips this fake spoke, in order (the texts of every batch). */
+  get spoken(): VibeItem[] {
+    return this.calls.filter((c) => c.tool === 'synthesize_batch').flatMap((c) => (c.args as { items: VibeItem[] }).items)
+  }
+  async synthesizeBatch(items: VibeItem[], o: { overwrite?: boolean } = {}): Promise<VibeResult[]> {
+    this.check()
+    this.calls.push({ tool: 'synthesize_batch', args: { items, ...(o.overwrite !== undefined ? { overwrite: o.overwrite } : {}) } })
+    const out: VibeResult[] = []
+    for (const it of items) {
+      if (this.failTexts.has(it.text)) {
+        out.push({ output: it.output, ok: false, error: 'the engine failed on this text' })
+        continue
+      }
+      await mkdir(path.dirname(it.output), { recursive: true })
+      // real, decodable audio (the file is a wav whatever extension was asked for)
+      await writeFile(it.output, toneWav(0.4, 300 + (it.text.length % 9) * 40))
+      out.push({ output: it.output, ok: true, durationS: 0.4 })
+    }
+    return out
+  }
+  async synthesizeToFile(item: VibeItem & { format?: 'wav' | 'mp3'; overwrite?: boolean }): Promise<VibeResult> {
+    this.check()
+    this.calls.push({ tool: 'synthesize_to_file', args: item })
+    await mkdir(path.dirname(item.output), { recursive: true })
+    await writeFile(item.output, toneWav(0.4, 330))
+    return { output: item.output, ok: true, durationS: 0.4 }
+  }
+  async listTools() {
+    this.check()
+    return [{ name: 'list_voices' }, { name: 'synthesize_batch' }]
   }
 }

@@ -1,5 +1,9 @@
 # EGS-15 changelog
 
+## 2026-10-30: re-verification of the committed tree (EGS-17 run)
+
+The committed tree of `EGS-15_art` commit 40a6b28 was exported (`git archive`) and checked on its own: `yarn typecheck` passes, `yarn lint` passes, `yarn test` 59 files, 833 tests: 832 pass. The one failure is `tests/bot.e2e.test.ts` hr-a1-greetings "random: a seeded 75 % learner" (click on `next` times out: "element is not stable"). It is not caused by this ticket: the pointer rests on the edge of the Next button after the `g-formal-sort` item and the `.btn:hover` lift makes the button jitter forever (a player CSS bug from EGS-03). Fixed in the EGS-17 commit (`src/player/style/theme.css`, a hover area that moves with the button); with it the suite passes in full (EGS-17: 68 files, 969 tests). Nothing else in this ticket needed a fix.
+
 ## 2026-10-29: art, the art-director and the art-critic, and the media foundation
 
 Branch `EGS-15_art` (stacked on `EGS-08_pipeline`), one commit `EGS-15: ...`; not pushed.

@@ -26,6 +26,7 @@ import type { ComfyClient } from './comfy/client'
 import type { PixelClient } from './studios/pixel'
 import type { ChiptuneClient } from './studios/chiptune'
 import type { FlowClient } from './studios/flow'
+import type { VibeTtsClient } from './studios/vibetts'
 import type { ScriptoriumClient } from './studios/scriptorium'
 import type { EduDeps } from './edu/service'
 import { ServiceStarter } from './studios/autostart'
@@ -55,6 +56,10 @@ export interface EngineOptions {
   chiptune?: ChiptuneClient
   /** flow-music-mcp client for Google Flow images, voices and songs (tests pass a fake). Default: made from `config/studios.md`. */
   flow?: FlowClient
+  /** VibeTTS, the local text-to-speech app (tests pass a fake). Default: made from `config/studios.md`. Never started by Edu Studio. */
+  vibetts?: VibeTtsClient
+  /** The voice step's clock and sleep (tests: a fixed day for the Gemini quota, an instant sleep). */
+  voiceRuntime?: { now?: () => Date; sleep?: (ms: number, signal?: AbortSignal) => Promise<void> }
   /** Scriptorium for a course whose story is written there (tests pass a fake). Default: made from `config/studios.md`. Never started by Edu Studio. */
   scriptorium?: ScriptoriumClient
   /** The autoplay bot runner for the playtest step (tests pass a fake). Default: `runPlaytest`. */
@@ -175,6 +180,8 @@ export class Engine {
       pixel: opts.pixel,
       chiptune: opts.chiptune,
       flow: opts.flow,
+      vibetts: opts.vibetts,
+      voiceRuntime: opts.voiceRuntime,
       scriptorium: opts.scriptorium,
       playtest: opts.playtest,
       starter: this.starter,

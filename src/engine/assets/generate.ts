@@ -276,7 +276,7 @@ export async function generateAsset(ctx: GenerateContext, entry: AssetEntry, opt
   const progress = (stage: GenerateProgress['stage'], message: string) => ctx.onProgress?.({ id: entry.id, stage, message })
   if (!opts.force && (entry.locked || entry.source === 'custom')) return { ok: true, skipped: true, entry, reason: entry.locked ? 'locked' : 'custom file' }
   if (AUDIO_KINDS.has(entry.kind)) return generateAudioAsset(ctx, entry, opts)
-  if (!IMAGE_KINDS.has(entry.kind)) return { ok: true, skipped: true, entry, reason: `${entry.kind} assets are made by the voice step (EGS-17)` }
+  if (!IMAGE_KINDS.has(entry.kind)) return { ok: true, skipped: true, entry, reason: entry.kind === 'voice' ? 'a spoken clip is made by the voice step (edu_voice_generate, EGS-17): it needs the allocation across the voice providers' : `${entry.kind} assets are made by the voice step (EGS-17)` }
   if (entry.kind === 'sheet') return { ok: true, skipped: true, entry, reason: 'a course has no character sheets' }
   const art = ctx.settings.art
   const provider = entry.provider ?? resolveArtProvider(art)

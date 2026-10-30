@@ -4,9 +4,10 @@ import sharp from 'sharp'
 import { languageInfo } from '../../shared/languages'
 import { ART_NEGATIVE } from '../../shared/art'
 import type { ArtPlanEntry, ArtPlanFile, ArtTarget } from '../../shared/art'
-import { AUDIO_KINDS, FLOW_ENGINE, IMAGE_KINDS, parseCourseMedia } from '../../shared/media'
+import { AUDIO_KINDS, FLOW_ENGINE, IMAGE_KINDS, SOUND_KINDS, VOICE_KIND, parseCourseMedia } from '../../shared/media'
 import { cuesOfPlan } from '../../shared/music'
 import type { MusicPlanFile } from '../../shared/music'
+import type { VoiceMerge, VoicePlanFile } from '../../shared/voice'
 import type { AssetEntry, AssetManifest, CourseMedia } from '../../shared/media'
 import type { QualityConfig } from '../../shared/schemas'
 import type { DesignData, Frame } from './authoring'
@@ -97,7 +98,7 @@ export interface MediaSummary {
   placeholders: number
   /** Pictures the art-critic rejected (they stay in the course). */
   rejected: number
-  /** Music tracks and sound effects in the manifest (EGS-16). */
+  /** Music tracks, sound effects and spoken clips in the manifest (EGS-16, EGS-17). */
   audio: number
   /** Sounds with a real file. */
   audioMade: number
@@ -229,7 +230,7 @@ export class MediaService {
     const dir = this.courseDir(slug)
     const images = manifest.assets.filter((e) => IMAGE_KINDS.has(e.kind))
     const made = images.filter((e) => resolveFile(dir, e)).length
-    const sounds = manifest.assets.filter((e) => AUDIO_KINDS.has(e.kind))
+    const sounds = manifest.assets.filter((e) => SOUND_KINDS.has(e.kind)) // music, sound effects and spoken clips
     return {
       images: images.length,
       made,
@@ -544,6 +545,9 @@ export class MediaService {
     const music = await this.readMusicPlan(slug)
     /** With a music plan only its sounds are linked (an asset the plan dropped stays in the manifest, not in the build); with none, every audio asset that has a file. */
     const planned = music ? new Set([...music.tracks.map((t) => t.id), ...music.sfx.map((x) => x.id)]) : null
+    const voicePlan = (await this.settings(slug)).voice.enabled === false ? undefined : await this.svc.pipeline.readJson<VoicePlanFile>(slug, 'voice.json')
+    const voiceIds = new Set((voicePlan?.clips ?? []).map((c) => c.id))
+    const voiceLinked = new Set<string>()
     const assets: MediaLink[] = []
     const loops: Record<string, { startSec: number; endSec: number }> = {}
     for (const e of manifest.assets) {
@@ -557,6 +561,15 @@ export class MediaService {
         if (file && e.source === 'generated' && v && v.loopStartSec != null && v.loopEndSec != null && v.loopEndSec > v.loopStartSec) loops[e.id] = { startSec: v.loopStartSec, endSec: v.loopEndSec }
         continue
       }
+      if (e.kind === VOICE_KIND) {
+        if (!voicePlan || !voiceIds.has(e.id)) continue // a clip the voice plan dropped stays in the manifest, not in the build
+        const file = resolveFile(dir, e)
+        const name = file ? path.basename(file) : e.placeholder && existsSync(path.join(assetDir(dir, e.id), e.placeholder.file)) ? e.placeholder.file : undefined
+        if (!name) continue
+        voiceLinked.add(e.id)
+        assets.push({ id: e.id, kind: 'audio', file: rel(e.id, name), alt: e.alt ?? e.id, ...(file ? {} : { placeholder: true }) })
+        continue
+      }
       if (!IMAGE_KINDS.has(e.kind)) continue
       const file = resolveFile(dir, e)
       const name = file ? path.basename(file) : e.placeholder && existsSync(path.join(assetDir(dir, e.id), e.placeholder.file)) ? e.placeholder.file : undefined
@@ -567,7 +580,7 @@ export class MediaService {
     for (const p of plan?.entries ?? []) targets[p.id] = p.target
     const linked = new Set(assets.map((a) => a.id))
     const hasAudio = assets.some((a) => a.kind === 'audio')
-    return { assets, targets, ...(music ? { cues: cuesOfPlan(music, (id) => linked.has(id)) } : {}), ...(music || hasAudio ? { loops } : {}) }
+    return { assets, targets, ...(music ? { cues: cuesOfPlan(music, (id) => linked.has(id)) } : {}), ...(music || hasAudio ? { loops } : {}), ...(voicePlan ? { voice: voiceMergeOf(voicePlan, voiceLinked) } : {}) }
   }
 
   /** Re-links the pack on disk to the manifest (after the tools changed it). Null when the course has no pack yet. */
@@ -582,7 +595,7 @@ export class MediaService {
    * Queues a job of the media tools (`asset_plan`, `asset_generate`). Its id is `<slug>--<task>--q<time>--r0` (not a step of a run, so it works on a
    * hand-made course too); `params` are in the job file. Returns the job id.
    */
-  async queue(slug: string, task: 'asset_plan' | 'asset_generate' | 'asset_music_plan', role: string, params: Record<string, unknown>, label: string): Promise<string> {
+  async queue(slug: string, task: 'asset_plan' | 'asset_generate' | 'asset_music_plan' | 'asset_voice_plan' | 'asset_voice_generate', role: string, params: Record<string, unknown>, label: string): Promise<string> {
     if (!(await this.svc.courseExists(slug))) throw new Error(`no course "${slug}"`)
     const id = `${slug}--${task}--q${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}--r0`
     await this.svc.deps.jobs.enqueue({ id, task, role, book: slug, requested_by: 'you', priority: 1, label, params } as never, `Media job ${task} for the course ${slug}.\n`)
@@ -652,6 +665,25 @@ export class MediaService {
     })
     return out
   }
+}
+
+/**
+ * What the pack takes from the voice plan (EGS-17), for the clips that have a file or a placeholder: the listening items derived from taught phrases
+ * (with their strings), `listening.asset` (a listening item -> the clip of its transcript) and the narration texts -> their clips.
+ */
+export function voiceMergeOf(plan: Pick<VoicePlanFile, 'clips' | 'derived'>, linked: ReadonlySet<string>): VoiceMerge {
+  const out: VoiceMerge = { items: [], strings: {}, listening: {}, narration: {} }
+  for (const d of plan.derived) {
+    if (!linked.has(d.clip)) continue
+    out.items.push(d.item)
+    for (const [lang, strings] of Object.entries(d.strings)) out.strings[lang] = { ...(out.strings[lang] ?? {}), ...strings }
+  }
+  for (const c of plan.clips) {
+    if (!linked.has(c.id)) continue
+    if (c.role === 'narration') out.narration[c.key] = c.id
+    else for (const item of c.items ?? []) out.listening[item] = c.id
+  }
+  return out
 }
 
 /**

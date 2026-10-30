@@ -2,7 +2,7 @@
 
 Edu Studio turns a topic into a playable educational game: a course (objectives, articles, items with answer keys, game shells) that a self-contained web player plays. This server lets an agent such as Claude Code drive the studio: see the courses and the job queue, and do the model work of the jobs itself, at no cost.
 
-**Status: EGS-15.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts, output contracts, the assembly of a course and the playtest runner (EGS-07) exist as engine code; `edu_run_pipeline` runs them from a brief to a published course (EGS-08, see "Make a course from a brief"); the pictures (the art-director and the art-critic, the asset tools, placeholders) are real since EGS-15 (see "Pictures"); music and voices arrive in EGS-16 and EGS-17 (see `ROADMAP.md`); each later ticket adds its tools to this guide.
+**Status: EGS-17.** The course tools (create, edit, items, text, import, validate, build, lint), the research tools (ask the researcher, read the fact base) and the generic ones below work. The content team's prompts, output contracts, the assembly of a course and the playtest runner (EGS-07) exist as engine code; `edu_run_pipeline` runs them from a brief to a published course (EGS-08, see "Make a course from a brief"); the pictures (the art-director and the art-critic, the asset tools, placeholders) are real since EGS-15 (see "Pictures"); music and sound effects are real since EGS-16 (see "Music and sound effects") and the voice since EGS-17 (see "Voice"); each later ticket adds its tools to this guide.
 
 ## Connect
 
@@ -113,8 +113,8 @@ edu_run_pipeline {brief: {topic: "The Roman Empire", audience: "teenagers", age:
 ```
 plan -> research x N -> factbase -> curriculum -> scope (language courses)
   -> per unit, in parallel: articles -> items -> distractors -> fact_check -> explain -> accepted (language courses)
-  -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate-k2 -> art_review-k2 ...) -> music, voice (skipped until EGS-16, EGS-17) -> assemble
-  -> accessibility review (+ child-safety review for kids) -> build -> lint -> playtest -> playtest_report -> publish -> summarize
+  -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate-k2 -> art_review-k2 ...) -> music_plan -> music_generate -> assemble
+  -> accessibility review (+ child-safety review for kids) -> voice_plan -> voice_generate (after the reviews: it speaks the final text) -> build -> lint -> playtest -> playtest_report -> publish -> summarize
 ```
 
 Each step writes its output to `courses/<slug>/pipeline/` (`plan.json`, `curriculum.json`, `units/<unit>/{articles,items,distractors,explain,accepted}.json`, `reviews/*.json`, `design.json`, `story.json`, `art.json`, `polish.json`, `lint.json`, `playtest.json`, `report.json`, `publish.json`, and `steps.json` = the state), then calls `advance`, which enqueues what can run next from those files. The assemble step writes `course/pack.json` and `course/text/<lang>.json`; build and lint are the ones of `edu_build` / `edu_lint`; the playtest step plays the built game with the autoplay bot as simulated learners (needs Chromium: `yarn playwright install chromium`).
@@ -163,7 +163,13 @@ media:
     chip: snes             # Chiptune Studio chip: nes gb genesis snes pce ps1 dreamcast
   sound:
     sfxEngine: chiptune    # the sound effects: chiptune (default), a ComfyUI audio engine, custom:<workflow>, or none (made by hand)
-  voice: {}                # EGS-17
+  voice:                   # see "Voice"
+    enabled: true          # missing: on for a language course, off for the others; false: no clip; true on another course: narration only
+    provider: auto         # auto (the hub's rule) | gemini | vibetts | comfy
+    narration: true        # a few short narration clips (source language)
+    listening: true        # listening items for the taught phrases (language courses)
+    listeningPerUnit: 3
+    localVoices: {}        # language -> VibeTTS voice id (supertonic:F1, am_michael)
 ```
 
 **Providers.** ComfyUI makes the pictures (autostarted from the hub's `services.json` when `config/autostart.md` allows it; `EDU_AUTOSTART=0` turns that off). The tile set and the sprites of the RPG shell are turned into pixel art by Pixel Studio (MCP 7457: `import_image` then `export_many`; the native copy is kept next to the version); when Pixel Studio is down the built-in pixelate runs and the version carries a warning. **Google Flow is never called unless the course sets `art.provider: flow` (or one asset sets `provider: flow` with `edu_asset_set`).** Sprites are cut out with BiRefNet (a flat-colour key without it) and trimmed.
@@ -214,6 +220,38 @@ The answer is checked (areas and events exist, every area and required event cov
 | `edu_media_settings {slug, set?}` | the `media.music` and `media.sound` settings; run `edu_music_plan` again after changing them |
 
 **The bot's media check.** `scripts/play.mjs` loads every asset URL of `game-data.json` in the page (an image must decode; audio must reach `canplaythrough` or `loadedmetadata`). A failure is a `mediaErrors` entry of its summary and fails the run, like a console error (`--no-media-check` turns it off). The player logs `console.error` when an image or an audio element fails to load.
+
+## Voice: narration, listening practice and the hub's voice rule (EGS-17)
+
+A pipeline run speaks the course. `voice_plan` (the voice-director) -> `voice_generate` (no model: the providers) run **after** the audience reviews (so the clips speak the final text) and before `build`; `voice_generate` re-links the pack (the assemble merge: audio assets, `listening.asset`, derived items, narration) so the build carries the clips. Resumable and idempotent: a clip whose text, language, voice and style did not change is never spoken again, so `restart from: voice` (the stage `voice` sits between `review` and `build`) re-plans and speaks nothing that is already made. A course that is not a language course skips both steps (narration is opt-in: `media.voice.enabled: true`); `media.voice.enabled: false` skips them for a language course. The step notes say why.
+
+**The plan** (`courses/<slug>/pipeline/voice.json`). The voice-director (role `voice-director`, prompt `prompts/voice-director/plan.md`) is shown the final text and answers `{voices: {<lang>: {style, gemini?}}, narration: [{key, alt?}], derive: [{item, prompt?}], notes}`:
+- **narration** in the source language: a few short texts of the course (unit summaries, article bodies; at most 12; a long text is cut at a sentence, `narrationMaxChars` in `config/voice.md`: short narration with the text beside it). The clip is `voice-<lang>-<text key>` (`voice-en-unit-u1-summary`); `pack.extensions.narration = {<text key>: <clip id>}` links it (the encyclopedia shell reads it; the quiz arena has no narration UI);
+- **listening** in the target language (language courses): every `listening` item (hand-made ones too) gets the clip of its transcript, and `listening.asset` points at it (a tone placeholder it had is dropped from the pack, with its alt text and the parenthetical in the item texts that said it was a placeholder tone); and **listening items are derived from taught phrases** of items that already passed the fact-check: `<sourceItemId>-listen` (`u1-q2-listen`), the same objective and `extensions.facts` as the source, difficulty + 1, marked `extensions.voice.derivedFrom`; `mode: type` (the source's accepted answers) or `choose` (its options), at most `media.voice.listeningPerUnit` (3) per unit, put right after the source item. A derived item the plan no longer names is removed by the next merge; a text of a derived item that is already in the catalog (corrected by hand) is kept, and the clip speaks the catalog's text;
+- **voices**: a delivery style per language (and optionally a Gemini voice `gemini:Kore`). The settings of the course win: `media.voice.styles`, `voices.narrator.<lang>`, `localVoices.<lang>` (a VibeTTS voice id).
+
+The answer is checked (keys and items exist, no repeats, within the limits, voices of languages the course has) and sent back once in words; an answer that stays unusable is replaced by the deterministic plan from the course text (`voice.json` says `source: fallback`), so the step never blocks the course.
+
+**Who speaks: the hub's allocation rule** (`src/engine/voice/allocate.ts`, pure). Three providers: **Gemini** (Google's free voices through flow-music-mcp's `flow_narrate`, `engine: gemini` only: never the paid Flow engine), **VibeTTS** (the local tray app, MCP `http://127.0.0.1:7723/mcp`, `config/studios.md` `vibettsUrl`, `EDU_VIBETTS_URL`: `list_voices`, `synthesize_batch`; Kokoro reads en, es, fr, hi, it, pt; Supertonic 31 languages, Croatian included; Higgs about 100) and **ComfyUI TTS** (TTS Audio Suite, OmniVoice by default, reads Croatian). **VibeTTS is a tray app: Edu Studio never starts it.**
+- Gemini's free tier allows **10 requests a day** (`geminiDailyLimit` in `config/voice.md`). The counter is `state/gemini-tts.json` (`{day, used}`); the day ends at midnight of `geminiResetTz` (default `America/Los_Angeles`: the free tier resets at Pacific midnight). Every `flow_narrate` request that reaches Gemini counts (a retry too); a quota error (a 429 with a long retry delay, 5 minutes or more) sets `used` to the limit for that day. `remaining = limit - used`, never negative.
+- Languages are allocated **whole** (a language never mixes providers in one run), **Croatian first**, then English, then the others by code: if the clips of a language that need speaking (the hash index has no up-to-date clip) fit in `remaining`, the language goes to Gemini and uses that much of it; else it goes local. So hr and en together over what is left: Croatian on Gemini, English local; both fit: both on Gemini; neither fits: both local.
+- Local means VibeTTS when it lists a voice that reads the language, else ComfyUI TTS; when the chosen local provider is down, the other one. When nothing can speak a language its clips become silent placeholders (`assets/<id>/placeholder.wav`) and warnings, never a failed run; `edu_lint` warns `PLACEHOLDER_ASSET` for each, and `edu_voice_generate` replaces them when a provider is back.
+- Gemini down (flow-music-mcp not running, not signed in, no AI Studio key) or a quota error in the middle of a run: the rest of that language falls back to local; clips already made stay.
+- `media.voice.provider`: `auto` (the rule, default), `gemini` (Gemini first; the quota still applies and a language that does not fit goes local), `vibetts` (VibeTTS, then ComfyUI), `comfy` (ComfyUI, then VibeTTS). `vibetts` and `comfy` never use Gemini. The allocation of the last run is recorded per language in `voice.json` (`allocation`: the provider, the chain, the reason, how many clips each provider made, the placeholders).
+
+**Hash index.** Each clip is an asset in the manifest (`kind: voice`, `voice: {lang, key, role, text, hash, provider}`); `hash = sha1(text, lang, Gemini voice, VibeTTS voice, style, speed, format)`. The hash does not know the provider: a clip VibeTTS made is not spoken again by Gemini. A changed text makes a new version (`v2.wav`; the old one stays). A locked clip, and a clip imported with `edu_voice_import`, are kept (the status says when the text changed since the recording). The manifest is saved after every clip, so a stopped run resumes.
+
+| Tool | What it does |
+|---|---|
+| `edu_voice_plan {slug, fallback?}` | plan the narration and the listening audio of a course, also a hand-made one: queues the voice-director (a model job); `fallback: true` plans from the course text at once, with no model, and returns the clips and the derived items. Refused for a course that is not a language course until `media.voice.enabled: true`. Nothing is spoken here |
+| `edu_voice_generate {slug, lang?, force?}` | queues one job (no model) that speaks the clips by the rule above (`lang`: one language; `force`: speak again), then re-links the pack. With no plan the deterministic one is made first. Returns the job id; `edu_wait {slug}` |
+| `edu_voice_status {slug?}` | the local ComfyUI voice engines, `providers` (Gemini: up, ready, voice ids; VibeTTS: up, voices, the languages it reads, the voice configured per language, Supertonic / Higgs installed), `quota` (`{limit, used, remaining, day, tz}`) and, with `slug`, `course` (the plan, the clips: made / imported / placeholders / planned, the last allocation) and `preview` (what a run would allocate now, per language) |
+| `edu_voice_quota {reset?}` | today's Gemini quota; `reset: true` sets today's count to 0 (for a test, or when the counter is wrong) |
+| `edu_voice_import {slug, lang, key, file}` | use a recording you made as the clip of a text key (copied as it is; locked and imported); the clip must be in the plan |
+| `edu_asset_list {slug, kind: "voice"}` | the clips with their files, versions, placeholders and alt texts |
+| `edu_studios_status` | lists VibeTTS (up or not, the number of voices) with Pixel Studio, Chiptune Studio, flow-music-mcp and Scriptorium |
+
+`config/voice.md`: `geminiDailyLimit`, `geminiResetTz`, `narrationMaxChars`, `format`, `speed`; `config/studios.md`: `vibettsUrl`, `vibettsToken` (or `VIBETTS_MCP_TOKEN`). The golden fixture `hr-a1-greetings` has tone placeholders for its two listening items: `edu_voice_generate` on a copy of it (with any TTS) replaces them and the lint shows no `PLACEHOLDER_ASSET`.
 
 ## Research and the fact base
 
@@ -310,5 +348,5 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 ## Notes
 
 - Paths you pass are paths on the machine that runs Edu Studio.
-- Image generation (ComfyUI, Pixel Studio, Flow) has its tools since EGS-15 (`edu_asset_*`, see "Pictures"); music and sound effects (Chiptune Studio, ComfyUI ACE-Step, Flow Music on an opt-in) since EGS-16 (`edu_music_plan` and the same `edu_asset_*` tools, see "Music and sound effects"); voice (local TTS) arrives in EGS-17. `edu_studios_status`, `edu_comfy_status` and `edu_voice_status` check that the generators are up.
+- Image generation (ComfyUI, Pixel Studio, Flow) has its tools since EGS-15 (`edu_asset_*`, see "Pictures"); music and sound effects (Chiptune Studio, ComfyUI ACE-Step, Flow Music on an opt-in) since EGS-16 (`edu_music_plan` and the same `edu_asset_*` tools, see "Music and sound effects"); the voice (narration and listening practice; Gemini, VibeTTS and ComfyUI TTS under the hub's quota rule) since EGS-17 (`edu_voice_*`, see "Voice"). `edu_studios_status`, `edu_comfy_status` and `edu_voice_status` check that the generators are up.
 - Never start the hub's book factory (Scriptorium) from here: Edu Studio only calls it over MCP when a game needs a story.

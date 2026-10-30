@@ -289,9 +289,9 @@ export interface CustomWorkflowInfo {
   languages: string[]
 }
 
-/** One studio app (Pixel Studio, Chiptune Studio) as `studiosStatus` saw it. */
+/** One studio app (Pixel Studio, Chiptune Studio, flow-music-mcp, VibeTTS) as `studiosStatus` saw it. For VibeTTS `tools` is the number of voices it lists. */
 export interface StudioStatusView {
-  id: 'pixel' | 'chiptune' | 'flow'
+  id: 'pixel' | 'chiptune' | 'flow' | 'vibetts'
   name: string
   ok: boolean
   url: string

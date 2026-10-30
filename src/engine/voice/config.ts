@@ -9,7 +9,13 @@ export const voiceConfigSchema = z.object({
   /** The speed multiplier of the engines that take one (OmniVoice, F5-TTS). */
   speed: z.number().min(0.5).max(2).default(1),
   /** A long line is split for `UnifiedTTSTextNode` after this many characters (100-1000). */
-  chunkChars: z.number().int().min(100).max(1000).default(400)
+  chunkChars: z.number().int().min(100).max(1000).default(400),
+  /** Google's free Gemini TTS allows this many requests a day (every `flow_narrate` call that reaches Gemini counts, a retry too). */
+  geminiDailyLimit: z.number().int().min(0).default(10),
+  /** The time zone whose midnight resets the Gemini quota: Google resets the free tier at Pacific midnight. */
+  geminiResetTz: z.string().default('America/Los_Angeles'),
+  /** The most characters one narration clip speaks (a longer text is cut at a sentence). */
+  narrationMaxChars: z.number().int().min(100).max(4000).default(600)
 })
 export type VoiceConfig = z.infer<typeof voiceConfigSchema>
 

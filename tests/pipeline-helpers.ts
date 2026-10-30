@@ -31,6 +31,8 @@ export interface AuthorOptions {
   artReview?: (assetId: string, round: number) => 'pass' | 'revise'
   /** The composer's answer: `ok` (default), `merge` (every unit shares the first unit's track), `repair` (wrong the first time), `unusable` (never right: the deterministic plan is used). */
   musicPlan?: 'ok' | 'repair' | 'unusable' | 'merge'
+  /** The voice-director's answer: `ok` (default), `repair` (wrong the first time) or `unusable` (never right: the deterministic plan is used). */
+  voicePlan?: 'ok' | 'repair' | 'unusable'
 }
 
 export interface Author {
@@ -265,6 +267,41 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
         })),
       sfx: events.map((event) => ({ event, sound: SFX_SOUND[event], alt: `The sound of ${event}` })),
       notes: 'Soft and slow.'
+    }
+  })
+
+  // the voice-director narrates the first two texts it is shown and derives a listening item from at most two taught phrases of each unit (see seed/prompts/voice-director/plan.md)
+  let voiceCalls = 0
+  on('voice-director', (t) => {
+    voiceCalls++
+    log('voice-director/plan')
+    if (o.voicePlan === 'unusable' || (o.voicePlan === 'repair' && voiceCalls === 1)) return { voices: {}, narration: [{ key: 'no.such.key' }], derive: [{ item: 'no-such-item' }] }
+    const langs = /are in .* \((\w+)\)\. The language being taught: .* \((\w+)\)\./.exec(t)
+    const section = (title: RegExp): string[] => {
+      const at = lines(t).findIndex((l) => title.test(l))
+      const out: string[] = []
+      for (const l of lines(t).slice(at + 1)) {
+        if (l.startsWith('- ')) out.push(l)
+        else if (out.length > 0 || l.trim() === '') break
+      }
+      return out
+    }
+    const narration = section(/^Texts that can be narrated/).map((l) => /^- (\S+) \((?:unit|article) /.exec(l)?.[1]).filter((x): x is string => !!x)
+    const perUnit = new Map<string, number>()
+    const derive = section(/^Taught phrases that can become/)
+      .map((l) => /^- (\S+) \((?:typed|multiple choice), unit (u\d+)/.exec(l))
+      .filter((m): m is RegExpExecArray => !!m)
+      .filter((m) => {
+        const n = (perUnit.get(m[2]!) ?? 0) + 1
+        perUnit.set(m[2]!, n)
+        return n <= 2
+      })
+      .map((m) => ({ item: m[1]! }))
+    return {
+      voices: langs ? { [langs[1]!]: { style: 'warm and calm' }, [langs[2]!]: { style: 'clear and a little slow, as a teacher would say it' } } : {},
+      narration: narration.slice(0, 2).map((key) => ({ key, alt: `Audio for ${key}` })),
+      derive,
+      notes: 'Short narration, listening practice.'
     }
   })
 

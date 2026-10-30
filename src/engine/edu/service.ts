@@ -20,11 +20,12 @@ import { buildInventory, freeAllLanes } from '../comfy/inventory'
 import type { PixelClient } from '../studios/pixel'
 import type { ChiptuneClient } from '../studios/chiptune'
 import type { FlowClient } from '../studios/flow'
+import type { VibeTtsClient } from '../studios/vibetts'
 import type { ScriptoriumClient } from '../studios/scriptorium'
 import { runPlaytest } from './playtest'
 import type { PlaytestOptions, PlaytestResult } from './playtest'
 import type { ServiceStarter } from '../studios/autostart'
-import { chiptuneClientFor, flowClientFor, flowStartHint, loadStudiosConfig, pixelClientFor, scriptoriumClientFor, startHint, studioRepo, studioUrl, STUDIO_NAMES } from '../studios/config'
+import { chiptuneClientFor, flowClientFor, flowStartHint, loadStudiosConfig, pixelClientFor, scriptoriumClientFor, startHint, studioRepo, studioUrl, STUDIO_NAMES, vibettsClientFor, vibettsStartHint } from '../studios/config'
 import type { StudioId, StudiosConfig } from '../studios/config'
 import { ResearchService } from '../research/service'
 import type { SearchService } from '../research/service'
@@ -38,6 +39,7 @@ import { briefSchema, resolveBrief } from '../../shared/brief'
 import type { BriefInput } from '../../shared/brief'
 import { MediaService } from './media'
 import { MusicService } from './music-service'
+import { VoiceService } from './voice-service'
 import { Pipeline } from './pipeline'
 import type { RunResult } from './pipeline'
 import { registerPipelineHandlers } from './pipeline-handlers'
@@ -76,6 +78,10 @@ export interface EduDeps {
   pixel?: PixelClient
   chiptune?: ChiptuneClient
   flow?: FlowClient
+  /** VibeTTS, the local text-to-speech app (tests pass a fake). Default: made from `config/studios.md`. It is never started by Edu Studio. */
+  vibetts?: VibeTtsClient
+  /** The clock and the sleep of the voice step (tests pass a fixed day and an instant sleep: the Gemini quota day and the retry waits). */
+  voiceRuntime?: { now?: () => Date; sleep?: (ms: number, signal?: AbortSignal) => Promise<void> }
   /** Scriptorium (tests pass a fake). Default: made from `config/studios.md`. It is never started by Edu Studio. */
   scriptorium?: ScriptoriumClient
   /** Plays a built game with the autoplay bot (tests pass a fake; `runPlaytest` by default). */
@@ -118,6 +124,8 @@ export class EduService {
   readonly media: MediaService
   /** The music and sound effects of a course: the composer's plan and the generation (EGS-16). */
   readonly music: MusicService
+  /** The voice of a course: the voice-director's plan, the allocation across providers and the generation (EGS-17). */
+  readonly voice: VoiceService
   /** Set by the pipeline handlers: called when a research job finished its work. */
   afterResearch?: (slug: string, jobId: string) => Promise<void>
   /** `course.md` models by course: the cache `courseModel` answers from (see there). */
@@ -130,6 +138,7 @@ export class EduService {
     this.pipeline = new Pipeline(this)
     this.media = new MediaService(this)
     this.music = new MusicService(this)
+    this.voice = new VoiceService(this)
     this.factbase = new FactBase(deps.dataDir, this.research.store, { allowUnverified: () => deps.getFactory().allow_unverified_facts })
   }
 
@@ -452,8 +461,8 @@ export class EduService {
     })
   }
 
-  /** The Pixel Studio, Chiptune Studio and flow-music-mcp clients. With `autoStart` a studio that is down is started first (job paths only). */
-  async studios(o: { autoStart?: boolean; log?: (m: string) => void } = {}): Promise<{ pixel: PixelClient; chiptune: ChiptuneClient; flow: FlowClient; config: StudiosConfig }> {
+  /** The Pixel Studio, Chiptune Studio, flow-music-mcp and VibeTTS clients. With `autoStart` a studio that is down is started first (job paths only; VibeTTS is never started). */
+  async studios(o: { autoStart?: boolean; log?: (m: string) => void } = {}): Promise<{ pixel: PixelClient; chiptune: ChiptuneClient; flow: FlowClient; vibetts: VibeTtsClient; config: StudiosConfig }> {
     const config = await loadStudiosConfig(this.dataDir)
     const starter = o.autoStart ? this.deps.starter : undefined
     const hook = (id: string, url: string) => (starter ? { ensureUp: (signal?: AbortSignal) => starter.ensure(id, url, { signal, log: o.log }) } : {})
@@ -461,6 +470,7 @@ export class EduService {
       pixel: this.deps.pixel ?? pixelClientFor(config, hook('pixel-studio', config.pixelStudioUrl)),
       chiptune: this.deps.chiptune ?? chiptuneClientFor(config, hook('chiptune-studio', config.chiptuneStudioUrl)),
       flow: this.deps.flow ?? flowClientFor(config),
+      vibetts: this.deps.vibetts ?? vibettsClientFor(config),
       config
     }
   }
@@ -479,7 +489,7 @@ export class EduService {
 
   /** Asks the studios for their tools. Never throws: an unreachable studio is `ok: false` with the message (and how to start it). */
   async studiosStatus(): Promise<StudioStatusView[]> {
-    const { pixel, chiptune, flow, config } = await this.studios()
+    const { pixel, chiptune, flow, vibetts, config } = await this.studios()
     const probe = async (id: StudioId, client: PixelClient | ChiptuneClient): Promise<StudioStatusView> => {
       const base = { id, name: STUDIO_NAMES[id], url: client.url || studioUrl(config, id), repo: studioRepo(config, id), hint: startHint(config, id) }
       try {
@@ -500,7 +510,16 @@ export class EduService {
         return { ...base, ok: false, error: (e as Error).message, tools: 0 }
       }
     }
-    return Promise.all([probe('pixel', pixel), probe('chiptune', chiptune), probeFlow()])
+    const probeVibe = async (): Promise<StudioStatusView> => {
+      const base = { id: 'vibetts' as const, name: 'VibeTTS (local text-to-speech)', url: vibetts.url || config.vibettsUrl, repo: '', hint: vibettsStartHint(config) }
+      try {
+        const v = await vibetts.listVoices()
+        return { ...base, ok: true, error: '', tools: v.voices.length }
+      } catch (e) {
+        return { ...base, ok: false, error: (e as Error).message, tools: 0 }
+      }
+    }
+    return Promise.all([probe('pixel', pixel), probe('chiptune', chiptune), probeFlow(), probeVibe()])
   }
 
   async comfyStatus(): Promise<Extract<EngineEvent, { type: 'comfy.status' }>> {

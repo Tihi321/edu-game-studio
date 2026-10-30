@@ -150,3 +150,7 @@ New test files: `art-plan` (20 tests), `art-pipeline` (15), `art-tools` (8), `as
 - Placeholders: `writePlaceholder` makes an SVG card; for audio write a short WAV named `placeholder.wav` (the lint matches the file name) and extend `PlaceholderRecord` use in `MediaService`.
 - Providers, circuit breaker and fakes: `withCircuit`, `isDownError` (`edu/media.ts`), `makeEduEnv({studios: true})` hands fakes of Pixel Studio, Chiptune Studio and Flow to the engine; the bot already checks audio URLs (`canplaythrough` / `loadedmetadata`).
 - `tests/pipeline-helpers.ts` scripts roles by `on(role, ...)`: add `composer` and `voice-director` answers there; `ROLES` in `src/shared/schemas.ts` needs them too (and `PROMPT_VARS`).
+
+### Re-verification (2026-10-30, EGS-17 orchestrator)
+
+The committed tree (40a6b28) checked on its own: typecheck and lint pass, `yarn test` 59 files, 833 tests: 832 pass; the failure is the bot's hr "random 75 %" run, a hover-jitter bug of the player's `.btn` (EGS-03), fixed in the EGS-17 commit. See `changelog.md`.

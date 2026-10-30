@@ -4,7 +4,7 @@ import type { EduService } from '../edu/service'
 import type { Tool, ToolDef } from './tools'
 
 /**
- * The media tools (EGS-15, EGS-16): the assets of a course (its images, music and sound effects; the voice of EGS-17 uses the same manifest, `course/assets.json`).
+ * The media tools (EGS-15, EGS-16, EGS-17): the assets of a course (its images, music, sound effects and spoken clips, all in the same manifest, `course/assets.json`).
  * They write the manifest and then re-link the pack (`pack.assets`, the alt texts, `article.asset`, `item.asset`, `shells.config[*].art`), so a
  * course that was built before picks the change up with the next `edu_build`. Generation and planning are jobs in the queue (they take time and a
  * model): the tools return the job id, `edu_wait {slug}` waits for it.
@@ -18,6 +18,7 @@ export function mediaTools(svc: EduService, def: ToolDef): Tool[] {
     const r = await svc.media.relink(s)
     return r ? { packLinked: true, assets: r.assets, links: r.links, next: 'edu_build {slug} makes the game with the change' } : { packLinked: false, note: 'the course has no pack yet: the next assemble links the assets' }
   }
+  const voiceOff = (enabled: boolean | undefined): string => (enabled === false ? 'media.voice.enabled is false for this course (edu_media_settings sets it)' : 'the voice step is off: this is not a language course; set media.voice.enabled: true (edu_media_settings) for narration')
   const one = async (s: string, assetId: string) => (await svc.media.list(s)).find((a) => a.id === assetId)
 
   return [
@@ -75,6 +76,65 @@ export function mediaTools(svc: EduService, def: ToolDef): Tool[] {
         }
         const job = await svc.media.queue(a.slug, 'asset_music_plan', 'composer', {}, 'plan the music and the sound effects')
         return { jobs: [job], next: 'edu_wait {slug} until the plan is done, then edu_asset_generate {slug, kind: "music"} and {kind: "sfx"} (or without kind for everything)' }
+      }
+    ),
+    def(
+      'edu_voice_plan',
+      'Plan the spoken audio of a course (also a hand-made one): the voice-director (a model job) picks a few short narration clips in the source language (unit introductions, article summaries: short text beside the audio), makes sure every listening item has a clip of its transcript, and, for a language course, derives listening items from taught phrases that already passed the fact-check (ids <itemId>-listen: same objective and facts as the source item, typed or multiple choice by ear), and chooses the delivery style per language. The plan is written to pipeline/voice.json and merged into the asset manifest (clip ids voice-<lang>-<text key>; a rerun keeps the clips already made). edu_voice_generate then speaks them. Returns the job id; edu_wait {slug}. `fallback: true` makes the plan from the course text now, with no model, and returns it. Nothing is spoken here.',
+      z.object({ slug, fallback: z.boolean().optional().describe('Plan from the course text with no model, at once') }),
+      async (a) => {
+        if (!(await svc.courseExists(a.slug))) throw new Error(`no course "${a.slug}"`)
+        const e = await svc.voice.enabled(a.slug)
+        if (!e.enabled) throw new Error(voiceOff(e.media.voice.enabled))
+        if (a.fallback) {
+          const r = await svc.voice.planFromText(a.slug)
+          return { clips: r.plan.clips.length, listening: r.plan.clips.filter((c) => c.role === 'listening').length, narration: r.plan.clips.filter((c) => c.role === 'narration').length, derivedItems: r.plan.derived.map((d) => d.id), added: r.added, kept: r.kept, source: r.plan.source, voices: r.plan.voices, ...(await relinked(a.slug)), next: 'edu_voice_generate {slug} speaks the clips' }
+        }
+        const job = await svc.media.queue(a.slug, 'asset_voice_plan', 'voice-director', {}, 'plan the narration and the listening audio')
+        return { jobs: [job], next: 'edu_wait {slug} until the plan is done, then edu_voice_generate {slug}' }
+      }
+    ),
+    def(
+      'edu_voice_generate',
+      "Speak the clips of a course's voice plan: queues one job (no model). Who speaks is decided per language by the hub's rule: Google's free Gemini voices (flow-music-mcp, never the paid Flow engine) while the day's free quota lasts (a counter in state/gemini-tts.json, limit config/voice.md geminiDailyLimit, 10 by default, reset at midnight of geminiResetTz), Croatian first; a language that does not fit in what is left goes to local voices (VibeTTS when it reads the language, else ComfyUI TTS), and a language is never split between providers in one run. A provider that is down or out of quota gives the rest of its language to the next; what nothing can speak becomes a silent placeholder (the lint warns), never a failed job. A clip whose text, language, voice and style did not change is not spoken again (hash index in the manifest); changed text makes a new version; clips imported with edu_voice_import and locked ones are kept. media.voice.provider forces one: auto (default), gemini (still respects the quota), vibetts, comfy. With no plan yet the deterministic plan is made first. Afterwards the pack is re-linked (listening.asset, the derived -listen items, pack.extensions.narration). `lang` speaks one language only, `force` speaks the clips again. Returns the job id; edu_wait {slug}, edu_voice_status {slug} shows the result.",
+      z.object({ slug, lang: z.string().optional().describe('Only this language'), force: z.boolean().optional().describe('Speak the clips again even when nothing changed') }),
+      async (a) => {
+        if (!(await svc.courseExists(a.slug))) throw new Error(`no course "${a.slug}"`)
+        const e = await svc.voice.enabled(a.slug)
+        if (!e.enabled) throw new Error(voiceOff(e.media.voice.enabled))
+        const job = await svc.media.queue(a.slug, 'asset_voice_generate', 'voice-director', { ...(a.lang ? { lang: a.lang } : {}), ...(a.force ? { force: true } : {}) }, 'speak the clips')
+        return { jobs: [job], next: 'edu_wait {slug}, then edu_voice_status {slug}' }
+      }
+    ),
+    def(
+      'edu_voice_status',
+      "The voice of Edu Studio: the local ComfyUI voice engines (the TTS Audio Suite) and sound-effect engines (each engine id, label, task (voice or effect), the languages it reads (`*` means any language), whether it is ready and which ComfyUI nodes are missing, plus the custom TTS workflows), `providers` (Gemini: up, ready, the voices; VibeTTS: up, the voices, the languages it reads, the configured voice per language, Supertonic and Higgs installed; VibeTTS is never started by Edu Studio) and `quota` (the Gemini free quota today: {limit, used, remaining, day, tz}). With `slug`: `course` (the voice plan, the clips: made, imported, placeholders, planned, and the allocation of the last run per language) and `preview` (the allocation a run would make now: the clips that need speaking per language, the provider each language would go to and why; nothing is spoken).",
+      z.object({ slug: z.string().optional().describe('A course: adds its voice plan, clips and the allocation') }),
+      async (a) => {
+        if (a.slug && !(await svc.courseExists(a.slug))) throw new Error(`no course "${a.slug}"`)
+        const { type: _type, ...status } = await svc.voiceStatus()
+        return {
+          ...status,
+          providers: await svc.voice.providers(),
+          quota: await svc.voice.quotaView(),
+          ...(a.slug ? { course: await svc.voice.courseStatus(a.slug), preview: await svc.voice.preview(a.slug) } : {})
+        }
+      }
+    ),
+    def(
+      'edu_voice_quota',
+      "The Gemini free quota of today: {limit, used, remaining, day, tz} (every Gemini request counts, a retry too; the day follows geminiResetTz, Pacific time by default; a quota error from Google uses the whole day up). `reset: true` sets today's count back to 0: only for a test or when the counter is wrong (for example you know the quota was reset).",
+      z.object({ reset: z.boolean().optional().describe("Set today's count to 0") }),
+      async (a) => ({ quota: a.reset ? await svc.voice.resetQuota() : await svc.voice.quotaView(), ...(a.reset ? { reset: true } : {}) })
+    ),
+    def(
+      'edu_voice_import',
+      'Use a recording you made (or made elsewhere) as the clip of a text: the file (wav, mp3, ogg, m4a ...) is copied as it is to assets/<id>/, the clip is locked and marked imported, so generation keeps it even when the text changes (edu_voice_status counts those). The clip must be in the voice plan (edu_voice_plan {slug} first); `key` is the text key the clip speaks (item.<id>.transcript, unit.u1.summary). The pack is re-linked.',
+      z.object({ slug, lang: z.string().describe('The language the clip speaks (hr, en ...)'), key: z.string().describe('The text key of the clip (edu_voice_status {slug} lists them: course.detail)'), file: z.string().describe('The path of the audio file, on the machine that runs Edu Studio') }),
+      async (a) => {
+        if (!(await svc.courseExists(a.slug))) throw new Error(`no course "${a.slug}"`)
+        const r = await svc.voice.importClip(a.slug, { lang: a.lang, key: a.key, file: a.file })
+        return { ...r, ...(await relinked(a.slug)) }
       }
     ),
     def(

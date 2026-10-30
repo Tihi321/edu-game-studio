@@ -12,7 +12,7 @@ import { ROLES } from '../src/shared/schemas'
 import { FakeFlow } from './flow-fakes'
 import { makeEnv, waitFor } from './helpers'
 import type { TestEnv } from './helpers'
-import { FakeChiptune, FakePixel } from './studio-fakes'
+import { FakeChiptune, FakePixel, FakeVibeTts } from './studio-fakes'
 
 /** A red ellipse on a transparent background: a figure that is not a rectangle, so a trim leaves transparent corners. */
 const ellipse = (w: number, h: number): Promise<Buffer> => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><ellipse cx="${w / 2}" cy="${h / 2}" rx="${w / 2}" ry="${h / 2}" fill="#c81e1e"/></svg>`)).png().toBuffer()
@@ -83,6 +83,8 @@ export interface EduEnv extends TestEnv {
   chiptune: FakeChiptune
   /** Google Flow: a course only reaches it when it asks (`art.provider: flow`): its calls are recorded to prove that. */
   flow: FakeFlow
+  /** VibeTTS: the voice step reaches it only when the hub's rule sends a language local (EGS-17). */
+  vibetts: FakeVibeTts
 }
 
 /**
@@ -95,6 +97,7 @@ export async function makeEduEnv(o: { engine?: Partial<EngineOptions>; client?: 
   const pixel = new FakePixel()
   const chiptune = new FakeChiptune()
   const flow = new FakeFlow()
+  const vibetts = new FakeVibeTts()
   const env = await makeEnv(
     {
       ...(o.mixed ? { providers: [{ id: 'loc', local: true, concurrency: 4, models: ['m1'] }, { id: 'client', kind: 'client' as const, local: true, concurrency: 8, models: ['claude-code'], vision: true }] } : {}),
@@ -103,9 +106,9 @@ export async function makeEduEnv(o: { engine?: Partial<EngineOptions>; client?: 
       roles: Object.fromEntries(ROLES.map((r) => [r, [o.client ? 'client/claude-code' : o.vision && r === 'art-critic' ? 'vis/v1' : 'loc/m1']])),
       agents: ROLES.map((r) => ({ role: r, name: 'Test', ...(o.mixed ? { maxParallel: 4 } : {}) }))
     },
-    { comfy, ...(o.studios ? { pixel, chiptune, flow } : {}), ...(o.engine ?? {}) }
+    { comfy, ...(o.studios ? { pixel, chiptune, flow, vibetts, voiceRuntime: { sleep: async () => undefined } } : {}), ...(o.engine ?? {}) }
   )
-  return Object.assign(env, { comfy, pixel, chiptune, flow })
+  return Object.assign(env, { comfy, pixel, chiptune, flow, vibetts })
 }
 
 /** The JSON array that follows a label line in a rendered prompt (`Items to settle...:` then the JSON). */

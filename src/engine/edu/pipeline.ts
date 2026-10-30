@@ -19,8 +19,9 @@ import { assertSlug, coursesDir } from './paths'
  * ```
  * plan -> research x N -> factbase -> curriculum -> scope (language courses)
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
- *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> voice (hook, skipped until EGS-17) -> assemble
- *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise) -> build -> lint -> playtest
+ *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> assemble
+ *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise)
+ *   -> voice_plan -> voice_generate (EGS-17: after the reviews, so the clips speak the final text; the pack is re-linked) -> build -> lint -> playtest
  *   -> playtest_report -> publish (code: must-pass, threshold, hard gates; the publisher writes the blurb) -> summarize
  * ```
  *
@@ -32,7 +33,7 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'voice', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
 
 /** Which stage a task belongs to (for `restart from`). */
@@ -58,7 +59,8 @@ const STAGE_OF: Record<string, Stage> = {
   art_review: 'art',
   music_plan: 'music',
   music_generate: 'music',
-  voice: 'art',
+  voice_plan: 'voice',
+  voice_generate: 'voice',
   assemble: 'assemble',
   review_accessibility: 'review',
   review_child_safety: 'review',
@@ -88,20 +90,11 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   music: ['music.json'],
   assemble: ['assembled.json', 'polish.json'],
   review: ['reviews/review-*'],
+  voice: ['voice.json'],
   lint: ['lint.json'],
   playtest: ['playtest.json', 'report.json'],
   publish: ['publish.json']
 }
-
-/** The hook of the generator that is not built yet (EGS-17 voice): recorded as skipped until a ticket fills it. Art is real since EGS-15, music since EGS-16. */
-export interface MediaHook {
-  id: 'voice'
-  /** Why it did not run. */
-  skipped: string
-}
-export const MEDIA_HOOKS: MediaHook[] = [
-  { id: 'voice', skipped: 'EGS-17: voices are made by the generators later' }
-]
 
 export type StepStatus = 'queued' | 'done' | 'skipped' | 'blocked'
 
@@ -493,7 +486,6 @@ export class Pipeline {
     else if ((await this.ensure(c, { task: 'story', role: 'narrative-designer', label: R.brief.story === 'frame' ? 'write the frame story' : 'hand the story to Scriptorium' })) !== 'done') return 'running'
     if ((await this.artFlow(c)) !== 'done') return 'running'
     if ((await this.musicFlow(c)) !== 'done') return 'running'
-    for (const h of MEDIA_HOOKS) this.skip(c, h.id, null, h.skipped)
 
     // assemble, then the audience reviews; a revise goes through polish and assemble again
     const roles: [string, string][] = [['review_accessibility', 'accessibility-reviewer'], ...(R.kids ? ([['review_child_safety', 'child-safety-reviewer']] as [string, string][]) : [])]
@@ -525,6 +517,8 @@ export class Pipeline {
       if ((await this.ensure(c, { task: 'polish', role: 'explainer', round: k + 1, label: `polish the texts the reviewers flagged (round ${k + 1})` })) !== 'done') return 'running'
       k++
     }
+
+    if ((await this.voiceFlow(c)) !== 'done') return 'running'
 
     for (const [task, role, label] of [
       ['build', 'director', 'build the game'],
@@ -581,6 +575,23 @@ export class Pipeline {
     }
     if ((await this.ensure(c, { task: 'music_plan', role: 'composer', label: 'plan the music and the sound effects' })) !== 'done') return 'wait'
     if ((await this.ensure(c, { task: 'music_generate', role: 'composer', label: 'make the music and the sound effects' })) !== 'done') return 'wait'
+    return 'done'
+  }
+
+  /**
+   * The voice steps (EGS-17): the voice-director plans what is spoken (`voice_plan`: narration, the listening items and the ones derived from taught
+   * phrases), the providers speak it by the hub's allocation rule (`voice_generate`, no model: Gemini within the day's quota, VibeTTS, ComfyUI TTS). They run
+   * after the audience reviews, so the clips speak the final text, and re-link the pack before the build. Providers that are down give silent
+   * placeholders and a note, never a failed run. Skipped when the voice step is off for the course. 'done' when the flow is settled.
+   */
+  private async voiceFlow(c: Ctx): Promise<'done' | 'wait'> {
+    const on = await this.svc.voice.enabled(c.slug)
+    if (!on.enabled) {
+      for (const t of ['voice_plan', 'voice_generate']) this.skip(c, t, null, on.media.voice.enabled === false ? 'media.voice.enabled is false: the course has no spoken clips' : 'not a language course and media.voice.enabled is not true: no narration or listening audio is made')
+      return 'done'
+    }
+    if ((await this.ensure(c, { task: 'voice_plan', role: 'voice-director', label: 'plan the narration and the listening audio' })) !== 'done') return 'wait'
+    if ((await this.ensure(c, { task: 'voice_generate', role: 'voice-director', label: 'speak the clips and link them into the course' })) !== 'done') return 'wait'
     return 'done'
   }
 

@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { RegionShape } from '../../shared/course'
-import { AUDIO_KINDS } from '../../shared/media'
+import { SOUND_KINDS } from '../../shared/media'
 import type { AssetEntry } from '../../shared/media'
 import { artSizes } from '../../shared/art'
 import type { ArtKind } from '../../shared/art'
@@ -16,7 +16,7 @@ import { silentWav } from './wav'
  */
 
 export const PLACEHOLDER_FILE = 'placeholder.svg'
-/** The placeholder of a sound: a second of silence, named `placeholder` so the lint warns like it does for a picture (EGS-16). */
+/** The placeholder of a sound (music, an effect, a spoken clip): a second of silence, named `placeholder` so the lint warns like it does for a picture (EGS-16). */
 export const PLACEHOLDER_AUDIO_FILE = 'placeholder.wav'
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -56,7 +56,7 @@ export function placeholderSvg(entry: Pick<AssetEntry, 'id' | 'kind' | 'alt' | '
 /** Writes the placeholder of an asset (a card for a picture, a short silent WAV for a sound) and returns the entry that records it (no version, nothing selected). */
 export async function writePlaceholder(projectDir: string, entry: AssetEntry, reason: string): Promise<AssetEntry> {
   const dir = assetDir(projectDir, entry.id)
-  if (AUDIO_KINDS.has(entry.kind)) {
+  if (SOUND_KINDS.has(entry.kind)) {
     const file = path.join(dir, PLACEHOLDER_AUDIO_FILE)
     await fs.mkdir(dir, { recursive: true })
     const tmp = `${file}.tmp-${process.pid}-${Date.now().toString(36)}`

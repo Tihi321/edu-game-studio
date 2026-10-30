@@ -1,5 +1,9 @@
 # EGS-16 changelog
 
+## 2026-10-30: re-verification of the committed tree (EGS-17 run)
+
+The committed tree of `EGS-16_music` commit 8a99a20 was exported (`git archive`) and checked on its own: `yarn typecheck` passes, `yarn lint` passes, `yarn test` 64 files, 909 tests: 908 pass. The one failure is `tests/bot.e2e.test.ts` hr-a1-greetings "random: a seeded 75 % learner" (click on `next` times out: "element is not stable"). It is not caused by this ticket: the pointer rests on the edge of the Next button after the `g-formal-sort` item and the `.btn:hover` lift makes the button jitter forever (a player CSS bug from EGS-03). Fixed in the EGS-17 commit (`src/player/style/theme.css`, a hover area that moves with the button); with it the suite passes in full (EGS-17: 68 files, 969 tests). Nothing else in this ticket needed a fix.
+
 ## 2026-10-29: music and sound effects, the composer, the player's audio
 
 Branch `EGS-16_music` (stacked on `EGS-15_art`), one commit `EGS-16: ...`; not pushed.

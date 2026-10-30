@@ -4,6 +4,7 @@ import { languageInfo } from '../../shared/languages'
 import type { ResolvedBrief } from '../../shared/brief'
 import type { TextCatalog } from '../../shared/course'
 import { loadCourseFolder } from './course-io'
+import type { VoiceGenerateResult } from './voice-service'
 import type { HandlerOptions, JobContext, Scheduler } from '../queue/scheduler'
 import type { JobFile } from '../queue/jobs'
 import { countsAsRevise, runReview, scoresExample } from '../review/scoring'
@@ -628,6 +629,56 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         ...(rep.warnings.length ? [`${rep.warnings.length} warning(s): ${rep.warnings.slice(0, 2).map((w) => `${w.id}: ${w.warning}`).join('; ').slice(0, 200)}`] : [])
       ]
       return { note: bits.join(', '), path: `courses/${h.slug}/course/assets.json` }
+    },
+    { noModel: true }
+  )
+
+  const voiceNote = (rep: VoiceGenerateResult): string => {
+    const by: Record<string, number> = {}
+    for (const a of Object.values(rep.allocation)) for (const [k, n] of Object.entries(a.made ?? {})) by[k] = (by[k] ?? 0) + n
+    const bits = [
+      `${rep.made.length} clip(s) spoken${Object.keys(by).length ? ` (${Object.entries(by).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}`,
+      ...(rep.kept.length ? [`${rep.kept.length} already there`] : []),
+      ...(rep.placeholders.length ? [`${rep.placeholders.length} placeholder(s) stand in (nothing could speak them)`] : []),
+      ...Object.values(rep.allocation).filter((a) => a.need > 0).map((a) => `${a.lang}: ${a.provider}`),
+      ...(rep.warnings.length ? [`${rep.warnings.length} warning(s): ${rep.warnings.slice(0, 2).join('; ').slice(0, 200)}`] : [])
+    ]
+    return bits.join(', ')
+  }
+
+  // ---- voice (EGS-17): plan, speak ----
+
+  step('voice_plan', async (h) => {
+    const r = await svc.voice.plan(h.ctx, h.slug)
+    const narration = r.plan.clips.filter((c) => c.role === 'narration').length
+    return { note: `${r.plan.clips.length} clip(s) planned (${r.plan.clips.length - narration} listening, ${narration} narration), ${r.plan.derived.length} listening item(s) made from taught phrases${r.plan.source === 'fallback' ? ' (from the course text: the voice-director gave no usable answer)' : ''}, ${r.added.length} new, ${r.kept.length} kept from earlier`, path: 'pipeline/voice.json' }
+  })
+
+  step(
+    'voice_generate',
+    async (h) => {
+      const rep = await svc.voice.generate(h.slug, { signal: h.ctx.signal, log: (m) => h.ctx.log(m) })
+      return { note: voiceNote(rep), path: 'pipeline/voice.json' }
+    },
+    { noModel: true }
+  )
+
+  sched.register('asset_voice_plan', async (ctx) => {
+    const slug = ctx.job.book
+    if (!slug) throw new Error('the asset_voice_plan job has no course')
+    const r = await svc.voice.plan(ctx, slug)
+    const linked = await svc.media.relink(slug)
+    return { result: `${r.plan.clips.length} clip(s) planned (${r.plan.source}), ${r.plan.derived.length} derived listening item(s), ${r.added.length} new, ${r.kept.length} kept${linked ? `, pack linked to ${linked.assets} asset(s)` : ''}`, resultPath: 'pipeline/voice.json' }
+  })
+
+  sched.register(
+    'asset_voice_generate',
+    async (ctx) => {
+      const slug = ctx.job.book
+      if (!slug) throw new Error('the asset_voice_generate job has no course')
+      const p = (ctx.job as { params?: { lang?: string; force?: boolean } }).params ?? {}
+      const rep = await svc.voice.generate(slug, { ...(p.lang ? { lang: p.lang } : {}), ...(p.force ? { force: true } : {}), signal: ctx.signal, log: (m) => ctx.log(m) })
+      return { result: voiceNote(rep), resultPath: 'pipeline/voice.json' }
     },
     { noModel: true }
   )

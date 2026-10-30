@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
-import { AUDIO_KINDS, IMAGE_KINDS } from '../../shared/media'
+import { IMAGE_KINDS, SOUND_KINDS } from '../../shared/media'
 import type { AssetEntry } from '../../shared/media'
 import { setCustom } from './manifest'
 import { dropPlaceholder } from './placeholder'
@@ -26,7 +26,7 @@ export async function checkImportFile(entry: Pick<AssetEntry, 'id' | 'kind'>, fi
     if (ext === '.svg') {
       if (!/<svg[\s>]/i.test(await fs.readFile(file, 'utf8'))) throw new Error(`"${path.basename(file)}" is not an SVG image`)
     } else await sharp(await fs.readFile(file)).metadata() // a file that is not an image fails here, with sharp's own message
-  } else if (AUDIO_KINDS.has(entry.kind)) {
+  } else if (SOUND_KINDS.has(entry.kind)) {
     if (!AUDIO_EXTENSIONS.includes(ext)) throw new Error(`${entry.id} is audio: use a ${AUDIO_EXTENSIONS.join(', ')} file (got ${ext || 'no extension'})`)
   } else throw new Error(`cannot import a file as ${entry.kind}`)
 }

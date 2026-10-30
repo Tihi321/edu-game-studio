@@ -11,6 +11,8 @@ import { createScriptoriumClient, DEFAULT_SCRIPTORIUM_URL } from './scriptorium'
 import type { ScriptoriumClient } from './scriptorium'
 import { createPixelClient } from './pixel'
 import type { PixelClient } from './pixel'
+import { DEFAULT_VIBETTS_URL, createVibeTtsClient } from './vibetts'
+import type { VibeTtsClient } from './vibetts'
 
 export type StudioId = 'pixel' | 'chiptune'
 
@@ -18,6 +20,7 @@ export const DEFAULT_PIXEL_STUDIO_URL = 'http://127.0.0.1:7457/mcp'
 export const DEFAULT_CHIPTUNE_STUDIO_URL = 'http://127.0.0.1:7458/mcp'
 export const DEFAULT_FLOW_URL = 'http://127.0.0.1:7462/mcp'
 export { DEFAULT_SCRIPTORIUM_URL } from './scriptorium'
+export { DEFAULT_VIBETTS_URL } from './vibetts'
 
 /** `config/studios.md`: where Pixel Studio and Chiptune Studio are, and where their code is (for the start hints and "Open in"). */
 export const studiosConfigSchema = z.object({
@@ -40,6 +43,10 @@ export const studiosConfigSchema = z.object({
   scriptoriumUrl: z.string().default(DEFAULT_SCRIPTORIUM_URL),
   /** The bearer token of its MCP server, only when it has one. `SCRIPTORIUM_MCP_TOKEN` (environment or credential store) wins over this. */
   scriptoriumToken: z.string().default(''),
+  /** VibeTTS (local text-to-speech: Kokoro, Supertonic, Higgs). `EDU_VIBETTS_URL` overrides the URL. Edu Studio never starts it (a tray app). */
+  vibettsUrl: z.string().default(DEFAULT_VIBETTS_URL),
+  /** The bearer token of its MCP server, only when it has one. `VIBETTS_MCP_TOKEN` (environment or credential store) wins over this. */
+  vibettsToken: z.string().default(''),
   /** Seconds per `flow_wait` / `music_wait` call (the server allows at most 50). */
   flowPollS: z.number().min(1).max(50).default(40),
   /** Give up on one Flow image job / one Flow Music song after this many seconds. */
@@ -91,7 +98,8 @@ export async function loadStudiosConfig(dataDir: string, env: NodeJS.ProcessEnv 
     ...(env.EDU_PIXEL_STUDIO_URL ? { pixelStudioUrl: env.EDU_PIXEL_STUDIO_URL } : {}),
     ...(env.EDU_CHIPTUNE_STUDIO_URL ? { chiptuneStudioUrl: env.EDU_CHIPTUNE_STUDIO_URL } : {}),
     ...(env.EDU_FLOW_URL ? { flowUrl: env.EDU_FLOW_URL } : {}),
-    ...(env.EDU_SCRIPTORIUM_URL ? { scriptoriumUrl: env.EDU_SCRIPTORIUM_URL } : {})
+    ...(env.EDU_SCRIPTORIUM_URL ? { scriptoriumUrl: env.EDU_SCRIPTORIUM_URL } : {}),
+    ...(env.EDU_VIBETTS_URL ? { vibettsUrl: env.EDU_VIBETTS_URL } : {})
   }
 }
 
@@ -146,6 +154,16 @@ export const flowToken = (c: StudiosConfig, env: NodeJS.ProcessEnv = process.env
 /** The Scriptorium client. No `ensureUp`: Edu Studio never starts Scriptorium. */
 export function scriptoriumClientFor(c: StudiosConfig): ScriptoriumClient {
   return createScriptoriumClient({ url: c.scriptoriumUrl, token: resolveToken('SCRIPTORIUM_MCP_TOKEN', c.scriptoriumToken), timeoutMs: c.timeoutS * 1000 })
+}
+
+/** How to start VibeTTS (the text of its "not running" error): it is a tray app, started by hand. */
+export function vibettsStartHint(c: StudiosConfig): string {
+  return `VibeTTS is not running at ${c.vibettsUrl}. Start the VibeTTS app (it sits in the tray) and turn its MCP server on; Edu Studio never starts it.`
+}
+
+/** The VibeTTS client. No `ensureUp`: Edu Studio never starts VibeTTS. */
+export function vibettsClientFor(c: StudiosConfig): VibeTtsClient {
+  return createVibeTtsClient({ url: c.vibettsUrl, token: resolveToken('VIBETTS_MCP_TOKEN', c.vibettsToken), notRunningHint: vibettsStartHint(c), timeoutMs: c.timeoutS * 1000 })
 }
 
 export function flowClientFor(c: StudiosConfig, o: ClientHooks = {}): FlowClient {

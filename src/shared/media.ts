@@ -16,6 +16,9 @@ export type Lang = z.infer<typeof langSchema>
 export const ART_PROVIDERS = ['comfy', 'pixel-studio-draw', 'hand', 'flow'] as const
 export const PIXEL_PROVIDERS = ['builtin', 'pixel-studio'] as const
 export const MUSIC_PROVIDERS = ['comfy', 'chiptune', 'flow'] as const
+/** The voice providers of a course (`media.voice.provider`, EGS-17). `auto` is the hub's allocation rule. */
+export const VOICE_PROVIDERS = ['auto', 'gemini', 'vibetts', 'comfy'] as const
+export type VoiceProvider = (typeof VOICE_PROVIDERS)[number]
 /** The chips of Chiptune Studio (`ps1` and `dreamcast` are its later, lusher chips; EGS-16 ported them with the composer). */
 export const CHIPS = ['nes', 'gb', 'genesis', 'snes', 'pce', 'ps1', 'dreamcast'] as const
 export const DITHERS = ['none', 'ordered', 'floyd'] as const
@@ -56,7 +59,8 @@ function legacyVoices(raw: unknown): unknown {
 
 /**
  * Brings a `voice` block from before the local engines in line with the schema: the old Flow delivery notes (`flowStyles`) become
- * `styles`, and `englishEngine` (Kokoro or Supertonic) is dropped together with a `vibetts` provider.
+ * `styles`, `englishEngine` (Kokoro or Supertonic) is dropped, and the old provider `flow` (Google Flow's free Gemini voices) is now `gemini`
+ * (EGS-17: the providers are `auto`, `gemini`, `vibetts` and `comfy`).
  */
 function upgradeVoice(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
@@ -72,7 +76,7 @@ function upgradeVoice(raw: unknown): unknown {
   out.styles = styles
   delete out.flowStyles
   delete out.englishEngine
-  if (out.provider === 'vibetts') out.provider = 'comfy'
+  if (out.provider === 'flow') out.provider = 'gemini'
   return out
 }
 
@@ -139,10 +143,23 @@ export const courseSettingsSchema = z.object({
     .preprocess(
       upgradeVoice,
       z.object({
-        enabled: z.boolean().default(false),
+        /** The voice step runs. Missing: it runs for a language course (listening practice) and is off for the others (narration is opt-in: `true`). `false`: no clip is planned or made. */
+        enabled: z.boolean().optional(),
         langs: z.array(langSchema).default([]),
-        /** Where the clips come from: the local ComfyUI TTS Audio Suite (`comfy`, the default) or Google Flow (`flow`, cloud). */
-        provider: z.enum(['comfy', 'flow']).default('comfy'),
+        /**
+         * Who speaks (EGS-17): `auto` (the hub's allocation rule: Google's free Gemini voices while the day's quota lasts, Croatian first, else local),
+         * `gemini` (Gemini first; the quota still applies and a language that does not fit goes local), `vibetts` (VibeTTS, then ComfyUI) or
+         * `comfy` (the ComfyUI TTS Audio Suite, then VibeTTS). Gemini is never the paid Flow engine.
+         */
+        provider: z.enum(VOICE_PROVIDERS).default('auto'),
+        /** Narration: the voice-director picks short texts of the course (unit intros, article bodies) and they are spoken in the source language. */
+        narration: z.boolean().default(true),
+        /** Listening practice (language courses): every listening item gets its clip, and listening items are derived from taught phrases. */
+        listening: z.boolean().default(true),
+        /** At most this many listening items are derived from each unit's taught phrases. */
+        listeningPerUnit: z.number().int().min(0).max(12).default(3),
+        /** Language -> the VibeTTS voice id (`supertonic:F1`, `am_michael`). Missing: VibeTTS's own voice for that language. */
+        localVoices: z.record(z.string(), z.string()).default({}),
         /** The local TTS engine of every language without an `engines` entry. */
         engine: z.string().default(DEFAULT_VOICE_ENGINE),
         /** Language -> a built-in TTS engine id (`omnivoice`, `f5-tts` ...) or `custom:<workflow>`. */
@@ -155,7 +172,7 @@ export const courseSettingsSchema = z.object({
         voices: z.preprocess(legacyVoices, z.record(z.string(), z.record(langSchema, z.string()))).default({})
       })
     )
-    .default({ enabled: false, langs: [], provider: 'comfy', engine: DEFAULT_VOICE_ENGINE, engines: {}, styles: {}, refTexts: {}, voices: {} }),
+    .default({ langs: [], provider: 'auto', narration: true, listening: true, listeningPerUnit: 3, localVoices: {}, engine: DEFAULT_VOICE_ENGINE, engines: {}, styles: {}, refTexts: {}, voices: {} }),
   /**
    * Sound effects and ambiences. `ambienceEngine` is a ComfyUI music engine (the default) or `chiptune` (Chiptune Studio's `compose_sfx` ambience loops).
    * `sfxEngine` names the engine of a sound effect: an audio engine (MOSS-SoundEffect v2 included), `chiptune` (Chiptune Studio's `compose_sfx`) or a
@@ -209,6 +226,10 @@ export const IMAGE_KINDS: ReadonlySet<string> = new Set(['background', 'sheet', 
 export const PIXEL_KINDS: ReadonlySet<string> = new Set(['sprite', 'tileset'])
 /** The asset kinds that are audio, made by a model or imported (a voice reference is audio too, but only ever uploaded). */
 export const AUDIO_KINDS: ReadonlySet<string> = new Set(['music', 'sfx', 'ambience'])
+/** A spoken clip (EGS-17): narration or a listening item's audio, made by a TTS provider. Not in `AUDIO_KINDS`: the music steps never touch it. */
+export const VOICE_KIND = 'voice'
+/** Every asset kind whose file is a sound (music, effects, ambience and spoken clips). */
+export const SOUND_KINDS: ReadonlySet<string> = new Set([...AUDIO_KINDS, VOICE_KIND])
 /** Hand-made art: Edu Studio never generates an image (any art style). */
 export const isHandArt = (art: Pick<CourseSettings['art'], 'provider'>): boolean => art.provider === 'hand'
 
@@ -226,6 +247,14 @@ export const flowMusicAllowed = (settings: Pick<CourseSettings, 'music'>): boole
 /** The TTS engine of one language: its `voice.engines` entry, else the course default `voice.engine`. */
 export function resolveVoiceEngine(settings: Pick<CourseSettings, 'voice'>, lang: Lang | string): string {
   return settings.voice.engines[lang] ?? settings.voice.engine
+}
+
+/**
+ * Whether the voice step runs for a course (EGS-17): `voice.enabled` when set, else yes for a language course (listening practice) and no for the others
+ * (narration is opt-in, it needs a text-to-speech provider).
+ */
+export function voiceEnabled(settings: Pick<CourseSettings, 'voice'>, languageCourse: boolean): boolean {
+  return settings.voice.enabled ?? languageCourse
 }
 
 /** The pseudo engine id of a music asset made by Chiptune Studio. */
@@ -253,7 +282,7 @@ export function resolveSfxEngine(settings: Pick<CourseSettings, 'art' | 'music' 
 
 // ---- assets (assets.json) ----
 
-export const ASSET_KINDS = ['background', 'sheet', 'sprite', 'cover', 'cg', 'illustration', 'tileset', 'music', 'sfx', 'ambience', 'voiceRef'] as const
+export const ASSET_KINDS = ['background', 'sheet', 'sprite', 'cover', 'cg', 'illustration', 'tileset', 'music', 'sfx', 'ambience', 'voiceRef', 'voice'] as const
 export const assetKindSchema = z.enum(ASSET_KINDS)
 export type AssetKind = z.infer<typeof assetKindSchema>
 
@@ -309,6 +338,24 @@ export const assetEntrySchema = z.object({
   provider: z.enum(['comfy', 'flow']).optional(),
   /** The size the picture is fitted to when it is finished (a hotspot image is fitted to its item's width and height). Missing: by kind. */
   fit: z.object({ w: z.number().int().positive(), h: z.number().int().positive() }).optional(),
+  /**
+   * A spoken clip (`kind: voice`, EGS-17): what it says and the hash index. `hash` is `sha1(text, lang, voice, style, speed, format)`: a clip whose
+   * hash did not change is not spoken again, whatever provider made it; a changed text makes a new version.
+   */
+  voice: z
+    .object({
+      lang: langSchema,
+      /** The catalog key whose text is spoken. */
+      key: z.string(),
+      role: z.enum(['listening', 'narration']),
+      text: z.string(),
+      hash: z.string(),
+      /** What made the selected version: `gemini`, `vibetts`, `comfy` or `import` (made by hand). */
+      provider: z.string().optional(),
+      /** A clip imported with `edu_voice_import`: generation keeps it (the text may have changed since: `status` counts those). */
+      imported: z.boolean().optional()
+    })
+    .optional(),
   /** No image could be made yet: the placeholder card in `assets/<id>/<file>` stands in (lint warns `PLACEHOLDER_ASSET`) until a version exists. */
   placeholder: z.object({ file: z.string(), reason: z.string() }).optional(),
   review: z

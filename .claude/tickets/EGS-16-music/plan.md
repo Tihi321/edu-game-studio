@@ -99,3 +99,7 @@ Run from PowerShell as `fnm exec --using=24 cmd /c "yarn <script> > .claude\temp
 - Placeholders: `writePlaceholder` already writes `placeholder.wav` for the audio kinds in `AUDIO_KINDS` (`music`, `sfx`, `ambience`); a voice clip kind will need adding there, in `MediaService.mergeFor` (which links every `AUDIO_KINDS` asset that is in the music plan, or all of them when there is no music plan: a voice clip must be linked through its own path or it would be dropped as unplanned) and in `generateAsset`.
 - `src/engine/assets/wav.ts` (`toneWav`, `silentWav`) is what the fakes use for real decodable audio; a TTS fake can use it. `MediaMerge.cues` / `loops` and `applyMedia` are the place for `listening.asset` links too.
 - The pipeline: `STAGES` has `music`; `voice` is still the skipped hook (`MEDIA_HOOKS`, `STAGE_OF.voice = 'art'`: give it its own stage and run it after the audience review as the EGS-17 plan says). `ROLES` and `PROMPT_VARS` get `voice-director` the way `composer` did.
+
+### Re-verification (2026-10-30, EGS-17 orchestrator)
+
+The committed tree (8a99a20) checked on its own: typecheck and lint pass, `yarn test` 64 files, 909 tests: 908 pass; the failure is the bot's hr "random 75 %" run, a hover-jitter bug of the player's `.btn` (EGS-03), fixed in the EGS-17 commit. See `changelog.md`.

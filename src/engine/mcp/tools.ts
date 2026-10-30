@@ -81,7 +81,7 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
           const course = await svc.courses.summary(a.slug)
           const pipeline = await svc.pipeline.status(a.slug)
           const media = await svc.media.summary(a.slug).catch(() => null)
-          const mediaNote = media && (media.placeholders > 0 || media.audioPlaceholders > 0) ? [media.placeholders > 0 ? `${media.placeholders} picture(s) are placeholders: edu_lint warns PLACEHOLDER_ASSET until a real image replaces each (edu_asset_generate, edu_asset_replace)` : '', media.audioPlaceholders > 0 ? `${media.audioPlaceholders} sound(s) are silent placeholders (PLACEHOLDER_ASSET until the provider is back and edu_asset_generate makes them, or edu_asset_replace gives a file)` : ''].filter(Boolean).join('; ') : undefined
+          const mediaNote = media && (media.placeholders > 0 || media.audioPlaceholders > 0) ? [media.placeholders > 0 ? `${media.placeholders} picture(s) are placeholders: edu_lint warns PLACEHOLDER_ASSET until a real image replaces each (edu_asset_generate, edu_asset_replace)` : '', media.audioPlaceholders > 0 ? `${media.audioPlaceholders} sound(s) are silent placeholders (PLACEHOLDER_ASSET until the provider is back and edu_asset_generate (music, effects) or edu_voice_generate (spoken clips) makes them, or edu_asset_replace gives a file)` : ''].filter(Boolean).join('; ') : undefined
           return { slug: a.slug, ...(await svc.status(a.slug)), ...(course ? { course } : {}), ...(pipeline ? { pipeline } : {}), ...(media && (media.images > 0 || media.audio > 0) ? { media: { ...media, ...(mediaNote ? { note: mediaNote } : {}) } } : {}), clientTasks: queue().counts() }
         }
         const courses = await svc.listCourses()
@@ -118,22 +118,12 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
     ...mediaTools(svc, def),
 
     // ---- generators ----
-    def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio and flow-music-mcp (the apps that make pixel art, music and Google Flow media) reachable, and how to start them if not. ComfyUI is not in this list: edu_comfy_status checks it (lanes, engines, background removal).', z.object({}), async () => ({ studios: await svc.studiosStatus(), comfy: 'ComfyUI makes the pictures and is checked by edu_comfy_status' })),
+    def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio, flow-music-mcp (Google Flow: images, Gemini voices) and VibeTTS (local text-to-speech; a tray app that Edu Studio never starts) reachable, and how to start them if not. ComfyUI is not in this list: edu_comfy_status checks it (lanes, engines, background removal).', z.object({}), async () => ({ studios: await svc.studiosStatus(), comfy: 'ComfyUI makes the pictures and is checked by edu_comfy_status' })),
     def('edu_comfy_status', 'Is ComfyUI reachable: its lanes, the image and audio engines, custom workflows and background removal.', z.object({}), async () => {
       const { type: _type, ...status } = await svc.comfyStatus()
       return status
     }),
     def('edu_comfy_free', 'Free the VRAM of the ComfyUI lanes (unload models).', z.object({}), async () => ({ results: await svc.comfyFree() })),
-    def(
-      'edu_voice_status',
-      'The local ComfyUI voice engines (the TTS Audio Suite) and sound-effect engines: each engine id, label, task (voice or effect), the languages it reads (`*` means any language), whether it is ready and which ComfyUI nodes are missing, plus the custom TTS workflows.',
-      z.object({}),
-      async () => {
-        const { type: _type, ...status } = await svc.voiceStatus()
-        return status
-      }
-    ),
-
     // ---- model work done by the MCP client (client/... models) ----
     ...clientTools(svc, def, opts),
 

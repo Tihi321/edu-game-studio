@@ -215,10 +215,13 @@ export class CourseStore {
       const lang = String(pack.sourceLang)
       const cat: Json = catalogs[lang] ?? { schema: 1, lang, strings: {} }
       if (!isObj(cat.strings)) cat.strings = {}
-      const applied = applyMedia(pack, cat as { strings: Record<string, string> }, merge)
-      const all = { ...catalogs, [lang]: cat }
+      const target = typeof pack.targetLang === 'string' && pack.targetLang !== lang ? pack.targetLang : undefined
+      const targetCat: Json | undefined = target ? (catalogs[target] ?? { schema: 1, lang: target, strings: {} }) : undefined
+      if (targetCat && !isObj(targetCat.strings)) targetCat.strings = {}
+      const applied = applyMedia(pack, cat as { strings: Record<string, string> }, merge, target && targetCat ? { [target]: targetCat as { strings: Record<string, string> } } : {})
+      const all = { ...catalogs, [lang]: cat, ...(target && targetCat ? { [target]: targetCat } : {}) }
       this.refuse('the media merge', before, this.check(pack, all).blocking)
-      await this.save(slug, pack, all, { catalogs: [lang] })
+      await this.save(slug, pack, all, { catalogs: [lang, ...(target ? [target] : [])] })
       return { slug, ...applied }
     })
   }

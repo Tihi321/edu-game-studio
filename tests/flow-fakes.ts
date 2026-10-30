@@ -52,6 +52,8 @@ export class FakeFlow implements FlowClient {
     { name: 'Microsoft Zira Desktop', culture: 'en-US', gender: 'female' },
     { name: 'Microsoft David Desktop', culture: 'en-US', gender: 'male' }
   ]
+  /** What each successful narrate call spoke. */
+  spoken: { engine: string; voice: string; text: string; style?: string }[] = []
   private n = 0
 
   async status(): Promise<FlowStatus> {
@@ -88,7 +90,9 @@ export class FakeFlow implements FlowClient {
     if (a.text.length > 4000) throw new FlowError(`Text is ${a.text.length} characters; engine "${a.engine}" takes at most 4000.`, 'tool')
     await mkdir(a.out, { recursive: true })
     const file = path.join(a.out, `${a.name}.${a.format}`)
-    await writeFile(file, `VOICE:${a.engine}:${a.voice}:${a.text}`)
+    // real, decodable audio (a short wav tone: the player and the bot can load it); the text and the voice are in `spoken`
+    this.spoken.push({ engine: a.engine, voice: a.voice, text: a.text, ...(a.style ? { style: a.style } : {}) })
+    await writeFile(file, toneWav(0.4, 400 + (a.text.length % 9) * 35))
     return { file, durationSec: 1.5 }
   }
 

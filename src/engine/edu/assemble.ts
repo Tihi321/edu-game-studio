@@ -221,7 +221,7 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
     factbase: input.factbase.factbase,
     extensions
   }
-  if (input.media) applyMedia(pack, src, input.media)
+  if (input.media) applyMedia(pack, src, input.media, tgt ? { [tgt.lang]: tgt } : {})
   if (!Object.keys(src.accepted!).length) delete src.accepted
   const catalogs: Record<string, TextCatalog> = { [src.lang]: src }
   if (tgt) {
