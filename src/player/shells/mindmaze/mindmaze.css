@@ -1,0 +1,1250 @@
+/*
+ * The MindMaze castle (EGS-11): dressed stone, carved arched doors, torches, parchment maps, portrait frames, the throne room in gold.
+ * Everything is scoped under `.edu-stage`; colours come only from the castle theme's `--edu-*` slots and `--castle-*` variables (the
+ * shades below are `color-mix` of those slots, never a hex). The torch flicker is `edu-torch` (opacity only); motion.css switches every
+ * animation off under `prefers-reduced-motion`, and the door swing is a transition on `--edu-dur-slow`, which is 0 there.
+ */
+
+.edu-stage[data-shell='mindmaze'] {
+  --mm-stone: color-mix(in srgb, var(--edu-surface-2) 80%, var(--edu-text));
+  --mm-stone-2: color-mix(in srgb, var(--edu-surface) 72%, var(--edu-bg-2));
+  --mm-stone-dark: color-mix(in srgb, var(--edu-surface) 38%, var(--edu-bg-2));
+  --mm-sky: color-mix(in srgb, var(--edu-bg-2) 82%, var(--edu-series-2));
+  --mm-wood: color-mix(in srgb, var(--edu-accent-2) 30%, var(--edu-bg-2));
+  --mm-wood-dark: color-mix(in srgb, var(--edu-accent-2) 16%, var(--edu-bg-2));
+  --mm-iron: color-mix(in srgb, var(--edu-line-strong) 45%, var(--edu-bg-2));
+  --mm-gold: var(--edu-accent);
+  --mm-gold-deep: color-mix(in srgb, var(--edu-accent) 66%, var(--edu-bg-2));
+  --mm-parchment: color-mix(in srgb, var(--edu-mark) 86%, var(--edu-text));
+  --mm-parchment-2: color-mix(in srgb, var(--edu-mark) 68%, var(--edu-accent-2));
+  --mm-ink: var(--edu-mark-ink);
+  --mm-shade: var(--castle-mortar);
+}
+
+/* ---- the arched door (inline SVG) ---- */
+
+.edu-stage .mm-door-svg,
+.edu-stage .mm-torch-svg,
+.edu-stage .mm-portrait-svg,
+.edu-stage .mm-throne-svg,
+.edu-stage .mm-key-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.edu-stage .d-arch {
+  fill: var(--mm-stone);
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .d-joint {
+  fill: none;
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .d-keystone {
+  fill: color-mix(in srgb, var(--mm-stone) 78%, var(--edu-text));
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .d-opening {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .d-light {
+  fill: color-mix(in srgb, var(--edu-accent) 58%, var(--edu-bg-2));
+  opacity: 0;
+  transition: opacity var(--edu-dur-slow) var(--edu-ease-out);
+}
+
+.edu-stage .d-leaf {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  transition: transform var(--edu-dur-slow) var(--edu-ease-out);
+}
+
+.edu-stage .d-wood {
+  fill: var(--mm-wood);
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .d-plank {
+  fill: none;
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .d-iron {
+  fill: var(--mm-iron);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .d-stud {
+  fill: color-mix(in srgb, var(--mm-iron) 60%, var(--edu-text));
+}
+
+.edu-stage .d-ring {
+  fill: none;
+  stroke: var(--mm-gold-deep);
+  stroke-width: 3;
+}
+
+.edu-stage .d-shackle {
+  stroke: var(--mm-gold);
+  stroke-width: 4;
+}
+
+.edu-stage .d-lockbody {
+  fill: var(--mm-gold);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .d-keyhole {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .d-lock {
+  transition: opacity var(--edu-dur-med) var(--edu-ease);
+}
+
+/* open: the leaf swings away on its left hinges and the warm light behind shows */
+.edu-stage .mm-door-svg[data-open='true'] .d-leaf {
+  transform: scaleX(0.14);
+}
+
+.edu-stage .mm-door-svg[data-open='true'] .d-light {
+  opacity: 1;
+}
+
+.edu-stage .mm-door-svg[data-open='true'] .d-lock {
+  opacity: 0;
+}
+
+/* ---- torches ---- */
+
+.edu-stage .mm-torches {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.edu-stage .mm-torch {
+  width: 22px;
+}
+
+.edu-stage .t-bracket {
+  stroke: var(--mm-iron);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.edu-stage .t-cup {
+  fill: var(--mm-wood);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .t-flame {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .t-core {
+  fill: var(--edu-mark);
+}
+
+.edu-stage .t-glow {
+  fill: color-mix(in srgb, var(--edu-accent) 20%, transparent);
+}
+
+.edu-stage .t-ember {
+  stroke: var(--edu-accent-2);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.edu-stage .mm-torch.is-lit :is(.t-flame, .t-glow),
+.edu-stage .g-torch :is(.t-flame, .t-glow) {
+  animation: edu-torch 2.7s ease-in-out infinite;
+}
+
+.edu-stage .mm-torch:nth-child(2) :is(.t-flame, .t-glow) {
+  animation-duration: 3.3s;
+  animation-delay: -0.9s;
+}
+
+.edu-stage .mm-torch:nth-child(3) :is(.t-flame, .t-glow) {
+  animation-duration: 2.3s;
+  animation-delay: -1.7s;
+}
+
+.edu-stage .g-torch:last-of-type :is(.t-flame, .t-glow) {
+  animation-delay: -1.4s;
+}
+
+.edu-stage .mm-torch.is-out :is(.t-flame, .t-core, .t-glow) {
+  opacity: 0;
+}
+
+.edu-stage .mm-torch.is-out .t-ember {
+  opacity: 0.85;
+}
+
+.edu-stage .mm-torch.is-out .t-cup {
+  fill: var(--mm-wood-dark);
+}
+
+/* ---- title: the gatehouse ---- */
+
+.edu-stage .mm-title-art {
+  display: grid;
+  justify-items: center;
+  gap: var(--edu-space-3);
+  width: 100%;
+}
+
+.edu-stage .mm-art {
+  width: min(100%, 520px);
+  border: 4px solid var(--mm-shade);
+  border-radius: 6px;
+  outline: 2px solid var(--edu-line);
+  overflow: hidden;
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .mm-gatehouse {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.edu-stage .mm-intro {
+  max-width: 46ch;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-l);
+  text-wrap: balance;
+}
+
+.edu-stage .g-sky {
+  fill: var(--mm-sky);
+}
+
+.edu-stage .g-star {
+  fill: var(--edu-mark);
+}
+
+.edu-stage .g-moon {
+  fill: var(--edu-mark);
+}
+
+.edu-stage .g-moon-cut {
+  fill: var(--mm-sky);
+}
+
+.edu-stage .g-wall,
+.edu-stage .g-merlon {
+  fill: var(--mm-stone-2);
+}
+
+.edu-stage .g-tower {
+  fill: var(--mm-stone);
+}
+
+.edu-stage .g-tower-band {
+  fill: var(--mm-stone-dark);
+}
+
+.edu-stage .g-window {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .g-keep {
+  fill: color-mix(in srgb, var(--mm-stone) 70%, var(--edu-bg-2));
+}
+
+.edu-stage .g-pole {
+  stroke: var(--edu-line-strong);
+  stroke-width: 3;
+}
+
+.edu-stage .g-banner {
+  fill: var(--edu-accent-2);
+}
+
+.edu-stage .g-arch {
+  fill: var(--mm-stone-dark);
+}
+
+.edu-stage .g-gate {
+  fill: color-mix(in srgb, var(--edu-accent) 50%, var(--edu-bg-2));
+}
+
+.edu-stage .g-grate {
+  stroke: var(--mm-iron);
+  stroke-width: 4;
+}
+
+.edu-stage .g-ground {
+  fill: var(--mm-stone-dark);
+}
+
+.edu-stage .g-path {
+  fill: var(--mm-stone-2);
+}
+
+/* ---- the castle overview ---- */
+
+.edu-stage .mm-castle {
+  display: grid;
+  gap: var(--edu-space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+.edu-stage .mm-castle .topbar {
+  width: 100%;
+}
+
+.edu-stage .mm-skyline {
+  width: min(100%, 760px);
+  border: 3px solid var(--mm-shade);
+  border-radius: 6px;
+  outline: 2px solid var(--edu-line);
+  overflow: hidden;
+  background: var(--mm-sky);
+}
+
+.edu-stage .mm-skyline-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 230px;
+}
+
+.edu-stage .s-sky {
+  fill: var(--mm-sky);
+}
+
+.edu-stage .s-ground {
+  fill: var(--mm-stone-dark);
+}
+
+.edu-stage .s-wall {
+  fill: var(--mm-stone);
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .s-merlon {
+  fill: var(--mm-stone);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .s-window {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .s-tower.is-sealed :is(.s-wall, .s-merlon) {
+  fill: var(--mm-stone-dark);
+}
+
+.edu-stage .s-tower.is-open .s-window {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .s-tower.is-won .s-window {
+  fill: var(--edu-mark);
+}
+
+.edu-stage .s-pole,
+.edu-stage .s-flag {
+  stroke: var(--edu-line-strong);
+  stroke-width: 3;
+}
+
+.edu-stage .s-key-flag {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .s-roof {
+  fill: var(--mm-stone-dark);
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .s-gate {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .s-keep.is-sealed .s-window {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .s-keep:is(.is-open, .is-won) .s-window {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .s-keep.is-won .s-roof {
+  fill: var(--mm-gold-deep);
+}
+
+.edu-stage .s-keep.is-won .s-gate {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .mm-throne-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.edu-stage .mm-wing-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
+.edu-stage .mm-wing-row {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+}
+
+.edu-stage .mm-corridor {
+  width: 0;
+  height: 26px;
+  border-left: 3px dashed var(--edu-line-strong);
+}
+
+.edu-stage .mm-wing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--edu-space-4);
+  width: 100%;
+}
+
+.edu-stage .mm-wing-item {
+  display: flex;
+  width: min(100%, 290px);
+}
+
+.edu-stage .mm-wing,
+.edu-stage .mm-throne-btn {
+  position: relative;
+  display: grid;
+  gap: var(--edu-space-1);
+  align-content: start;
+  justify-items: center;
+  width: 100%;
+  min-height: 150px;
+  padding: 34px var(--edu-space-4) var(--edu-space-4);
+  text-align: center;
+  color: var(--edu-text);
+  background:
+    var(--castle-stone),
+    linear-gradient(180deg, color-mix(in srgb, var(--mm-stone) 55%, var(--edu-bg-2)), var(--mm-stone-dark));
+  border: 3px solid var(--edu-line-strong);
+  border-radius: 90px 90px 4px 4px / 46px 46px 4px 4px;
+  box-shadow: var(--edu-shadow-1), inset 0 0 24px var(--mm-shade);
+  transition:
+    transform var(--edu-dur-fast) var(--edu-ease),
+    box-shadow var(--edu-dur-fast) var(--edu-ease),
+    border-color var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage :is(.mm-wing, .mm-throne-btn):hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--edu-accent);
+  box-shadow: var(--edu-shadow-2), 0 0 26px var(--castle-torch), inset 0 0 24px var(--mm-shade);
+}
+
+.edu-stage .mm-wing.is-locked,
+.edu-stage .mm-throne-btn.is-locked {
+  border-style: dashed;
+  color: var(--edu-text-dim);
+  background: color-mix(in srgb, var(--edu-bg-2) 85%, var(--mm-stone-dark));
+  box-shadow: inset 0 0 24px var(--mm-shade);
+}
+
+.edu-stage .mm-wing.is-key {
+  border-color: var(--mm-gold);
+}
+
+.edu-stage .mm-throne-btn {
+  width: min(100%, 420px);
+  min-height: 170px;
+  border-color: var(--mm-gold-deep);
+  background:
+    var(--castle-stone),
+    linear-gradient(180deg, color-mix(in srgb, var(--edu-accent) 16%, var(--mm-stone-dark)), var(--mm-stone-dark));
+}
+
+.edu-stage .mm-throne-btn.is-open {
+  border-color: var(--mm-gold);
+  box-shadow: var(--edu-shadow-2), 0 0 34px var(--castle-torch), inset 0 0 24px var(--mm-shade);
+}
+
+.edu-stage .mm-throne-icon {
+  display: block;
+  width: 64px;
+}
+
+.edu-stage .mm-wing-name {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  line-height: 1.25;
+  color: var(--edu-text);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .mm-wing.is-open .mm-wing-name,
+.edu-stage .mm-throne-btn.is-open .mm-wing-name {
+  color: var(--edu-accent);
+}
+
+.edu-stage .mm-wing-desc,
+.edu-stage .mm-wing-meta {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .mm-wing-keyicon {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 30px;
+  transform: rotate(-12deg);
+}
+
+/* ---- the room ---- */
+
+.edu-stage .mm-room {
+  display: grid;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .mm-topbar {
+  flex-wrap: wrap;
+}
+
+.edu-stage .mm-wing-tag {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.edu-stage .mm-notice {
+  padding: var(--edu-space-3) var(--edu-space-4);
+  border-left: 6px solid var(--edu-accent-2);
+  border-radius: 0 var(--edu-radius-m) var(--edu-radius-m) 0;
+  background: var(--edu-warn-bg);
+  color: var(--edu-warn);
+}
+
+.edu-stage .mm-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 340px);
+  gap: var(--edu-space-5);
+  align-items: start;
+}
+
+.edu-stage .mm-scene {
+  display: grid;
+  gap: var(--edu-space-3);
+  align-content: start;
+  min-width: 0;
+}
+
+.edu-stage .mm-room-name {
+  font-size: var(--edu-text-2xl);
+  line-height: var(--edu-leading-tight);
+  color: var(--edu-accent);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .mm-room-name:focus {
+  outline: none;
+}
+
+.edu-stage .mm-room-desc {
+  max-width: 60ch;
+  color: var(--edu-text);
+  font-size: var(--edu-text-l);
+  line-height: var(--edu-leading-loose);
+}
+
+.edu-stage .mm-room-figure {
+  margin: 0;
+  max-width: 420px;
+}
+
+.edu-stage .mm-room-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 3px solid var(--mm-gold-deep);
+  border-radius: 4px;
+  background: var(--edu-bg-2);
+}
+
+/* the doors stand in a dressed stone hall: a floor strip at the bottom, torchlight from above */
+.edu-stage .mm-doors {
+  position: relative;
+  padding: var(--edu-space-5) var(--edu-space-4) var(--edu-space-6);
+  border: 3px solid var(--mm-shade);
+  border-radius: 8px 8px 2px 2px;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 0%, var(--castle-torch), transparent 80%),
+    linear-gradient(180deg, var(--mm-stone-dark), color-mix(in srgb, var(--edu-bg-2) 80%, var(--mm-stone-dark)));
+  box-shadow: inset 0 0 40px var(--mm-shade);
+}
+
+.edu-stage .mm-doors::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  background: linear-gradient(180deg, var(--mm-stone-2), var(--mm-stone-dark));
+  border-top: 3px solid var(--mm-shade);
+}
+
+.edu-stage .mm-door-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--edu-space-4);
+}
+
+.edu-stage .mm-door-item {
+  display: flex;
+}
+
+.edu-stage .mm-door {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--edu-space-1);
+  width: 158px;
+  min-height: var(--edu-tap);
+  padding: var(--edu-space-2) var(--edu-space-2) var(--edu-space-3);
+  color: var(--edu-text);
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  text-align: center;
+  transition:
+    transform var(--edu-dur-fast) var(--edu-ease),
+    border-color var(--edu-dur-fast) var(--edu-ease),
+    background var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .mm-door:hover {
+  transform: translateY(-3px);
+  border-color: var(--edu-accent);
+  background: color-mix(in srgb, var(--edu-accent) 10%, transparent);
+}
+
+.edu-stage .mm-door .mm-door-svg {
+  width: 112px;
+}
+
+.edu-stage .mm-door.is-open .mm-door-state {
+  color: var(--edu-good);
+}
+
+.edu-stage .mm-door.is-key .d-arch {
+  fill: color-mix(in srgb, var(--mm-stone) 62%, var(--edu-accent));
+}
+
+.edu-stage .mm-door-num {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--edu-radius-pill);
+  background: var(--edu-bg-2);
+  border: 2px solid var(--edu-line-strong);
+  color: var(--edu-text);
+  font-size: var(--edu-text-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.edu-stage .mm-door-name {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-m);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .mm-door-state {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  line-height: 1.3;
+}
+
+.edu-stage .mm-keybox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--edu-space-2) var(--edu-space-4);
+  padding: var(--edu-space-4);
+  border: 3px solid var(--mm-gold);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--edu-accent) 12%, var(--edu-bg-2));
+  box-shadow: 0 0 30px var(--castle-torch);
+}
+
+.edu-stage .mm-keybox-icon {
+  width: 54px;
+  transform: rotate(-10deg);
+}
+
+.edu-stage .mm-keybox .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.edu-stage .mm-scene .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .k-ring {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .k-hole {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .k-shaft {
+  stroke: var(--edu-accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+/* ---- the side column: the character and the map ---- */
+
+.edu-stage .mm-side {
+  display: grid;
+  gap: var(--edu-space-4);
+  min-width: 0;
+}
+
+.edu-stage .mm-char,
+.edu-stage .mm-map {
+  padding: var(--edu-space-3) var(--edu-space-4);
+  border: 2px solid var(--edu-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--edu-bg-2) 70%, transparent);
+  box-shadow: inset 0 0 24px var(--mm-shade);
+}
+
+.edu-stage .mm-char {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--edu-space-3);
+  align-items: start;
+}
+
+.edu-stage .mm-char-body {
+  display: grid;
+  gap: var(--edu-space-2);
+  min-width: 0;
+}
+
+.edu-stage .mm-char-name,
+.edu-stage .mm-map h2 {
+  font-size: var(--edu-text-l);
+  color: var(--edu-accent);
+  line-height: 1.2;
+}
+
+.edu-stage .mm-char-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .mm-bubble {
+  position: relative;
+  padding: var(--edu-space-2) var(--edu-space-3);
+  border: 2px solid var(--edu-line-strong);
+  border-radius: 12px 12px 12px 2px;
+  background: color-mix(in srgb, var(--edu-text) 8%, transparent);
+  color: var(--edu-text);
+  line-height: 1.4;
+}
+
+.edu-stage .mm-hint {
+  border-color: var(--edu-mark);
+}
+
+.edu-stage .mm-react {
+  border-color: var(--edu-accent);
+}
+
+.edu-stage .mm-char[data-mood='cheer'] .mm-react {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .mm-char[data-mood='groan'] .mm-react {
+  border-color: var(--edu-bad);
+}
+
+/* the portrait frame: a gilded frame with corner studs around a drawn bust or the course's own picture */
+.edu-stage .mm-portrait {
+  position: relative;
+  width: 84px;
+  aspect-ratio: 5 / 6;
+  flex: none;
+  overflow: hidden;
+  border: 4px solid var(--mm-gold-deep);
+  outline: 2px solid var(--mm-shade);
+  border-radius: 4px;
+  background: var(--mm-stone-2);
+  box-shadow: inset 0 0 14px var(--mm-shade), 0 3px 0 var(--mm-shade);
+}
+
+.edu-stage .mm-portrait-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edu-stage .mm-portrait-svg {
+  height: 100%;
+}
+
+.edu-stage .p-back {
+  fill: color-mix(in srgb, var(--edu-bg-2) 55%, var(--edu-surface));
+}
+
+.edu-stage .p-skin {
+  fill: color-mix(in srgb, var(--edu-mark) 66%, var(--edu-accent-2));
+}
+
+.edu-stage .p-eye {
+  fill: var(--edu-bg-2);
+}
+
+.edu-stage .p-mouth {
+  stroke: var(--edu-bg-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.edu-stage .p-robe.p-c0 {
+  fill: color-mix(in srgb, var(--edu-series-2) 50%, var(--edu-bg-2));
+}
+
+.edu-stage .p-robe.p-c1 {
+  fill: color-mix(in srgb, var(--edu-series-5) 45%, var(--edu-bg-2));
+}
+
+.edu-stage .p-robe.p-c2 {
+  fill: color-mix(in srgb, var(--edu-series-3) 45%, var(--edu-bg-2));
+}
+
+.edu-stage .p-robe.p-c3 {
+  fill: color-mix(in srgb, var(--edu-series-6) 50%, var(--edu-bg-2));
+}
+
+.edu-stage .p-robe.p-c4 {
+  fill: color-mix(in srgb, var(--edu-series-4) 45%, var(--edu-bg-2));
+}
+
+.edu-stage .p-robe.p-c5 {
+  fill: color-mix(in srgb, var(--edu-series-1) 40%, var(--edu-bg-2));
+}
+
+.edu-stage .p-hood {
+  fill: color-mix(in srgb, var(--edu-series-2) 40%, var(--edu-bg-2));
+}
+
+.edu-stage .p-beard {
+  fill: color-mix(in srgb, var(--edu-text) 78%, var(--edu-bg-2));
+}
+
+.edu-stage .p-helm {
+  fill: color-mix(in srgb, var(--edu-line-strong) 75%, var(--edu-bg-2));
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .p-nose {
+  fill: color-mix(in srgb, var(--edu-line-strong) 75%, var(--edu-bg-2));
+}
+
+.edu-stage .p-crest {
+  stroke: var(--edu-accent-2);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.edu-stage .p-hair {
+  fill: color-mix(in srgb, var(--edu-accent-2) 42%, var(--edu-bg-2));
+}
+
+.edu-stage .p-crown,
+.edu-stage .p-hatband {
+  fill: var(--edu-accent);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .p-hat {
+  fill: color-mix(in srgb, var(--edu-series-6) 48%, var(--edu-bg-2));
+}
+
+.edu-stage .p-sheet {
+  fill: color-mix(in srgb, var(--edu-text) 92%, transparent);
+}
+
+/* ---- the parchment map of the wing ---- */
+
+.edu-stage .mm-map {
+  display: grid;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .mm-parchment {
+  padding: var(--edu-space-2);
+  border: 3px double var(--mm-parchment-2);
+  border-radius: 4px;
+  background:
+    radial-gradient(ellipse at 20% 15%, color-mix(in srgb, var(--mm-parchment) 60%, transparent), transparent 60%),
+    var(--mm-parchment);
+  box-shadow: inset 0 0 28px color-mix(in srgb, var(--edu-accent-2) 45%, transparent), var(--edu-shadow-1);
+}
+
+.edu-stage .mm-minimap-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+}
+
+.edu-stage .m-stone {
+  fill: color-mix(in srgb, var(--edu-mark) 55%, var(--mm-parchment-2));
+  stroke: var(--mm-ink);
+  stroke-width: 2;
+}
+
+.edu-stage .m-num {
+  fill: var(--mm-ink);
+  font-family: var(--edu-font-body);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.edu-stage .m-room.is-key .m-stone {
+  fill: var(--edu-accent);
+}
+
+.edu-stage .m-room.is-entry .m-stone {
+  stroke-width: 3;
+}
+
+.edu-stage .m-room.is-here .m-stone {
+  fill: color-mix(in srgb, var(--edu-accent-2) 65%, var(--edu-mark));
+  stroke-width: 4;
+}
+
+.edu-stage .m-here {
+  fill: var(--edu-accent-2);
+  stroke: var(--mm-ink);
+  stroke-width: 2;
+}
+
+.edu-stage .m-key {
+  fill: var(--edu-accent);
+  stroke: var(--mm-ink);
+  stroke-width: 2;
+}
+
+.edu-stage .m-line,
+.edu-stage .m-door.is-back {
+  fill: none;
+  stroke: var(--mm-ink);
+  stroke-width: 2.2;
+}
+
+.edu-stage .m-door.is-locked .m-line,
+.edu-stage .m-door.is-locked.is-back {
+  stroke-dasharray: 6 5;
+}
+
+.edu-stage .m-door.is-open .m-line,
+.edu-stage .m-door.is-open.is-back {
+  stroke: color-mix(in srgb, var(--edu-good) 45%, var(--mm-ink));
+  stroke-width: 4.5;
+}
+
+.edu-stage .m-arrow {
+  fill: var(--mm-ink);
+}
+
+.edu-stage .m-door.is-open .m-arrow {
+  fill: color-mix(in srgb, var(--edu-good) 45%, var(--mm-ink));
+}
+
+.edu-stage .m-lock {
+  fill: var(--mm-ink);
+}
+
+.edu-stage .mm-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  line-height: 1.35;
+}
+
+.edu-stage .mm-legend-item b {
+  color: var(--edu-text);
+}
+
+.edu-stage .mm-legend-item em {
+  font-style: normal;
+}
+
+.edu-stage .mm-legend-item.is-here {
+  color: var(--edu-accent);
+  font-weight: 700;
+}
+
+/* ---- the question at a door ---- */
+
+.edu-stage .mm-hud {
+  display: flex;
+  align-items: center;
+  gap: var(--edu-space-3);
+  min-width: 0;
+}
+
+.edu-stage .mm-hud-door {
+  width: 52px;
+  flex: none;
+}
+
+.edu-stage .mm-hud-throne .mm-hud-door {
+  width: 66px;
+}
+
+.edu-stage .mm-hud-text {
+  display: grid;
+  gap: var(--edu-space-1);
+  min-width: 0;
+}
+
+.edu-stage .mm-hud-wing {
+  color: var(--edu-accent-2);
+  font-family: var(--edu-font-display);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .shell-question.context-door .prompt,
+.edu-stage .shell-question.context-throne .prompt {
+  padding: var(--edu-space-3) var(--edu-space-4);
+  border: 2px solid var(--edu-line-strong);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--edu-bg-2) 65%, transparent);
+  box-shadow: inset 0 0 20px var(--mm-shade);
+}
+
+.edu-stage .shell-question.context-throne .prompt {
+  border-color: var(--mm-gold-deep);
+}
+
+/* ---- the wing is done, the throne room ---- */
+
+.edu-stage .mm-done,
+.edu-stage .mm-throne {
+  display: grid;
+  gap: var(--edu-space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+.edu-stage .mm-throne .topbar {
+  width: 100%;
+}
+
+.edu-stage .mm-done-art {
+  width: 84px;
+}
+
+.edu-stage .mm-throne-art {
+  width: min(52vw, 190px);
+  filter: drop-shadow(0 0 22px var(--castle-torch));
+}
+
+.edu-stage .mm-throne .mm-room-desc {
+  max-width: 52ch;
+}
+
+.edu-stage .mm-misses {
+  display: grid;
+  gap: var(--edu-space-2);
+  justify-items: center;
+  width: 100%;
+}
+
+.edu-stage .mm-misses h2 {
+  font-size: var(--edu-text-l);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .th-floor {
+  fill: var(--mm-stone-2);
+}
+
+.edu-stage .th-step {
+  fill: var(--mm-stone);
+}
+
+.edu-stage .th-back {
+  fill: var(--mm-gold-deep);
+  stroke: var(--mm-shade);
+  stroke-width: 2;
+}
+
+.edu-stage .th-back-in {
+  fill: color-mix(in srgb, var(--edu-accent-2) 48%, var(--edu-bg-2));
+}
+
+.edu-stage .th-finial,
+.edu-stage .th-arm {
+  fill: var(--mm-gold);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .th-seat {
+  fill: var(--mm-gold-deep);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .th-cushion {
+  fill: var(--edu-accent-2);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .th-gem {
+  fill: var(--edu-series-2);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .th-crown {
+  opacity: 0.4;
+}
+
+.edu-stage .th-crown.is-won {
+  opacity: 1;
+}
+
+.edu-stage .th-crown-shape,
+.edu-stage .th-crown-band {
+  fill: var(--edu-accent);
+  stroke: var(--mm-shade);
+  stroke-width: 1.5;
+}
+
+.edu-stage .th-halo {
+  fill: transparent;
+}
+
+.edu-stage .th-crown.is-won .th-halo {
+  fill: color-mix(in srgb, var(--edu-accent) 24%, transparent);
+  animation: edu-torch 3s ease-in-out infinite;
+}
+
+/* ---- phones ---- */
+
+@media (max-width: 900px) {
+  .edu-stage .mm-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .edu-stage .mm-side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .edu-stage .mm-door {
+    width: calc(50% - var(--edu-space-2));
+    min-width: 132px;
+  }
+
+  .edu-stage .mm-door-item {
+    flex: 1 1 132px;
+    justify-content: center;
+  }
+
+  .edu-stage .mm-door-list {
+    gap: var(--edu-space-2);
+  }
+
+  .edu-stage .mm-doors {
+    padding: var(--edu-space-3) var(--edu-space-2) var(--edu-space-6);
+  }
+
+  .edu-stage .mm-char {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .edu-stage .mm-portrait {
+    width: 68px;
+  }
+
+  .edu-stage .mm-wing-tag {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .edu-stage .mm-keybox {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .edu-stage .mm-keybox .btn {
+    justify-self: stretch;
+  }
+}

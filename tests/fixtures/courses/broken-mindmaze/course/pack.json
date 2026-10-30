@@ -1,0 +1,537 @@
+{
+  "schema": 1,
+  "id": "broken-mindmaze",
+  "slug": "broken-mindmaze",
+  "sourceLang": "en",
+  "languages": [
+    "en"
+  ],
+  "subject": "A castle that is wrong on purpose",
+  "audience": "tests",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-a",
+      "title": "unit.u-a.title",
+      "requires": []
+    },
+    {
+      "id": "u-b",
+      "title": "unit.u-b.title",
+      "requires": [
+        "u-a"
+      ]
+    },
+    {
+      "id": "u-c",
+      "title": "unit.u-c.title",
+      "requires": [
+        "u-a"
+      ]
+    },
+    {
+      "id": "u-d",
+      "title": "unit.u-d.title",
+      "requires": [
+        "u-a"
+      ]
+    },
+    {
+      "id": "u-e",
+      "title": "unit.u-e.title",
+      "requires": [
+        "u-a"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "o-a",
+      "unit": "u-a",
+      "bloom": "remember",
+      "text": "obj.o-a.text",
+      "facts": []
+    },
+    {
+      "id": "o-b",
+      "unit": "u-b",
+      "bloom": "remember",
+      "text": "obj.o-b.text",
+      "facts": []
+    },
+    {
+      "id": "o-c",
+      "unit": "u-c",
+      "bloom": "remember",
+      "text": "obj.o-c.text",
+      "facts": []
+    },
+    {
+      "id": "o-d",
+      "unit": "u-d",
+      "bloom": "remember",
+      "text": "obj.o-d.text",
+      "facts": []
+    },
+    {
+      "id": "o-e",
+      "unit": "u-e",
+      "bloom": "remember",
+      "text": "obj.o-e.text",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "i-a1",
+      "kind": "mcq",
+      "objective": "o-a",
+      "prompt": "i-a1.prompt",
+      "explanation": "i-a1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-a1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-a1.o.w1",
+          "why": "i-a1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-a1.o.w2",
+          "why": "i-a1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-a2",
+      "kind": "true-false",
+      "objective": "o-a",
+      "prompt": "i-a2.prompt",
+      "explanation": "i-a2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-a2.why"
+    },
+    {
+      "id": "i-b1",
+      "kind": "mcq",
+      "objective": "o-b",
+      "prompt": "i-b1.prompt",
+      "explanation": "i-b1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-b1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-b1.o.w1",
+          "why": "i-b1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-b1.o.w2",
+          "why": "i-b1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-c1",
+      "kind": "mcq",
+      "objective": "o-c",
+      "prompt": "i-c1.prompt",
+      "explanation": "i-c1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-c1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-c1.o.w1",
+          "why": "i-c1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-c1.o.w2",
+          "why": "i-c1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-d1",
+      "kind": "mcq",
+      "objective": "o-d",
+      "prompt": "i-d1.prompt",
+      "explanation": "i-d1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-d1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-d1.o.w1",
+          "why": "i-d1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-d1.o.w2",
+          "why": "i-d1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-e1",
+      "kind": "mcq",
+      "objective": "o-e",
+      "prompt": "i-e1.prompt",
+      "explanation": "i-e1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-e1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-e1.o.w1",
+          "why": "i-e1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-e1.o.w2",
+          "why": "i-e1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-b2",
+      "kind": "true-false",
+      "objective": "o-b",
+      "prompt": "i-b2.prompt",
+      "explanation": "i-b2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-b2.why"
+    },
+    {
+      "id": "i-c2",
+      "kind": "true-false",
+      "objective": "o-c",
+      "prompt": "i-c2.prompt",
+      "explanation": "i-c2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": false,
+      "why": "i-c2.why"
+    },
+    {
+      "id": "i-d2",
+      "kind": "true-false",
+      "objective": "o-d",
+      "prompt": "i-d2.prompt",
+      "explanation": "i-d2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-d2.why"
+    },
+    {
+      "id": "i-e2",
+      "kind": "true-false",
+      "objective": "o-e",
+      "prompt": "i-e2.prompt",
+      "explanation": "i-e2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": false,
+      "why": "i-e2.why"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "mindmaze"
+    ],
+    "config": {
+      "quiz-arena": {},
+      "mindmaze": {
+        "torches": 0,
+        "wings": [
+          {
+            "id": "w-a",
+            "unit": "u-a",
+            "name": "maze.w.w-a",
+            "entry": "a-hall",
+            "rooms": [
+              {
+                "id": "a-hall",
+                "name": "maze.r.a-hall",
+                "doors": [
+                  {
+                    "to": "a-mid",
+                    "items": [
+                      "i-a1"
+                    ]
+                  },
+                  {
+                    "to": "a-trap",
+                    "items": [
+                      "i-a2"
+                    ]
+                  },
+                  {
+                    "to": "a-empty",
+                    "items": []
+                  }
+                ]
+              },
+              {
+                "id": "a-mid",
+                "name": "maze.r.a-mid",
+                "doors": [
+                  {
+                    "to": "a-key",
+                    "items": [
+                      "i-b1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "a-trap",
+                "name": "maze.r.a-trap",
+                "doors": []
+              },
+              {
+                "id": "a-empty",
+                "name": "maze.r.a-empty",
+                "doors": [
+                  {
+                    "to": "a-key",
+                    "items": [
+                      "i-a2"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "a-island",
+                "name": "maze.r.a-island",
+                "doors": [
+                  {
+                    "to": "a-key",
+                    "items": [
+                      "i-a1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "a-key",
+                "name": "maze.r.a-key",
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-b",
+            "unit": "u-b",
+            "name": "maze.w.w-b",
+            "entry": "b-hall",
+            "rooms": [
+              {
+                "id": "b-hall",
+                "name": "maze.r.b-hall",
+                "doors": [
+                  {
+                    "to": "b-two",
+                    "items": [
+                      "i-b1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "b-two",
+                "name": "maze.r.b-two",
+                "doors": []
+              }
+            ]
+          },
+          {
+            "id": "w-d",
+            "unit": "u-d",
+            "name": "maze.w.w-d",
+            "entry": "d-hall",
+            "rooms": [
+              {
+                "id": "d-hall",
+                "name": "maze.r.d-hall",
+                "doors": [
+                  {
+                    "to": "d-two",
+                    "items": [
+                      "i-d1"
+                    ]
+                  }
+                ],
+                "key": true
+              },
+              {
+                "id": "d-two",
+                "name": "maze.r.d-two",
+                "doors": []
+              }
+            ]
+          },
+          {
+            "id": "w-e",
+            "unit": "u-e",
+            "name": "maze.w.w-e",
+            "entry": "e-hall",
+            "rooms": [
+              {
+                "id": "e-hall",
+                "name": "maze.r.e-hall",
+                "doors": [
+                  {
+                    "to": "e-two",
+                    "items": [
+                      "i-e1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "e-two",
+                "name": "maze.r.e-two",
+                "doors": [
+                  {
+                    "to": "e-hall",
+                    "items": [
+                      "i-e1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "e-key",
+                "name": "maze.r.e-key",
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-ghost",
+            "unit": "u-nope",
+            "name": "maze.w.w-ghost",
+            "entry": "g-hall",
+            "rooms": [
+              {
+                "id": "g-hall",
+                "name": "maze.r.g-hall",
+                "doors": [
+                  {
+                    "to": "g-key",
+                    "items": [
+                      "i-a1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "g-key",
+                "name": "maze.r.g-key",
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-f",
+            "unit": "u-a",
+            "name": "maze.w.w-f",
+            "entry": "nowhere",
+            "rooms": [
+              {
+                "id": "f-hall",
+                "name": "maze.r.f-hall",
+                "doors": [
+                  {
+                    "to": "f-gone",
+                    "items": [
+                      "i-a1"
+                    ]
+                  },
+                  {
+                    "to": "f-two",
+                    "items": [
+                      "i-nope"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "f-two",
+                "name": "maze.r.f-two",
+                "doors": [
+                  {
+                    "to": "f-key",
+                    "items": []
+                  }
+                ],
+                "objective": "o-nope"
+              },
+              {
+                "id": "f-two",
+                "name": "maze.r.f-two",
+                "doors": []
+              },
+              {
+                "id": "f-key",
+                "name": "maze.r.f-key",
+                "doors": [],
+                "key": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "assets": [],
+  "cues": [],
+  "factbase": [],
+  "extensions": {}
+}

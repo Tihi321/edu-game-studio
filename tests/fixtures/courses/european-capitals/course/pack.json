@@ -1335,7 +1335,8 @@
   "shells": {
     "enabled": [
       "quiz-arena",
-      "encyclopedia"
+      "encyclopedia",
+      "mindmaze"
     ],
     "config": {
       "quiz-arena": {
@@ -1610,6 +1611,438 @@
             ]
           }
         ]
+      },
+      "mindmaze": {
+        "torches": 3,
+        "wings": [
+          {
+            "id": "w-west",
+            "unit": "u-west",
+            "name": "maze.w.w-west",
+            "description": "maze.w.w-west.desc",
+            "entry": "west-seine",
+            "rooms": [
+              {
+                "id": "west-seine",
+                "name": "maze.r.west-seine",
+                "description": "maze.r.west-seine.desc",
+                "character": {
+                  "name": "maze.c.west-seine.name",
+                  "line": "maze.c.west-seine.line",
+                  "hint": "maze.c.west-seine.hint",
+                  "right": "maze.c.west-seine.right",
+                  "wrong": "maze.c.west-seine.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "west-tower",
+                    "items": [
+                      "q-west-river-mcq",
+                      "q-west-river-typed",
+                      "q-west-tf"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "west-tower",
+                "name": "maze.r.west-tower",
+                "description": "maze.r.west-tower.desc",
+                "character": {
+                  "name": "maze.c.west-tower.name",
+                  "line": "maze.c.west-tower.line",
+                  "hint": "maze.c.west-tower.hint",
+                  "right": "maze.c.west-tower.right",
+                  "wrong": "maze.c.west-tower.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "west-plaza",
+                    "items": [
+                      "q-west-mcq",
+                      "q-west-card",
+                      "q-west-match"
+                    ]
+                  },
+                  {
+                    "to": "west-quay",
+                    "items": [
+                      "q-west-hotspot",
+                      "q-west-typed",
+                      "q-west-cloze"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "west-plaza",
+                "name": "maze.r.west-plaza",
+                "description": "maze.r.west-plaza.desc",
+                "character": {
+                  "name": "maze.c.west-plaza.name",
+                  "line": "maze.c.west-plaza.line",
+                  "hint": "maze.c.west-plaza.hint",
+                  "right": "maze.c.west-plaza.right",
+                  "wrong": "maze.c.west-plaza.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "west-liffey",
+                    "items": [
+                      "q-west-sort",
+                      "q-west-multi"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "west-quay",
+                "name": "maze.r.west-quay",
+                "description": "maze.r.west-quay.desc",
+                "character": {
+                  "name": "maze.c.west-quay.name",
+                  "line": "maze.c.west-quay.line",
+                  "hint": "maze.c.west-quay.hint",
+                  "right": "maze.c.west-quay.right",
+                  "wrong": "maze.c.west-quay.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "west-liffey",
+                    "items": [
+                      "q-west-sort",
+                      "q-west-multi",
+                      "q-west-tf"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "west-liffey",
+                "name": "maze.r.west-liffey",
+                "description": "maze.r.west-liffey.desc",
+                "character": {
+                  "name": "maze.c.west-liffey.name",
+                  "line": "maze.c.west-liffey.line",
+                  "hint": "maze.c.west-liffey.hint",
+                  "right": "maze.c.west-liffey.right",
+                  "wrong": "maze.c.west-liffey.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "west-key",
+                    "items": [
+                      "q-west-match",
+                      "q-west-cloze",
+                      "q-west-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "west-key",
+                "name": "maze.r.west-key",
+                "description": "maze.r.west-key.desc",
+                "character": {
+                  "name": "maze.c.west-key.name",
+                  "line": "maze.c.west-key.line",
+                  "hint": "maze.c.west-key.hint",
+                  "right": "maze.c.west-key.right",
+                  "wrong": "maze.c.west-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-central",
+            "unit": "u-central",
+            "name": "maze.w.w-central",
+            "description": "maze.w.w-central.desc",
+            "entry": "central-vienna",
+            "rooms": [
+              {
+                "id": "central-vienna",
+                "name": "maze.r.central-vienna",
+                "description": "maze.r.central-vienna.desc",
+                "character": {
+                  "name": "maze.c.central-vienna.name",
+                  "line": "maze.c.central-vienna.line",
+                  "hint": "maze.c.central-vienna.hint",
+                  "right": "maze.c.central-vienna.right",
+                  "wrong": "maze.c.central-vienna.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "central-prague",
+                    "items": [
+                      "q-cen-mcq",
+                      "q-cen-hotspot",
+                      "q-cen-cloze"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "central-prague",
+                "name": "maze.r.central-prague",
+                "description": "maze.r.central-prague.desc",
+                "character": {
+                  "name": "maze.c.central-prague.name",
+                  "line": "maze.c.central-prague.line",
+                  "hint": "maze.c.central-prague.hint",
+                  "right": "maze.c.central-prague.right",
+                  "wrong": "maze.c.central-prague.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "central-berlin",
+                    "items": [
+                      "q-cen-order",
+                      "q-cen-mcq-wall",
+                      "q-cen-cloze-bridge"
+                    ]
+                  },
+                  {
+                    "to": "central-danube",
+                    "items": [
+                      "q-cen-typed",
+                      "q-cen-tf",
+                      "q-cen-card"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "central-berlin",
+                "name": "maze.r.central-berlin",
+                "description": "maze.r.central-berlin.desc",
+                "character": {
+                  "name": "maze.c.central-berlin.name",
+                  "line": "maze.c.central-berlin.line",
+                  "hint": "maze.c.central-berlin.hint",
+                  "right": "maze.c.central-berlin.right",
+                  "wrong": "maze.c.central-berlin.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "central-zagreb",
+                    "items": [
+                      "q-cen-sort",
+                      "q-cen-match",
+                      "q-cen-typed-danube"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "central-danube",
+                "name": "maze.r.central-danube",
+                "description": "maze.r.central-danube.desc",
+                "character": {
+                  "name": "maze.c.central-danube.name",
+                  "line": "maze.c.central-danube.line",
+                  "hint": "maze.c.central-danube.hint",
+                  "right": "maze.c.central-danube.right",
+                  "wrong": "maze.c.central-danube.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "central-zagreb",
+                    "items": [
+                      "q-cen-cross",
+                      "q-cen-typed-danube",
+                      "q-cen-sort"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "central-zagreb",
+                "name": "maze.r.central-zagreb",
+                "description": "maze.r.central-zagreb.desc",
+                "character": {
+                  "name": "maze.c.central-zagreb.name",
+                  "line": "maze.c.central-zagreb.line",
+                  "hint": "maze.c.central-zagreb.hint",
+                  "right": "maze.c.central-zagreb.right",
+                  "wrong": "maze.c.central-zagreb.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "central-key",
+                    "items": [
+                      "q-cen-ws",
+                      "q-cen-mcq",
+                      "q-cen-tf"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "central-key",
+                "name": "maze.r.central-key",
+                "description": "maze.r.central-key.desc",
+                "character": {
+                  "name": "maze.c.central-key.name",
+                  "line": "maze.c.central-key.line",
+                  "hint": "maze.c.central-key.hint",
+                  "right": "maze.c.central-key.right",
+                  "wrong": "maze.c.central-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-south",
+            "unit": "u-south",
+            "name": "maze.w.w-south",
+            "description": "maze.w.w-south.desc",
+            "entry": "south-rome",
+            "rooms": [
+              {
+                "id": "south-rome",
+                "name": "maze.r.south-rome",
+                "description": "maze.r.south-rome.desc",
+                "character": {
+                  "name": "maze.c.south-rome.name",
+                  "line": "maze.c.south-rome.line",
+                  "hint": "maze.c.south-rome.hint",
+                  "right": "maze.c.south-rome.right",
+                  "wrong": "maze.c.south-rome.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "south-athens",
+                    "items": [
+                      "q-south-mcq",
+                      "q-south-hotspot",
+                      "q-south-typed"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "south-athens",
+                "name": "maze.r.south-athens",
+                "description": "maze.r.south-athens.desc",
+                "character": {
+                  "name": "maze.c.south-athens.name",
+                  "line": "maze.c.south-athens.line",
+                  "hint": "maze.c.south-athens.hint",
+                  "right": "maze.c.south-athens.right",
+                  "wrong": "maze.c.south-athens.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "south-valletta",
+                    "items": [
+                      "q-south-cloze",
+                      "q-south-hotspot",
+                      "q-south-typed"
+                    ]
+                  },
+                  {
+                    "to": "south-tiber",
+                    "items": [
+                      "q-south-tiber",
+                      "q-south-tf",
+                      "q-south-multi"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "south-valletta",
+                "name": "maze.r.south-valletta",
+                "description": "maze.r.south-valletta.desc",
+                "character": {
+                  "name": "maze.c.south-valletta.name",
+                  "line": "maze.c.south-valletta.line",
+                  "hint": "maze.c.south-valletta.hint",
+                  "right": "maze.c.south-valletta.right",
+                  "wrong": "maze.c.south-valletta.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "south-ages",
+                    "items": [
+                      "q-south-order",
+                      "q-south-oldest",
+                      "q-south-cloze"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "south-tiber",
+                "name": "maze.r.south-tiber",
+                "description": "maze.r.south-tiber.desc",
+                "character": {
+                  "name": "maze.c.south-tiber.name",
+                  "line": "maze.c.south-tiber.line",
+                  "hint": "maze.c.south-tiber.hint",
+                  "right": "maze.c.south-tiber.right",
+                  "wrong": "maze.c.south-tiber.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "south-ages",
+                    "items": [
+                      "q-south-order",
+                      "q-south-oldest",
+                      "q-south-tf"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "south-ages",
+                "name": "maze.r.south-ages",
+                "description": "maze.r.south-ages.desc",
+                "character": {
+                  "name": "maze.c.south-ages.name",
+                  "line": "maze.c.south-ages.line",
+                  "hint": "maze.c.south-ages.hint",
+                  "right": "maze.c.south-ages.right",
+                  "wrong": "maze.c.south-ages.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "south-key",
+                    "items": [
+                      "q-south-multi",
+                      "q-south-mcq",
+                      "q-south-oldest"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "south-key",
+                "name": "maze.r.south-key",
+                "description": "maze.r.south-key.desc",
+                "character": {
+                  "name": "maze.c.south-key.name",
+                  "line": "maze.c.south-key.line",
+                  "hint": "maze.c.south-key.hint",
+                  "right": "maze.c.south-key.right",
+                  "wrong": "maze.c.south-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          }
+        ],
+        "throne": {
+          "name": "maze.throne",
+          "description": "maze.throne.desc",
+          "size": 8
+        }
       }
     }
   },

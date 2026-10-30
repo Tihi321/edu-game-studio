@@ -6,9 +6,11 @@
  * shot(), overflowCheck(), fail(), exists(), wantRight(), the page, the options and the game data. See docs/player.md, "Autoplay bot".
  */
 import * as encyclopedia from './encyclopedia.mjs'
+import * as mindmaze from './mindmaze.mjs'
 import * as quizArena from './quiz-arena.mjs'
 
 export const DRIVERS = {
   'quiz-arena': quizArena,
-  encyclopedia
+  encyclopedia,
+  mindmaze
 }

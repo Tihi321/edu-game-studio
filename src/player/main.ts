@@ -10,6 +10,7 @@ import './kit/kit.css'
 import { createEngine } from './engine'
 import { BUILTIN_RENDERERS } from './items'
 import { encyclopediaShell } from './shells/encyclopedia'
+import { mindmazeShell } from './shells/mindmaze'
 import { quizArenaShell } from './shells/quiz-arena'
 
 /**
@@ -21,6 +22,7 @@ const engine = createEngine()
 for (const r of BUILTIN_RENDERERS) engine.registerItemKind(r.kind, r)
 engine.registerShell(quizArenaShell.id, quizArenaShell)
 engine.registerShell(encyclopediaShell.id, encyclopediaShell)
+engine.registerShell(mindmazeShell.id, mindmazeShell)
 window.EduEngine = engine
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => engine.start())

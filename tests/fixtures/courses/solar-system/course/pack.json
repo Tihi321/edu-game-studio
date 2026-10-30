@@ -1158,7 +1158,8 @@
   "shells": {
     "enabled": [
       "quiz-arena",
-      "encyclopedia"
+      "encyclopedia",
+      "mindmaze"
     ],
     "config": {
       "quiz-arena": {
@@ -1381,6 +1382,428 @@
             ]
           }
         ]
+      },
+      "mindmaze": {
+        "torches": 3,
+        "wings": [
+          {
+            "id": "w-sun",
+            "unit": "u-sun-planets",
+            "name": "maze.w.w-sun",
+            "description": "maze.w.w-sun.desc",
+            "entry": "sun-hall",
+            "rooms": [
+              {
+                "id": "sun-hall",
+                "name": "maze.r.sun-hall",
+                "description": "maze.r.sun-hall.desc",
+                "character": {
+                  "name": "maze.c.sun-hall.name",
+                  "line": "maze.c.sun-hall.line",
+                  "hint": "maze.c.sun-hall.hint",
+                  "right": "maze.c.sun-hall.right",
+                  "wrong": "maze.c.sun-hall.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "sun-orrery",
+                    "items": [
+                      "q-order-mcq",
+                      "q-order-card",
+                      "q-order-hotspot"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "sun-orrery",
+                "name": "maze.r.sun-orrery",
+                "description": "maze.r.sun-orrery.desc",
+                "character": {
+                  "name": "maze.c.sun-orrery.name",
+                  "line": "maze.c.sun-orrery.line",
+                  "hint": "maze.c.sun-orrery.hint",
+                  "right": "maze.c.sun-orrery.right",
+                  "wrong": "maze.c.sun-orrery.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "sun-corona",
+                    "items": [
+                      "q-sun-mcq",
+                      "q-sun-tf"
+                    ]
+                  },
+                  {
+                    "to": "sun-library",
+                    "items": [
+                      "q-order-seq",
+                      "q-planets-ws"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "sun-corona",
+                "name": "maze.r.sun-corona",
+                "description": "maze.r.sun-corona.desc",
+                "character": {
+                  "name": "maze.c.sun-corona.name",
+                  "line": "maze.c.sun-corona.line",
+                  "hint": "maze.c.sun-corona.hint",
+                  "right": "maze.c.sun-corona.right",
+                  "wrong": "maze.c.sun-corona.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "sun-dome",
+                    "items": [
+                      "q-sun-cloze",
+                      "q-sun-beeps"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "sun-library",
+                "name": "maze.r.sun-library",
+                "description": "maze.r.sun-library.desc",
+                "character": {
+                  "name": "maze.c.sun-library.name",
+                  "line": "maze.c.sun-library.line",
+                  "hint": "maze.c.sun-library.hint",
+                  "right": "maze.c.sun-library.right",
+                  "wrong": "maze.c.sun-library.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "sun-dome",
+                    "items": [
+                      "q-sun-tf",
+                      "q-sun-cloze"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "sun-dome",
+                "name": "maze.r.sun-dome",
+                "description": "maze.r.sun-dome.desc",
+                "character": {
+                  "name": "maze.c.sun-dome.name",
+                  "line": "maze.c.sun-dome.line",
+                  "hint": "maze.c.sun-dome.hint",
+                  "right": "maze.c.sun-dome.right",
+                  "wrong": "maze.c.sun-dome.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "sun-key",
+                    "items": [
+                      "q-order-seq",
+                      "q-sun-beeps",
+                      "q-sun-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "sun-key",
+                "name": "maze.r.sun-key",
+                "description": "maze.r.sun-key.desc",
+                "character": {
+                  "name": "maze.c.sun-key.name",
+                  "line": "maze.c.sun-key.line",
+                  "hint": "maze.c.sun-key.hint",
+                  "right": "maze.c.sun-key.right",
+                  "wrong": "maze.c.sun-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-worlds",
+            "unit": "u-rocky-giant",
+            "name": "maze.w.w-worlds",
+            "description": "maze.w.w-worlds.desc",
+            "entry": "worlds-hall",
+            "rooms": [
+              {
+                "id": "worlds-hall",
+                "name": "maze.r.worlds-hall",
+                "description": "maze.r.worlds-hall.desc",
+                "character": {
+                  "name": "maze.c.worlds-hall.name",
+                  "line": "maze.c.worlds-hall.line",
+                  "hint": "maze.c.worlds-hall.hint",
+                  "right": "maze.c.worlds-hall.right",
+                  "wrong": "maze.c.worlds-hall.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "worlds-types",
+                    "items": [
+                      "q-types-sort",
+                      "q-types-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "worlds-types",
+                "name": "maze.r.worlds-types",
+                "description": "maze.r.worlds-types.desc",
+                "character": {
+                  "name": "maze.c.worlds-types.name",
+                  "line": "maze.c.worlds-types.line",
+                  "hint": "maze.c.worlds-types.hint",
+                  "right": "maze.c.worlds-types.right",
+                  "wrong": "maze.c.worlds-types.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "worlds-furnace",
+                    "items": [
+                      "q-venus-mcq",
+                      "q-venus-cloze",
+                      "q-venus-tf"
+                    ]
+                  },
+                  {
+                    "to": "worlds-giants",
+                    "items": [
+                      "q-giants-multi",
+                      "q-giants-typed",
+                      "q-giants-hotspot"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "worlds-furnace",
+                "name": "maze.r.worlds-furnace",
+                "description": "maze.r.worlds-furnace.desc",
+                "character": {
+                  "name": "maze.c.worlds-furnace.name",
+                  "line": "maze.c.worlds-furnace.line",
+                  "hint": "maze.c.worlds-furnace.hint",
+                  "right": "maze.c.worlds-furnace.right",
+                  "wrong": "maze.c.worlds-furnace.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "worlds-vault",
+                    "items": [
+                      "q-facts-match",
+                      "q-facts-cross"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "worlds-giants",
+                "name": "maze.r.worlds-giants",
+                "description": "maze.r.worlds-giants.desc",
+                "character": {
+                  "name": "maze.c.worlds-giants.name",
+                  "line": "maze.c.worlds-giants.line",
+                  "hint": "maze.c.worlds-giants.hint",
+                  "right": "maze.c.worlds-giants.right",
+                  "wrong": "maze.c.worlds-giants.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "worlds-vault",
+                    "items": [
+                      "q-facts-cross",
+                      "q-facts-match"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "worlds-vault",
+                "name": "maze.r.worlds-vault",
+                "description": "maze.r.worlds-vault.desc",
+                "character": {
+                  "name": "maze.c.worlds-vault.name",
+                  "line": "maze.c.worlds-vault.line",
+                  "hint": "maze.c.worlds-vault.hint",
+                  "right": "maze.c.worlds-vault.right",
+                  "wrong": "maze.c.worlds-vault.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "worlds-key",
+                    "items": [
+                      "q-venus-tf",
+                      "q-giants-multi",
+                      "q-types-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "worlds-key",
+                "name": "maze.r.worlds-key",
+                "description": "maze.r.worlds-key.desc",
+                "character": {
+                  "name": "maze.c.worlds-key.name",
+                  "line": "maze.c.worlds-key.line",
+                  "hint": "maze.c.worlds-key.hint",
+                  "right": "maze.c.worlds-key.right",
+                  "wrong": "maze.c.worlds-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          },
+          {
+            "id": "w-beyond",
+            "unit": "u-moons-beyond",
+            "name": "maze.w.w-beyond",
+            "description": "maze.w.w-beyond.desc",
+            "entry": "beyond-hall",
+            "rooms": [
+              {
+                "id": "beyond-hall",
+                "name": "maze.r.beyond-hall",
+                "description": "maze.r.beyond-hall.desc",
+                "character": {
+                  "name": "maze.c.beyond-hall.name",
+                  "line": "maze.c.beyond-hall.line",
+                  "hint": "maze.c.beyond-hall.hint",
+                  "right": "maze.c.beyond-hall.right",
+                  "wrong": "maze.c.beyond-hall.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "beyond-moons",
+                    "items": [
+                      "q-moons-typed",
+                      "q-moons-mcq",
+                      "q-moons-card"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "beyond-moons",
+                "name": "maze.r.beyond-moons",
+                "description": "maze.r.beyond-moons.desc",
+                "character": {
+                  "name": "maze.c.beyond-moons.name",
+                  "line": "maze.c.beyond-moons.line",
+                  "hint": "maze.c.beyond-moons.hint",
+                  "right": "maze.c.beyond-moons.right",
+                  "wrong": "maze.c.beyond-moons.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "beyond-belt",
+                    "items": [
+                      "q-beyond-cloze",
+                      "q-beyond-order"
+                    ]
+                  },
+                  {
+                    "to": "beyond-control",
+                    "items": [
+                      "q-explore-timeline",
+                      "q-explore-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "beyond-belt",
+                "name": "maze.r.beyond-belt",
+                "description": "maze.r.beyond-belt.desc",
+                "character": {
+                  "name": "maze.c.beyond-belt.name",
+                  "line": "maze.c.beyond-belt.line",
+                  "hint": "maze.c.beyond-belt.hint",
+                  "right": "maze.c.beyond-belt.right",
+                  "wrong": "maze.c.beyond-belt.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "beyond-edge",
+                    "items": [
+                      "q-beyond-mcq",
+                      "q-beyond-order"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "beyond-control",
+                "name": "maze.r.beyond-control",
+                "description": "maze.r.beyond-control.desc",
+                "character": {
+                  "name": "maze.c.beyond-control.name",
+                  "line": "maze.c.beyond-control.line",
+                  "hint": "maze.c.beyond-control.hint",
+                  "right": "maze.c.beyond-control.right",
+                  "wrong": "maze.c.beyond-control.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "beyond-edge",
+                    "items": [
+                      "q-explore-mcq",
+                      "q-explore-timeline"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "beyond-edge",
+                "name": "maze.r.beyond-edge",
+                "description": "maze.r.beyond-edge.desc",
+                "character": {
+                  "name": "maze.c.beyond-edge.name",
+                  "line": "maze.c.beyond-edge.line",
+                  "hint": "maze.c.beyond-edge.hint",
+                  "right": "maze.c.beyond-edge.right",
+                  "wrong": "maze.c.beyond-edge.wrong"
+                },
+                "doors": [
+                  {
+                    "to": "beyond-key",
+                    "items": [
+                      "q-moons-match",
+                      "q-beyond-mcq",
+                      "q-explore-mcq"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "beyond-key",
+                "name": "maze.r.beyond-key",
+                "description": "maze.r.beyond-key.desc",
+                "character": {
+                  "name": "maze.c.beyond-key.name",
+                  "line": "maze.c.beyond-key.line",
+                  "hint": "maze.c.beyond-key.hint",
+                  "right": "maze.c.beyond-key.right",
+                  "wrong": "maze.c.beyond-key.wrong"
+                },
+                "doors": [],
+                "key": true
+              }
+            ]
+          }
+        ],
+        "throne": {
+          "name": "maze.throne",
+          "description": "maze.throne.desc",
+          "size": 8
+        }
       }
     }
   },

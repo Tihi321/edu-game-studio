@@ -29,5 +29,6 @@ Three hand-written courses in the course contract (`src/shared/course.ts`). Test
 A fixture enables a shell in `shells.enabled` and may author its section in `shells.config.<shell>` (`src/shared/shells/<shell>.ts`, `docs/player.md` "Shells"). The shell text keys carry the shell prefix (`enc.`, `maze.`, `rpg.`, `rp.`, `det.`). Every golden fixture lints with 0 shell errors and 0 shell warnings.
 
 - `encyclopedia` (EGS-10): `solar-system` has a timeline of 8 events, a map with 9 pins on `solar-system.svg` and a hunt of 3 steps per unit; `european-capitals` has 12 events, a pin per capital on `europe.svg` and 3 hunts (4, 4 and 3 steps). Every hunt sends you to an article whose body holds the answer.
+- `mindmaze` (EGS-11): `solar-system` and `european-capitals` have 3 wings of 6 rooms each (characters whose lines and hints come from the course facts, two routes per wing, every item of a unit asked at some door) and an authored throne room.
 
-The broken shell fixtures (`broken-encyclopedia/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.
+The broken shell fixtures (`broken-encyclopedia/`, `broken-mindmaze/`) are wrong on purpose like `broken/`: each has an `EXPECTED.md` with the codes its test asserts.
