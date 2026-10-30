@@ -4,9 +4,10 @@ The tasks of Edu Studio, in order. The big plan, with the research behind it, is
 
 Every phase ends in something that can be checked: a command, a screenshot set, a bot run. A phase is not done until its checks pass and the result is recorded.
 
-## Where it stands (2026-10-29)
+## Where it stands (2026-10-30)
 
 - **Phase 0, phase 1 and phase 2 are done** (EGS-01 to EGS-05, branches stacked on `EGS-01_skeleton`, not merged yet): the engine core copied from VN Studio, the course contract with 13 item kinds, SM-2 and adaptive difficulty, our own browser player with the chalkboard quiz arena, the build, `edu_lint`, the course MCP tools and CLI, and the autoplay bot; the design system (tokens, four themes in a registry, bundled fonts) and the studio pages. Both golden fixtures build, lint clean and pass the bot in all three runs with 0 console errors, also keyboard-only, with 0 axe-core violations; every studio page passes axe-core too.
+- **Phase 5, shells so far** (EGS-10, stacked on `EGS-05_design-system`, not merged yet): the encyclopedia explorer, each on the shared shell kit with its course section, its lint, a bot driver (perfect, wrong and random runs, keyboard-only and axe-core) and a broken fixture. No human has played them yet.
 - **Not checked yet:** `yarn dev` (the desktop window) has not been opened; the studio was checked in Chromium with a mocked engine. Real audio and touch devices wait for phase 6.
 - **Next:** phase 3 (EGS-06 to EGS-08, the roles and the content pipeline), being done in parallel; the studio's Brief, Curriculum notes, research and Playtest history have empty slots that it fills.
 - **The pilot** (EGS-09) is a history and geography course; the exact topic is chosen then. It is done only when the user has played it.
@@ -27,7 +28,6 @@ The phase numbers are the ones of the hub plan.
 
 ### Phase 5: more shells (one ticket per shell)
 
-- **EGS-10** the encyclopedia explorer (articles, timeline, map, collectibles).
 - **EGS-11** the MindMaze castle (rooms, doors that are questions, wings by topic, the throne room at mastery).
 - **EGS-12** the RPG quest (tile map, NPCs, turn battles where the moves are answers; the frame story from Scriptorium over MCP).
 - **EGS-13** language role-play and the vocabulary garden.
@@ -55,6 +55,7 @@ Each shell: the bot plays a fixture course through it (perfect, wrong, random ru
 - **EGS-03** the player runtime (`window.EduEngine`, quiz arena, all item renderers, localStorage progress with export and import), the build into a `file://` folder, `edu_lint` with a broken fixture, the course MCP tools and CLI. Plan `.claude/tickets/EGS-03-player-runtime/`.
 - **EGS-04** the autoplay bot (`scripts/play.mjs`, perfect / wrong / random runs, screenshots) and its e2e test on both fixtures. Plan `.claude/tickets/EGS-04-autoplay-bot/`.
 - **EGS-05** the design system and the studio UI: `--edu-*` tokens, the theme registry with four looks (chalkboard, castle stone, parchment and brass, pixel quest), bundled OFL fonts, motion behind `prefers-reduced-motion`; the studio pages (Library, Course with ten tabs and an item editor with a live preview, Models, Agents, Generators, Settings); the bot's keyboard-only mode and axe-core runs on the game, the theme previews and the studio. Plan `.claude/tickets/EGS-05-design-system/`.
+- **EGS-10** the shell contract and the encyclopedia explorer: the shell kit (`src/player/kit/`), the course sections and their lint (`src/shared/shells/`), the game-style picker on every title, per-shell progress, the bot's shell drivers (`scripts/bot/`); the encyclopedia (parchment and brass: articles with cross-links, search, citations, a timeline, a map, scavenger hunts whose answers are in the articles, a codex of collectibles); the `european-capitals` fixture. Plan `.claude/tickets/EGS-10-encyclopedia/`.
 
 ## Later
 

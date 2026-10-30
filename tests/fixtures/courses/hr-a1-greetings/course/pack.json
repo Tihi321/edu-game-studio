@@ -853,15 +853,11 @@
   ],
   "shells": {
     "enabled": [
-      "quiz-arena",
-      "roleplay"
+      "quiz-arena"
     ],
     "config": {
       "quiz-arena": {
         "roundLength": 8
-      },
-      "roleplay": {
-        "scenes": []
       }
     }
   },

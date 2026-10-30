@@ -6,11 +6,18 @@ import type { UiKey } from './i18n'
 /** The screens the quiz arena shows. The autoplay bot reads `getState().screen`; see `docs/player.md`. */
 export type ScreenName = 'loading' | 'error' | 'title' | 'map' | 'item' | 'feedback' | 'summary' | 'review' | 'end'
 
+/**
+ * A screen of any shell: the quiz arena's (`ScreenName`) or a shell's own (`world`, `room`, `battle`, `article`, `case` ...). Every
+ * shell shares `loading`, `error`, `title`, `item` (a question waits for an answer), `feedback` (after the answer, until `next`) and
+ * `end` (the course is finished); see docs/player.md, "Shells".
+ */
+export type AnyScreen = ScreenName | (string & {})
+
 export type RoundKind = 'unit' | 'boss' | 'review'
 
 /** The JSON-safe snapshot `window.EduEngine.getState()` returns. */
 export interface PlayerState {
-  screen: ScreenName
+  screen: AnyScreen
   shell: string
   lang: string
   seed: number
@@ -34,6 +41,10 @@ export interface PlayerState {
   finished: boolean
   /** Answers submitted in this page session (a flashcard grade is an answer). */
   steps: number
+  /** Shells: what the open question is for (`door`, `battle`, `hunt`, `line`, `clue` ...), on the screens `item` and `feedback`. */
+  context?: string
+  /** Shells: their own JSON-safe state (the room, hit points, found clues ...); documented per shell in docs/player.md. */
+  view?: Record<string, unknown>
 }
 
 /** What a renderer gets for one question. */
@@ -82,7 +93,16 @@ export interface ShellHost {
   getItemRenderer(kind: string): ItemRenderer | undefined
   /** The shell publishes its state here after every change; `getState()` returns a copy. */
   publish(state: PlayerState): void
+  /** The shells this game can be played in (the course's `shells.enabled` that are registered), in order. */
+  shells: readonly string[]
+  /** Leaves this shell and mounts another one of `shells` (the choice is remembered per course). Unknown ids are ignored. */
+  switchShell(id: string): void
+  /** Read-only helpers for the autoplay bot, published as `EduEngine.debug.shell` while this shell is mounted (null clears them). */
+  setDebug(api: ShellDebugApi | null): void
 }
+
+/** A shell's bot helpers (`EduEngine.debug.shell`): pure reads of the shell's state, never a change and never drawn. */
+export type ShellDebugApi = Record<string, (...args: never[]) => unknown>
 
 export interface Shell {
   id: string
@@ -96,6 +116,8 @@ export interface EduDebugApi {
   solve(itemId: string): unknown
   /** An answer the checker rejects (`undefined` for an unknown item or kind). */
   wrong(itemId: string): unknown
+  /** The mounted shell's own helpers (a route to the next door, the solution of a case ...), when it has any. */
+  shell?: ShellDebugApi
 }
 
 export interface EduEngineApi {
@@ -105,8 +127,12 @@ export interface EduEngineApi {
   getState(): PlayerState
   /** The bot's solver hook (see `docs/player.md`). */
   debug: EduDebugApi
-  /** Mounts the shell named by the game data (idempotent). */
+  /** Mounts the shell chosen for this page (idempotent): `?shell=<id>`, else the remembered choice, else `GameData.shell`. */
   start(): void
+  /** Unmounts the shell and mounts another playable one (what the shell picker on the title screen does). */
+  switchShell(id: string): void
+  /** The shells this game can be played in (registered and enabled by the course), in order. */
+  playableShells(): string[]
 }
 
 declare global {

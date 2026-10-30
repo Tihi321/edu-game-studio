@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -84,8 +84,13 @@ describe('tokens.css', () => {
 })
 
 describe('the theme registry', () => {
-  it('lists the four themes with a CSS file each', () => {
-    expect(THEMES.map((t) => t.id)).toEqual(['chalkboard', 'castle', 'parchment', 'pixel'])
+  it('lists the themes with a CSS file each', () => {
+    expect(THEMES.map((t) => t.id)).toEqual([
+      'chalkboard',
+      'castle',
+      'parchment',
+      'pixel'
+    ])
     for (const t of THEMES) expect(existsSync(path.join(DESIGN, 'themes', `${t.id}.css`)), t.id).toBe(true)
   })
 
@@ -271,6 +276,31 @@ describe('player stylesheets', () => {
         // 11px: the clue numbers in the corner of a crossword cell (dense grids, aria-hidden, the clue list repeats them)
         expect(px, `${f}: font-size ${m[0]}`).toBeGreaterThanOrEqual(m[0].includes('0.6875rem') ? 11 : 13)
       }
+    }
+  })
+})
+
+describe('shell stylesheets (EGS-10+: src/player/kit and src/player/shells/<id>/)', () => {
+  const walk = (dir: string): string[] =>
+    existsSync(dir)
+      ? readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith('.css') ? [path.join(dir, e.name)] : []))
+      : []
+  const files = [...walk(path.join(ROOT, 'src', 'player', 'kit')), ...walk(path.join(ROOT, 'src', 'player', 'shells'))]
+  const rel = (f: string): string => path.relative(ROOT, f).split(path.sep).join('/')
+
+  it('exist (the kit at least)', () => {
+    expect(files.map(rel)).toContain('src/player/kit/kit.css')
+  })
+
+  it.each(files.map(rel))('%s: every selector starts with .edu-stage, colours come from tokens, no text under 13px', (file) => {
+    const css = stripComments(read(...file.split('/')))
+    const sels = [...css.matchAll(/([^{}@;]+)\{/g)].map((m) => (m[1] as string).trim()).filter((x) => x && !/^(media|keyframes|supports|from|to|\d)/.test(x) && !/^\d+%/.test(x))
+    // selectors inside @keyframes (from, to, 40%) are skipped above
+    for (const sel of sels) for (const part of topLevelCommas(sel)) expect(part.trim(), `${file}: ${part.trim()}`).toMatch(/^(:where\(\.edu-stage\)|\.edu-stage)(?=[\s.:[,]|$)/)
+    expect(css, `${file} has a hex colour (colours belong in src/design/themes/<id>.css)`).not.toMatch(/#[0-9a-f]{3,8}\b(?![^()]*\))/i)
+    for (const m of css.matchAll(/font-size:\s*([\d.]+)(px|rem)/g)) {
+      const px = Number(m[1]) * (m[2] === 'rem' ? 16 : 1)
+      expect(px, `${file}: font-size ${m[0]}`).toBeGreaterThanOrEqual(13)
     }
   })
 })

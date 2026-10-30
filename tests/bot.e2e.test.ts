@@ -16,6 +16,7 @@ useTemp()
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PLAY = path.join(ROOT, 'scripts', 'play.mjs')
+const PLAYER_OUT = process.env.EDU_TEST_PLAYER_OUT ? path.resolve(ROOT, process.env.EDU_TEST_PLAYER_OUT) : path.join(ROOT, 'out', 'player')
 
 async function chromiumAvailable(): Promise<string | null> {
   try {
@@ -62,7 +63,7 @@ function play(dir: string, args: string[]): Promise<{ code: number; summary: Bot
   })
 }
 
-const FIXTURES = ['solar-system', 'hr-a1-greetings']
+const FIXTURES = ['solar-system', 'hr-a1-greetings', 'european-capitals']
 
 /** axe ran on the screens that matter and found nothing serious or critical (the counts are in the bot's JSON summary). */
 function expectCleanAxe(summary: BotSummary): void {
@@ -84,7 +85,7 @@ describe.skipIf(!!unavailable)('autoplay bot on the golden fixtures', () => {
         (dirP ??= (async () => {
           const { root } = await copyFixture(name)
           const out = await tmp('edu-bot-')
-          const res = await buildCourse(root, out, { playerDir: path.join(ROOT, 'out', 'player') })
+          const res = await buildCourse(root, out, { playerDir: PLAYER_OUT })
           expect(res.problems).toEqual([])
           expect(res.ok).toBe(true)
           return out

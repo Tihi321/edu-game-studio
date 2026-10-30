@@ -2,6 +2,7 @@ import { coursePackSchema, textCatalogSchema, type CourseAsset, type CoursePack,
 import './kinds'
 import { ITEM_KINDS, type Problem, type TextRef, type ValidationContext } from './registry'
 import { makeTextResolver } from './text'
+import { validateShellSections } from '../shells'
 
 /**
  * `validateCourse(pack, catalogs)`: the structural integrity of a course. It does NOT judge pedagogy (two forms per objective, distractor
@@ -20,6 +21,8 @@ import { makeTextResolver } from './text'
  *   ASSET_KIND             an item needs an image or audio asset and got the other
  *   PUZZLE_UNPLACED / PUZZLE_INVALID   a crossword or word search whose words cannot be placed in an edition
  *   MISSING_CATALOG / CATALOG_LANG / UNKNOWN_LANGUAGE / SOURCE_LANG_NOT_LISTED   the languages and the text files do not agree
+ *   SHELL_SCHEMA           a game shell's section (`shells.config[<shell>]`) does not parse; a section's broken references come with the
+ *                          shell's own UNKNOWN_* codes (src/shared/shells)
  */
 
 export interface ValidationResult {
@@ -132,6 +135,11 @@ export function validateCourse(packInput: unknown, catalogsInput: CatalogsInput 
     add('MISSING_TEXT', path, `no ${what} key "${r.key}" in: ${missing.join(', ')}`)
   }
   for (const r of textRefs) checkText(r, r.path)
+
+  // ---- game shell sections (shells.config[<shell>], src/shared/shells) ----
+  const shells = validateShellSections(pack)
+  problems.push(...shells.problems)
+  for (const r of shells.textRefs) checkText(r, r.path)
 
   // ---- items ----
   const parsedItems = [...pack.items]

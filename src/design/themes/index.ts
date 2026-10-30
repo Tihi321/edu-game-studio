@@ -7,7 +7,11 @@
  * Pure data, no DOM: the studio renderer, the player and the tests all import it.
  */
 
-export type ThemeId = 'chalkboard' | 'castle' | 'parchment' | 'pixel'
+export type ThemeId =
+  | 'chalkboard'
+  | 'castle'
+  | 'parchment'
+  | 'pixel'
 
 export interface ThemeInfo {
   id: ThemeId

@@ -1,0 +1,1980 @@
+{
+  "schema": 1,
+  "id": "european-capitals",
+  "slug": "european-capitals",
+  "sourceLang": "en",
+  "languages": [
+    "en",
+    "hr"
+  ],
+  "subject": "European capitals",
+  "audience": "Curious learners from about age 10",
+  "matching": {
+    "diacritics": "warn",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-west",
+      "title": "ec.unit.u-west.title",
+      "summary": "ec.unit.u-west.summary",
+      "requires": []
+    },
+    {
+      "id": "u-central",
+      "title": "ec.unit.u-central.title",
+      "summary": "ec.unit.u-central.summary",
+      "requires": [
+        "u-west"
+      ]
+    },
+    {
+      "id": "u-south",
+      "title": "ec.unit.u-south.title",
+      "summary": "ec.unit.u-south.summary",
+      "requires": [
+        "u-west"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "o-west-capitals",
+      "unit": "u-west",
+      "bloom": "remember",
+      "text": "ec.obj.o-west-capitals",
+      "facts": [
+        "f-paris",
+        "f-london",
+        "f-madrid",
+        "f-lisbon",
+        "f-dublin"
+      ]
+    },
+    {
+      "id": "o-west-rivers",
+      "unit": "u-west",
+      "bloom": "understand",
+      "text": "ec.obj.o-west-rivers",
+      "facts": [
+        "f-paris",
+        "f-london",
+        "f-eiffel-1889",
+        "f-tower-1078"
+      ]
+    },
+    {
+      "id": "o-west-notbig",
+      "unit": "u-west",
+      "bloom": "analyze",
+      "text": "ec.obj.o-west-notbig",
+      "facts": [
+        "f-madrid",
+        "f-barcelona",
+        "f-lisbon",
+        "f-porto"
+      ]
+    },
+    {
+      "id": "o-central-capitals",
+      "unit": "u-central",
+      "bloom": "remember",
+      "text": "ec.obj.o-central-capitals",
+      "facts": [
+        "f-berlin",
+        "f-vienna",
+        "f-prague",
+        "f-budapest",
+        "f-zagreb",
+        "f-bucharest",
+        "f-salzburg",
+        "f-congress-vienna"
+      ]
+    },
+    {
+      "id": "o-central-rivers",
+      "unit": "u-central",
+      "bloom": "apply",
+      "text": "ec.obj.o-central-rivers",
+      "facts": [
+        "f-danube",
+        "f-vienna",
+        "f-prague",
+        "f-berlin",
+        "f-budapest",
+        "f-zagreb",
+        "f-sava"
+      ]
+    },
+    {
+      "id": "o-central-dates",
+      "unit": "u-central",
+      "bloom": "understand",
+      "text": "ec.obj.o-central-dates",
+      "facts": [
+        "f-charles-bridge-1357",
+        "f-brandenburg-1791",
+        "f-berlin-wall"
+      ]
+    },
+    {
+      "id": "o-south-capitals",
+      "unit": "u-south",
+      "bloom": "remember",
+      "text": "ec.obj.o-south-capitals",
+      "facts": [
+        "f-rome",
+        "f-athens",
+        "f-valletta",
+        "f-milan"
+      ]
+    },
+    {
+      "id": "o-south-ancient",
+      "unit": "u-south",
+      "bloom": "understand",
+      "text": "ec.obj.o-south-ancient",
+      "facts": [
+        "f-rome",
+        "f-colosseum-80",
+        "f-athens",
+        "f-parthenon-432"
+      ]
+    },
+    {
+      "id": "o-south-timeline",
+      "unit": "u-south",
+      "bloom": "evaluate",
+      "text": "ec.obj.o-south-timeline",
+      "facts": [
+        "f-parthenon-432",
+        "f-colosseum-80",
+        "f-tower-1078",
+        "f-eiffel-1889"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "q-west-mcq",
+      "kind": "mcq",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-mcq.prompt",
+      "explanation": "q-west-mcq.explanation",
+      "didYouKnow": "q-west-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "capitals",
+        "spain"
+      ],
+      "options": [
+        {
+          "id": "madrid",
+          "text": "ec.city.madrid"
+        },
+        {
+          "id": "barcelona",
+          "text": "ec.city.barcelona",
+          "why": "q-west-mcq.why.barcelona"
+        },
+        {
+          "id": "seville",
+          "text": "ec.city.seville",
+          "why": "q-west-mcq.why.seville"
+        },
+        {
+          "id": "valencia",
+          "text": "ec.city.valencia",
+          "why": "q-west-mcq.why.valencia"
+        }
+      ],
+      "answer": "madrid",
+      "shuffle": true
+    },
+    {
+      "id": "q-west-hotspot",
+      "kind": "hotspot",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-hotspot.prompt",
+      "explanation": "q-west-hotspot.explanation",
+      "didYouKnow": "q-west-hotspot.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "map",
+        "portugal"
+      ],
+      "asset": "img-europe",
+      "width": 800,
+      "height": 600,
+      "regions": [
+        {
+          "id": "lisbon",
+          "label": "ec.city.lisbon",
+          "shape": {
+            "type": "circle",
+            "cx": 36.3,
+            "cy": 514.1,
+            "r": 18
+          }
+        },
+        {
+          "id": "madrid",
+          "label": "ec.city.madrid",
+          "shape": {
+            "type": "circle",
+            "cx": 142.4,
+            "cy": 475,
+            "r": 18
+          },
+          "why": "q-west-hotspot.why.madrid"
+        },
+        {
+          "id": "paris",
+          "label": "ec.city.paris",
+          "shape": {
+            "type": "circle",
+            "cx": 260.5,
+            "cy": 280.2,
+            "r": 18
+          },
+          "why": "q-west-hotspot.why.paris"
+        },
+        {
+          "id": "london",
+          "label": "ec.city.london",
+          "shape": {
+            "type": "circle",
+            "cx": 212.1,
+            "cy": 219.1,
+            "r": 18
+          },
+          "why": "q-west-hotspot.why.london"
+        },
+        {
+          "id": "dublin",
+          "label": "ec.city.dublin",
+          "shape": {
+            "type": "circle",
+            "cx": 92.5,
+            "cy": 176.5,
+            "r": 18
+          },
+          "why": "q-west-hotspot.why.dublin"
+        }
+      ],
+      "answer": "lisbon"
+    },
+    {
+      "id": "q-west-typed",
+      "kind": "typed",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-typed.prompt",
+      "explanation": "q-west-typed.explanation",
+      "didYouKnow": "q-west-typed.dyk",
+      "hint": "q-west-typed.hint",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "portugal"
+      ],
+      "answer": "ec.ans.lisbon"
+    },
+    {
+      "id": "q-west-cloze",
+      "kind": "cloze",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-cloze.prompt",
+      "explanation": "q-west-cloze.explanation",
+      "didYouKnow": "q-west-cloze.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "ireland",
+        "uk"
+      ],
+      "text": "q-west-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "ec.ans.dublin",
+          "bank": [
+            "ec.ans.dublin",
+            "ec.city.cork",
+            "ec.city.belfast"
+          ]
+        },
+        {
+          "id": "2",
+          "answer": "ec.ans.london",
+          "bank": [
+            "ec.ans.london",
+            "ec.city.manchester",
+            "ec.city.edinburgh"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q-west-match",
+      "kind": "match-pairs",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-match.prompt",
+      "explanation": "q-west-match.explanation",
+      "didYouKnow": "q-west-match.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "countries"
+      ],
+      "pairs": [
+        {
+          "id": "paris",
+          "left": "ec.city.paris",
+          "right": "ec.country.france"
+        },
+        {
+          "id": "london",
+          "left": "ec.city.london",
+          "right": "ec.country.uk"
+        },
+        {
+          "id": "madrid",
+          "left": "ec.city.madrid",
+          "right": "ec.country.spain"
+        },
+        {
+          "id": "lisbon",
+          "left": "ec.city.lisbon",
+          "right": "ec.country.portugal"
+        },
+        {
+          "id": "dublin",
+          "left": "ec.city.dublin",
+          "right": "ec.country.ireland"
+        }
+      ]
+    },
+    {
+      "id": "q-west-card",
+      "kind": "flashcard",
+      "objective": "o-west-capitals",
+      "prompt": "q-west-card.prompt",
+      "explanation": "q-west-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "capitals",
+        "ireland"
+      ],
+      "back": "q-west-card.back"
+    },
+    {
+      "id": "q-west-river-mcq",
+      "kind": "mcq",
+      "objective": "o-west-rivers",
+      "prompt": "q-west-river-mcq.prompt",
+      "explanation": "q-west-river-mcq.explanation",
+      "didYouKnow": "q-west-river-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "rivers",
+        "france"
+      ],
+      "options": [
+        {
+          "id": "seine",
+          "text": "ec.river.seine"
+        },
+        {
+          "id": "thames",
+          "text": "ec.river.thames",
+          "why": "q-west-river-mcq.why.thames"
+        },
+        {
+          "id": "loire",
+          "text": "ec.river.loire",
+          "why": "q-west-river-mcq.why.loire"
+        },
+        {
+          "id": "rhine",
+          "text": "ec.river.rhine",
+          "why": "q-west-river-mcq.why.rhine"
+        }
+      ],
+      "answer": "seine",
+      "shuffle": true
+    },
+    {
+      "id": "q-west-river-typed",
+      "kind": "typed",
+      "objective": "o-west-rivers",
+      "prompt": "q-west-river-typed.prompt",
+      "explanation": "q-west-river-typed.explanation",
+      "didYouKnow": "q-west-river-typed.dyk",
+      "hint": "q-west-river-typed.hint",
+      "difficulty": 2,
+      "tags": [
+        "rivers",
+        "uk"
+      ],
+      "answer": "ec.ans.thames"
+    },
+    {
+      "id": "q-west-sort",
+      "kind": "sort-groups",
+      "objective": "o-west-notbig",
+      "prompt": "q-west-sort.prompt",
+      "explanation": "q-west-sort.explanation",
+      "didYouKnow": "q-west-sort.dyk",
+      "difficulty": 3,
+      "tags": [
+        "capitals",
+        "misconceptions"
+      ],
+      "groups": [
+        {
+          "id": "g-cap",
+          "title": "q-west-sort.group.cap"
+        },
+        {
+          "id": "g-not",
+          "title": "q-west-sort.group.not"
+        }
+      ],
+      "items": [
+        {
+          "id": "madrid",
+          "text": "ec.city.madrid",
+          "group": "g-cap",
+          "why": "q-west-sort.why.madrid"
+        },
+        {
+          "id": "barcelona",
+          "text": "ec.city.barcelona",
+          "group": "g-not",
+          "why": "q-west-sort.why.barcelona"
+        },
+        {
+          "id": "lisbon",
+          "text": "ec.city.lisbon",
+          "group": "g-cap",
+          "why": "q-west-sort.why.lisbon"
+        },
+        {
+          "id": "porto",
+          "text": "ec.city.porto",
+          "group": "g-not",
+          "why": "q-west-sort.why.porto"
+        },
+        {
+          "id": "dublin",
+          "text": "ec.city.dublin",
+          "group": "g-cap",
+          "why": "q-west-sort.why.dublin"
+        },
+        {
+          "id": "cork",
+          "text": "ec.city.cork",
+          "group": "g-not",
+          "why": "q-west-sort.why.cork"
+        },
+        {
+          "id": "lyon",
+          "text": "ec.city.lyon",
+          "group": "g-not",
+          "why": "q-west-sort.why.lyon"
+        },
+        {
+          "id": "manchester",
+          "text": "ec.city.manchester",
+          "group": "g-not",
+          "why": "q-west-sort.why.manchester"
+        }
+      ]
+    },
+    {
+      "id": "q-west-tf",
+      "kind": "true-false",
+      "objective": "o-west-notbig",
+      "prompt": "q-west-tf.prompt",
+      "explanation": "q-west-tf.explanation",
+      "didYouKnow": "q-west-tf.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "portugal",
+        "misconceptions"
+      ],
+      "answer": false,
+      "why": "q-west-tf.why"
+    },
+    {
+      "id": "q-west-multi",
+      "kind": "multi-select",
+      "objective": "o-west-notbig",
+      "prompt": "q-west-multi.prompt",
+      "explanation": "q-west-multi.explanation",
+      "didYouKnow": "q-west-multi.dyk",
+      "difficulty": 3,
+      "tags": [
+        "capitals",
+        "misconceptions"
+      ],
+      "options": [
+        {
+          "id": "madrid",
+          "text": "ec.city.madrid"
+        },
+        {
+          "id": "dublin",
+          "text": "ec.city.dublin"
+        },
+        {
+          "id": "porto",
+          "text": "ec.city.porto",
+          "why": "q-west-multi.why.porto"
+        },
+        {
+          "id": "marseille",
+          "text": "ec.city.marseille",
+          "why": "q-west-multi.why.marseille"
+        },
+        {
+          "id": "liverpool",
+          "text": "ec.city.liverpool",
+          "why": "q-west-multi.why.liverpool"
+        }
+      ],
+      "answers": [
+        "madrid",
+        "dublin"
+      ],
+      "shuffle": true
+    },
+    {
+      "id": "q-cen-mcq",
+      "kind": "mcq",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-mcq.prompt",
+      "explanation": "q-cen-mcq.explanation",
+      "didYouKnow": "q-cen-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "capitals",
+        "austria"
+      ],
+      "options": [
+        {
+          "id": "vienna",
+          "text": "ec.city.vienna"
+        },
+        {
+          "id": "salzburg",
+          "text": "ec.city.salzburg",
+          "why": "q-cen-mcq.why.salzburg"
+        },
+        {
+          "id": "graz",
+          "text": "ec.city.graz",
+          "why": "q-cen-mcq.why.graz"
+        },
+        {
+          "id": "innsbruck",
+          "text": "ec.city.innsbruck",
+          "why": "q-cen-mcq.why.innsbruck"
+        }
+      ],
+      "answer": "vienna",
+      "shuffle": true
+    },
+    {
+      "id": "q-cen-hotspot",
+      "kind": "hotspot",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-hotspot.prompt",
+      "explanation": "q-cen-hotspot.explanation",
+      "didYouKnow": "q-cen-hotspot.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "map",
+        "czechia"
+      ],
+      "asset": "img-europe",
+      "width": 800,
+      "height": 600,
+      "regions": [
+        {
+          "id": "prague",
+          "label": "ec.city.prague",
+          "shape": {
+            "type": "circle",
+            "cx": 496,
+            "cy": 251.8,
+            "r": 18
+          }
+        },
+        {
+          "id": "berlin",
+          "label": "ec.city.berlin",
+          "shape": {
+            "type": "circle",
+            "cx": 476.2,
+            "cy": 195.7,
+            "r": 18
+          },
+          "why": "q-cen-hotspot.why.berlin"
+        },
+        {
+          "id": "vienna",
+          "label": "ec.city.vienna",
+          "shape": {
+            "type": "circle",
+            "cx": 534.1,
+            "cy": 295.2,
+            "r": 18
+          },
+          "why": "q-cen-hotspot.why.vienna"
+        },
+        {
+          "id": "budapest",
+          "label": "ec.city.budapest",
+          "shape": {
+            "type": "circle",
+            "cx": 586.1,
+            "cy": 311.6,
+            "r": 18
+          },
+          "why": "q-cen-hotspot.why.budapest"
+        },
+        {
+          "id": "zagreb",
+          "label": "ec.city.zagreb",
+          "shape": {
+            "type": "circle",
+            "cx": 526.5,
+            "cy": 350.4,
+            "r": 18
+          },
+          "why": "q-cen-hotspot.why.zagreb"
+        }
+      ],
+      "answer": "prague"
+    },
+    {
+      "id": "q-cen-typed",
+      "kind": "typed",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-typed.prompt",
+      "explanation": "q-cen-typed.explanation",
+      "didYouKnow": "q-cen-typed.dyk",
+      "hint": "q-cen-typed.hint",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "hungary"
+      ],
+      "answer": "ec.ans.budapest"
+    },
+    {
+      "id": "q-cen-cloze",
+      "kind": "cloze",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-cloze.prompt",
+      "explanation": "q-cen-cloze.explanation",
+      "didYouKnow": "q-cen-cloze.dyk",
+      "difficulty": 3,
+      "tags": [
+        "capitals",
+        "czechia"
+      ],
+      "text": "q-cen-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "ec.ans.prague"
+        }
+      ]
+    },
+    {
+      "id": "q-cen-tf",
+      "kind": "true-false",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-tf.prompt",
+      "explanation": "q-cen-tf.explanation",
+      "didYouKnow": "q-cen-tf.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "hungary",
+        "misconceptions"
+      ],
+      "answer": false,
+      "why": "q-cen-tf.why"
+    },
+    {
+      "id": "q-cen-ws",
+      "kind": "word-search",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-ws.prompt",
+      "explanation": "q-cen-ws.explanation",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "words"
+      ],
+      "words": [
+        {
+          "id": "berlin",
+          "answer": "ec.ans.berlin"
+        },
+        {
+          "id": "vienna",
+          "answer": "ec.ans.vienna"
+        },
+        {
+          "id": "prague",
+          "answer": "ec.ans.prague"
+        },
+        {
+          "id": "budapest",
+          "answer": "ec.ans.budapest"
+        },
+        {
+          "id": "zagreb",
+          "answer": "ec.ans.zagreb"
+        }
+      ],
+      "seed": 5,
+      "directions": "diagonal"
+    },
+    {
+      "id": "q-cen-card",
+      "kind": "flashcard",
+      "objective": "o-central-capitals",
+      "prompt": "q-cen-card.prompt",
+      "explanation": "q-cen-card.explanation",
+      "didYouKnow": "q-cen-card.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "names"
+      ],
+      "back": "q-cen-card.back"
+    },
+    {
+      "id": "q-cen-sort",
+      "kind": "sort-groups",
+      "objective": "o-central-rivers",
+      "prompt": "q-cen-sort.prompt",
+      "explanation": "q-cen-sort.explanation",
+      "didYouKnow": "q-cen-sort.dyk",
+      "difficulty": 3,
+      "tags": [
+        "rivers"
+      ],
+      "groups": [
+        {
+          "id": "g-danube",
+          "title": "ec.river.danube"
+        },
+        {
+          "id": "g-vltava",
+          "title": "ec.river.vltava"
+        },
+        {
+          "id": "g-spree",
+          "title": "ec.river.spree"
+        },
+        {
+          "id": "g-sava",
+          "title": "ec.river.sava"
+        }
+      ],
+      "items": [
+        {
+          "id": "vienna",
+          "text": "ec.city.vienna",
+          "group": "g-danube",
+          "why": "q-cen-sort.why.vienna"
+        },
+        {
+          "id": "prague",
+          "text": "ec.city.prague",
+          "group": "g-vltava",
+          "why": "q-cen-sort.why.prague"
+        },
+        {
+          "id": "berlin",
+          "text": "ec.city.berlin",
+          "group": "g-spree",
+          "why": "q-cen-sort.why.berlin"
+        },
+        {
+          "id": "budapest",
+          "text": "ec.city.budapest",
+          "group": "g-danube",
+          "why": "q-cen-sort.why.budapest"
+        },
+        {
+          "id": "zagreb",
+          "text": "ec.city.zagreb",
+          "group": "g-sava",
+          "why": "q-cen-sort.why.zagreb"
+        }
+      ]
+    },
+    {
+      "id": "q-cen-match",
+      "kind": "match-pairs",
+      "objective": "o-central-rivers",
+      "prompt": "q-cen-match.prompt",
+      "explanation": "q-cen-match.explanation",
+      "didYouKnow": "q-cen-match.dyk",
+      "difficulty": 2,
+      "tags": [
+        "rivers"
+      ],
+      "pairs": [
+        {
+          "id": "vienna",
+          "left": "ec.city.vienna",
+          "right": "ec.river.danube"
+        },
+        {
+          "id": "prague",
+          "left": "ec.city.prague",
+          "right": "ec.river.vltava"
+        },
+        {
+          "id": "berlin",
+          "left": "ec.city.berlin",
+          "right": "ec.river.spree"
+        },
+        {
+          "id": "zagreb",
+          "left": "ec.city.zagreb",
+          "right": "ec.river.sava"
+        }
+      ]
+    },
+    {
+      "id": "q-cen-typed-danube",
+      "kind": "typed",
+      "objective": "o-central-rivers",
+      "prompt": "q-cen-typed-danube.prompt",
+      "explanation": "q-cen-typed-danube.explanation",
+      "didYouKnow": "q-cen-typed-danube.dyk",
+      "hint": "q-cen-typed-danube.hint",
+      "difficulty": 3,
+      "tags": [
+        "rivers"
+      ],
+      "answer": "ec.ans.danube"
+    },
+    {
+      "id": "q-cen-cross",
+      "kind": "crossword",
+      "objective": "o-central-rivers",
+      "prompt": "q-cen-cross.prompt",
+      "explanation": "q-cen-cross.explanation",
+      "didYouKnow": "q-cen-cross.dyk",
+      "difficulty": 3,
+      "tags": [
+        "rivers",
+        "words"
+      ],
+      "words": [
+        {
+          "id": "danube",
+          "answer": "ec.ans.danube",
+          "clue": "q-cen-cross.clue.danube"
+        },
+        {
+          "id": "vltava",
+          "answer": "ec.ans.vltava",
+          "clue": "q-cen-cross.clue.vltava"
+        },
+        {
+          "id": "spree",
+          "answer": "ec.ans.spree",
+          "clue": "q-cen-cross.clue.spree"
+        },
+        {
+          "id": "sava",
+          "answer": "ec.ans.sava",
+          "clue": "q-cen-cross.clue.sava"
+        },
+        {
+          "id": "seine",
+          "answer": "ec.ans.seine",
+          "clue": "q-cen-cross.clue.seine"
+        },
+        {
+          "id": "thames",
+          "answer": "ec.ans.thames",
+          "clue": "q-cen-cross.clue.thames"
+        }
+      ],
+      "seed": 3,
+      "maxSize": 15
+    },
+    {
+      "id": "q-cen-order",
+      "kind": "order",
+      "objective": "o-central-dates",
+      "prompt": "q-cen-order.prompt",
+      "explanation": "q-cen-order.explanation",
+      "didYouKnow": "q-cen-order.dyk",
+      "difficulty": 3,
+      "tags": [
+        "dates",
+        "timeline"
+      ],
+      "items": [
+        {
+          "id": "bridge",
+          "text": "ec.ev.bridge",
+          "when": "ec.when.bridge"
+        },
+        {
+          "id": "gate",
+          "text": "ec.ev.gate",
+          "when": "ec.when.gate"
+        },
+        {
+          "id": "wall-built",
+          "text": "ec.ev.wall-built",
+          "when": "ec.when.wallBuilt"
+        },
+        {
+          "id": "wall-fell",
+          "text": "ec.ev.wall-fell",
+          "when": "ec.when.wallFell"
+        }
+      ],
+      "timeline": true
+    },
+    {
+      "id": "q-cen-mcq-wall",
+      "kind": "mcq",
+      "objective": "o-central-dates",
+      "prompt": "q-cen-mcq-wall.prompt",
+      "explanation": "q-cen-mcq-wall.explanation",
+      "didYouKnow": "q-cen-mcq-wall.dyk",
+      "difficulty": 2,
+      "tags": [
+        "dates",
+        "germany"
+      ],
+      "options": [
+        {
+          "id": "y1989",
+          "text": "ec.yr.1989"
+        },
+        {
+          "id": "y1961",
+          "text": "ec.yr.1961",
+          "why": "q-cen-mcq-wall.why.y1961"
+        },
+        {
+          "id": "y1945",
+          "text": "ec.yr.1945",
+          "why": "q-cen-mcq-wall.why.y1945"
+        },
+        {
+          "id": "y1991",
+          "text": "ec.yr.1991",
+          "why": "q-cen-mcq-wall.why.y1991"
+        }
+      ],
+      "answer": "y1989",
+      "shuffle": true
+    },
+    {
+      "id": "q-cen-cloze-bridge",
+      "kind": "cloze",
+      "objective": "o-central-dates",
+      "prompt": "q-cen-cloze-bridge.prompt",
+      "explanation": "q-cen-cloze-bridge.explanation",
+      "didYouKnow": "q-cen-cloze-bridge.dyk",
+      "difficulty": 3,
+      "tags": [
+        "dates",
+        "czechia"
+      ],
+      "text": "q-cen-cloze-bridge.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "ec.ans.y1357",
+          "bank": [
+            "ec.ans.y1357",
+            "ec.yr.1492",
+            "ec.yr.1789"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q-south-mcq",
+      "kind": "mcq",
+      "objective": "o-south-capitals",
+      "prompt": "q-south-mcq.prompt",
+      "explanation": "q-south-mcq.explanation",
+      "didYouKnow": "q-south-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "capitals",
+        "italy"
+      ],
+      "options": [
+        {
+          "id": "rome",
+          "text": "ec.city.rome"
+        },
+        {
+          "id": "milan",
+          "text": "ec.city.milan",
+          "why": "q-south-mcq.why.milan"
+        },
+        {
+          "id": "naples",
+          "text": "ec.city.naples",
+          "why": "q-south-mcq.why.naples"
+        },
+        {
+          "id": "venice",
+          "text": "ec.city.venice",
+          "why": "q-south-mcq.why.venice"
+        }
+      ],
+      "answer": "rome",
+      "shuffle": true
+    },
+    {
+      "id": "q-south-hotspot",
+      "kind": "hotspot",
+      "objective": "o-south-capitals",
+      "prompt": "q-south-hotspot.prompt",
+      "explanation": "q-south-hotspot.explanation",
+      "didYouKnow": "q-south-hotspot.dyk",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "map",
+        "greece"
+      ],
+      "asset": "img-europe",
+      "width": 800,
+      "height": 600,
+      "regions": [
+        {
+          "id": "athens",
+          "label": "ec.city.athens",
+          "shape": {
+            "type": "circle",
+            "cx": 677.6,
+            "cy": 531.1,
+            "r": 18
+          }
+        },
+        {
+          "id": "rome",
+          "label": "ec.city.rome",
+          "shape": {
+            "type": "circle",
+            "cx": 458.5,
+            "cy": 440.7,
+            "r": 18
+          },
+          "why": "q-south-hotspot.why.rome"
+        },
+        {
+          "id": "valletta",
+          "label": "ec.city.valletta",
+          "shape": {
+            "type": "circle",
+            "cx": 497.8,
+            "cy": 579.3,
+            "r": 18
+          },
+          "why": "q-south-hotspot.why.valletta"
+        },
+        {
+          "id": "zagreb",
+          "label": "ec.city.zagreb",
+          "shape": {
+            "type": "circle",
+            "cx": 526.5,
+            "cy": 350.4,
+            "r": 18
+          },
+          "why": "q-south-hotspot.why.zagreb"
+        },
+        {
+          "id": "budapest",
+          "label": "ec.city.budapest",
+          "shape": {
+            "type": "circle",
+            "cx": 586.1,
+            "cy": 311.6,
+            "r": 18
+          },
+          "why": "q-south-hotspot.why.budapest"
+        }
+      ],
+      "answer": "athens"
+    },
+    {
+      "id": "q-south-typed",
+      "kind": "typed",
+      "objective": "o-south-capitals",
+      "prompt": "q-south-typed.prompt",
+      "explanation": "q-south-typed.explanation",
+      "didYouKnow": "q-south-typed.dyk",
+      "hint": "q-south-typed.hint",
+      "difficulty": 2,
+      "tags": [
+        "capitals",
+        "greece"
+      ],
+      "answer": "ec.ans.athens"
+    },
+    {
+      "id": "q-south-cloze",
+      "kind": "cloze",
+      "objective": "o-south-capitals",
+      "prompt": "q-south-cloze.prompt",
+      "explanation": "q-south-cloze.explanation",
+      "didYouKnow": "q-south-cloze.dyk",
+      "difficulty": 3,
+      "tags": [
+        "capitals",
+        "malta"
+      ],
+      "text": "q-south-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "ec.ans.valletta",
+          "bank": [
+            "ec.ans.valletta",
+            "ec.city.rome",
+            "ec.city.athens"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q-south-tiber",
+      "kind": "mcq",
+      "objective": "o-south-ancient",
+      "prompt": "q-south-tiber.prompt",
+      "explanation": "q-south-tiber.explanation",
+      "didYouKnow": "q-south-tiber.dyk",
+      "difficulty": 2,
+      "tags": [
+        "rivers",
+        "italy"
+      ],
+      "options": [
+        {
+          "id": "tiber",
+          "text": "ec.river.tiber"
+        },
+        {
+          "id": "arno",
+          "text": "ec.river.arno",
+          "why": "q-south-tiber.why.arno"
+        },
+        {
+          "id": "po",
+          "text": "ec.river.po",
+          "why": "q-south-tiber.why.po"
+        },
+        {
+          "id": "danube",
+          "text": "ec.river.danube",
+          "why": "q-south-tiber.why.danube"
+        }
+      ],
+      "answer": "tiber",
+      "shuffle": true
+    },
+    {
+      "id": "q-south-tf",
+      "kind": "true-false",
+      "objective": "o-south-ancient",
+      "prompt": "q-south-tf.prompt",
+      "explanation": "q-south-tf.explanation",
+      "didYouKnow": "q-south-tf.dyk",
+      "difficulty": 3,
+      "tags": [
+        "dates",
+        "misconceptions"
+      ],
+      "answer": true,
+      "why": "q-south-tf.why"
+    },
+    {
+      "id": "q-south-multi",
+      "kind": "multi-select",
+      "objective": "o-south-ancient",
+      "prompt": "q-south-multi.prompt",
+      "explanation": "q-south-multi.explanation",
+      "didYouKnow": "q-south-multi.dyk",
+      "difficulty": 2,
+      "tags": [
+        "landmarks"
+      ],
+      "options": [
+        {
+          "id": "colosseum",
+          "text": "q-south-multi.opt.colosseum"
+        },
+        {
+          "id": "parthenon",
+          "text": "q-south-multi.opt.parthenon"
+        },
+        {
+          "id": "eiffel",
+          "text": "q-south-multi.opt.eiffel",
+          "why": "q-south-multi.why.eiffel"
+        },
+        {
+          "id": "gate",
+          "text": "q-south-multi.opt.gate",
+          "why": "q-south-multi.why.gate"
+        },
+        {
+          "id": "bridge",
+          "text": "q-south-multi.opt.bridge",
+          "why": "q-south-multi.why.bridge"
+        }
+      ],
+      "answers": [
+        "colosseum",
+        "parthenon"
+      ],
+      "shuffle": true
+    },
+    {
+      "id": "q-south-order",
+      "kind": "order",
+      "objective": "o-south-timeline",
+      "prompt": "q-south-order.prompt",
+      "explanation": "q-south-order.explanation",
+      "didYouKnow": "q-south-order.dyk",
+      "difficulty": 3,
+      "tags": [
+        "dates",
+        "timeline"
+      ],
+      "items": [
+        {
+          "id": "parthenon",
+          "text": "ec.ev.parthenon",
+          "when": "ec.when.parthenon"
+        },
+        {
+          "id": "colosseum",
+          "text": "ec.ev.colosseum",
+          "when": "ec.when.colosseum"
+        },
+        {
+          "id": "tower",
+          "text": "ec.ev.tower",
+          "when": "ec.when.tower"
+        },
+        {
+          "id": "eiffel",
+          "text": "ec.ev.eiffel",
+          "when": "ec.when.eiffel"
+        }
+      ],
+      "timeline": true
+    },
+    {
+      "id": "q-south-oldest",
+      "kind": "mcq",
+      "objective": "o-south-timeline",
+      "prompt": "q-south-oldest.prompt",
+      "explanation": "q-south-oldest.explanation",
+      "didYouKnow": "q-south-oldest.dyk",
+      "difficulty": 2,
+      "tags": [
+        "dates",
+        "landmarks"
+      ],
+      "options": [
+        {
+          "id": "parthenon",
+          "text": "q-south-oldest.opt.parthenon"
+        },
+        {
+          "id": "colosseum",
+          "text": "q-south-oldest.opt.colosseum",
+          "why": "q-south-oldest.why.colosseum"
+        },
+        {
+          "id": "tower",
+          "text": "q-south-oldest.opt.tower",
+          "why": "q-south-oldest.why.tower"
+        },
+        {
+          "id": "eiffel",
+          "text": "q-south-oldest.opt.eiffel",
+          "why": "q-south-oldest.why.eiffel"
+        }
+      ],
+      "answer": "parthenon",
+      "shuffle": true
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "encyclopedia"
+    ],
+    "config": {
+      "quiz-arena": {
+        "roundLength": 8
+      },
+      "encyclopedia": {
+        "timeline": [
+          {
+            "id": "t-parthenon",
+            "year": -432,
+            "label": "enc.t.t-parthenon",
+            "article": "art-athens"
+          },
+          {
+            "id": "t-colosseum",
+            "year": 80,
+            "label": "enc.t.t-colosseum",
+            "article": "art-rome"
+          },
+          {
+            "id": "t-tower",
+            "year": 1078,
+            "label": "enc.t.t-tower",
+            "article": "art-london"
+          },
+          {
+            "id": "t-charles",
+            "year": 1357,
+            "label": "enc.t.t-charles",
+            "article": "art-prague"
+          },
+          {
+            "id": "t-madrid",
+            "year": 1561,
+            "label": "enc.t.t-madrid",
+            "article": "art-madrid"
+          },
+          {
+            "id": "t-lisbon",
+            "year": 1755,
+            "label": "enc.t.t-lisbon",
+            "article": "art-lisbon"
+          },
+          {
+            "id": "t-brandenburg",
+            "year": 1791,
+            "label": "enc.t.t-brandenburg",
+            "article": "art-berlin"
+          },
+          {
+            "id": "t-congress",
+            "year": 1814,
+            "label": "enc.t.t-congress",
+            "article": "art-vienna"
+          },
+          {
+            "id": "t-budapest",
+            "year": 1873,
+            "label": "enc.t.t-budapest",
+            "article": "art-budapest"
+          },
+          {
+            "id": "t-eiffel",
+            "year": 1889,
+            "label": "enc.t.t-eiffel",
+            "article": "art-paris"
+          },
+          {
+            "id": "t-wall",
+            "year": 1961,
+            "label": "enc.t.t-wall",
+            "article": "art-berlin"
+          },
+          {
+            "id": "t-croatia",
+            "year": 1991,
+            "label": "enc.t.t-croatia",
+            "article": "art-zagreb"
+          }
+        ],
+        "map": {
+          "asset": "img-europe",
+          "width": 800,
+          "height": 600,
+          "places": [
+            {
+              "id": "p-paris",
+              "x": 260.5,
+              "y": 280.2,
+              "label": "enc.p.p-paris",
+              "article": "art-paris"
+            },
+            {
+              "id": "p-london",
+              "x": 212.1,
+              "y": 219.1,
+              "label": "enc.p.p-london",
+              "article": "art-london"
+            },
+            {
+              "id": "p-dublin",
+              "x": 92.5,
+              "y": 176.5,
+              "label": "enc.p.p-dublin",
+              "article": "art-dublin"
+            },
+            {
+              "id": "p-madrid",
+              "x": 142.4,
+              "y": 475,
+              "label": "enc.p.p-madrid",
+              "article": "art-madrid"
+            },
+            {
+              "id": "p-lisbon",
+              "x": 36.3,
+              "y": 514.1,
+              "label": "enc.p.p-lisbon",
+              "article": "art-lisbon"
+            },
+            {
+              "id": "p-berlin",
+              "x": 476.2,
+              "y": 195.7,
+              "label": "enc.p.p-berlin",
+              "article": "art-berlin"
+            },
+            {
+              "id": "p-vienna",
+              "x": 534.1,
+              "y": 295.2,
+              "label": "enc.p.p-vienna",
+              "article": "art-vienna"
+            },
+            {
+              "id": "p-prague",
+              "x": 496,
+              "y": 251.8,
+              "label": "enc.p.p-prague",
+              "article": "art-prague"
+            },
+            {
+              "id": "p-budapest",
+              "x": 586.1,
+              "y": 311.6,
+              "label": "enc.p.p-budapest",
+              "article": "art-budapest"
+            },
+            {
+              "id": "p-zagreb",
+              "x": 526.5,
+              "y": 350.4,
+              "label": "enc.p.p-zagreb",
+              "article": "art-zagreb"
+            },
+            {
+              "id": "p-rome",
+              "x": 458.5,
+              "y": 440.7,
+              "label": "enc.p.p-rome",
+              "article": "art-rome"
+            },
+            {
+              "id": "p-athens",
+              "x": 677.6,
+              "y": 531.1,
+              "label": "enc.p.p-athens",
+              "article": "art-athens"
+            }
+          ]
+        },
+        "hunts": [
+          {
+            "id": "h-west",
+            "unit": "u-west",
+            "title": "enc.h.h-west.title",
+            "intro": "enc.h.h-west.intro",
+            "steps": [
+              {
+                "id": "s-west-madrid",
+                "clue": "enc.h.h-west.s-west-madrid.clue",
+                "article": "art-madrid",
+                "item": "q-west-mcq",
+                "collectible": "enc.h.h-west.s-west-madrid.name"
+              },
+              {
+                "id": "s-west-seine",
+                "clue": "enc.h.h-west.s-west-seine.clue",
+                "article": "art-paris",
+                "item": "q-west-river-mcq",
+                "collectible": "enc.h.h-west.s-west-seine.name"
+              },
+              {
+                "id": "s-west-thames",
+                "clue": "enc.h.h-west.s-west-thames.clue",
+                "article": "art-london",
+                "item": "q-west-river-typed",
+                "collectible": "enc.h.h-west.s-west-thames.name"
+              },
+              {
+                "id": "s-west-lisbon",
+                "clue": "enc.h.h-west.s-west-lisbon.clue",
+                "article": "art-lisbon",
+                "item": "q-west-typed",
+                "collectible": "enc.h.h-west.s-west-lisbon.name"
+              }
+            ]
+          },
+          {
+            "id": "h-central",
+            "unit": "u-central",
+            "title": "enc.h.h-central.title",
+            "intro": "enc.h.h-central.intro",
+            "steps": [
+              {
+                "id": "s-cen-vienna",
+                "clue": "enc.h.h-central.s-cen-vienna.clue",
+                "article": "art-vienna",
+                "item": "q-cen-mcq",
+                "collectible": "enc.h.h-central.s-cen-vienna.name"
+              },
+              {
+                "id": "s-cen-wall",
+                "clue": "enc.h.h-central.s-cen-wall.clue",
+                "article": "art-berlin",
+                "item": "q-cen-mcq-wall",
+                "collectible": "enc.h.h-central.s-cen-wall.name"
+              },
+              {
+                "id": "s-cen-budapest",
+                "clue": "enc.h.h-central.s-cen-budapest.clue",
+                "article": "art-budapest",
+                "item": "q-cen-typed",
+                "collectible": "enc.h.h-central.s-cen-budapest.name"
+              },
+              {
+                "id": "s-cen-prague",
+                "clue": "enc.h.h-central.s-cen-prague.clue",
+                "article": "art-prague",
+                "item": "q-cen-hotspot",
+                "collectible": "enc.h.h-central.s-cen-prague.name"
+              }
+            ]
+          },
+          {
+            "id": "h-south",
+            "unit": "u-south",
+            "title": "enc.h.h-south.title",
+            "intro": "enc.h.h-south.intro",
+            "steps": [
+              {
+                "id": "s-south-rome",
+                "clue": "enc.h.h-south.s-south-rome.clue",
+                "article": "art-rome",
+                "item": "q-south-mcq",
+                "collectible": "enc.h.h-south.s-south-rome.name"
+              },
+              {
+                "id": "s-south-athens",
+                "clue": "enc.h.h-south.s-south-athens.clue",
+                "article": "art-athens",
+                "item": "q-south-typed",
+                "collectible": "enc.h.h-south.s-south-athens.name"
+              },
+              {
+                "id": "s-south-oldest",
+                "clue": "enc.h.h-south.s-south-oldest.clue",
+                "article": "art-athens",
+                "item": "q-south-oldest",
+                "collectible": "enc.h.h-south.s-south-oldest.name"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "img-europe",
+      "kind": "image",
+      "file": "assets/europe.svg",
+      "alt": "ec.asset.europe.alt"
+    }
+  ],
+  "cues": [],
+  "encyclopedia": {
+    "articles": [
+      {
+        "id": "art-paris",
+        "title": "ec.art.paris.title",
+        "body": "ec.art.paris.body",
+        "citations": [
+          "f-paris",
+          "f-eiffel-1889"
+        ],
+        "asset": "img-europe",
+        "related": [
+          "art-london",
+          "art-madrid"
+        ],
+        "unit": "u-west"
+      },
+      {
+        "id": "art-london",
+        "title": "ec.art.london.title",
+        "body": "ec.art.london.body",
+        "citations": [
+          "f-london",
+          "f-tower-1078"
+        ],
+        "related": [
+          "art-paris",
+          "art-dublin"
+        ],
+        "unit": "u-west"
+      },
+      {
+        "id": "art-dublin",
+        "title": "ec.art.dublin.title",
+        "body": "ec.art.dublin.body",
+        "citations": [
+          "f-dublin"
+        ],
+        "related": [
+          "art-london"
+        ],
+        "unit": "u-west"
+      },
+      {
+        "id": "art-madrid",
+        "title": "ec.art.madrid.title",
+        "body": "ec.art.madrid.body",
+        "citations": [
+          "f-madrid",
+          "f-barcelona"
+        ],
+        "related": [
+          "art-lisbon",
+          "art-paris"
+        ],
+        "unit": "u-west"
+      },
+      {
+        "id": "art-lisbon",
+        "title": "ec.art.lisbon.title",
+        "body": "ec.art.lisbon.body",
+        "citations": [
+          "f-lisbon",
+          "f-porto"
+        ],
+        "related": [
+          "art-madrid"
+        ],
+        "unit": "u-west"
+      },
+      {
+        "id": "art-berlin",
+        "title": "ec.art.berlin.title",
+        "body": "ec.art.berlin.body",
+        "citations": [
+          "f-berlin",
+          "f-brandenburg-1791",
+          "f-berlin-wall"
+        ],
+        "related": [
+          "art-prague",
+          "art-vienna"
+        ],
+        "unit": "u-central"
+      },
+      {
+        "id": "art-vienna",
+        "title": "ec.art.vienna.title",
+        "body": "ec.art.vienna.body",
+        "citations": [
+          "f-vienna",
+          "f-congress-vienna",
+          "f-salzburg",
+          "f-danube"
+        ],
+        "related": [
+          "art-budapest",
+          "art-prague"
+        ],
+        "unit": "u-central"
+      },
+      {
+        "id": "art-prague",
+        "title": "ec.art.prague.title",
+        "body": "ec.art.prague.body",
+        "citations": [
+          "f-prague",
+          "f-charles-bridge-1357"
+        ],
+        "asset": "img-europe",
+        "related": [
+          "art-berlin",
+          "art-vienna"
+        ],
+        "unit": "u-central"
+      },
+      {
+        "id": "art-budapest",
+        "title": "ec.art.budapest.title",
+        "body": "ec.art.budapest.body",
+        "citations": [
+          "f-budapest",
+          "f-bucharest",
+          "f-danube"
+        ],
+        "related": [
+          "art-vienna",
+          "art-zagreb"
+        ],
+        "unit": "u-central"
+      },
+      {
+        "id": "art-zagreb",
+        "title": "ec.art.zagreb.title",
+        "body": "ec.art.zagreb.body",
+        "citations": [
+          "f-zagreb",
+          "f-croatia-1991",
+          "f-sava"
+        ],
+        "related": [
+          "art-vienna",
+          "art-budapest"
+        ],
+        "unit": "u-central"
+      },
+      {
+        "id": "art-rome",
+        "title": "ec.art.rome.title",
+        "body": "ec.art.rome.body",
+        "citations": [
+          "f-rome",
+          "f-colosseum-80",
+          "f-milan",
+          "f-valletta"
+        ],
+        "asset": "img-europe",
+        "related": [
+          "art-athens"
+        ],
+        "unit": "u-south"
+      },
+      {
+        "id": "art-athens",
+        "title": "ec.art.athens.title",
+        "body": "ec.art.athens.body",
+        "citations": [
+          "f-athens",
+          "f-parthenon-432"
+        ],
+        "asset": "img-europe",
+        "related": [
+          "art-rome"
+        ],
+        "unit": "u-south"
+      }
+    ]
+  },
+  "factbase": [
+    {
+      "id": "f-paris",
+      "claim": "ec.fact.f-paris",
+      "source": "Wikipedia: Paris",
+      "url": "https://en.wikipedia.org/wiki/Paris"
+    },
+    {
+      "id": "f-eiffel-1889",
+      "claim": "ec.fact.f-eiffel-1889",
+      "source": "Wikipedia: Eiffel Tower",
+      "url": "https://en.wikipedia.org/wiki/Eiffel_Tower"
+    },
+    {
+      "id": "f-london",
+      "claim": "ec.fact.f-london",
+      "source": "Wikipedia: London",
+      "url": "https://en.wikipedia.org/wiki/London"
+    },
+    {
+      "id": "f-tower-1078",
+      "claim": "ec.fact.f-tower-1078",
+      "source": "Wikipedia: Tower of London",
+      "url": "https://en.wikipedia.org/wiki/Tower_of_London"
+    },
+    {
+      "id": "f-madrid",
+      "claim": "ec.fact.f-madrid",
+      "source": "Wikipedia: Madrid",
+      "url": "https://en.wikipedia.org/wiki/Madrid"
+    },
+    {
+      "id": "f-barcelona",
+      "claim": "ec.fact.f-barcelona",
+      "source": "Wikipedia: Barcelona",
+      "url": "https://en.wikipedia.org/wiki/Barcelona"
+    },
+    {
+      "id": "f-lisbon",
+      "claim": "ec.fact.f-lisbon",
+      "source": "Wikipedia: Lisbon",
+      "url": "https://en.wikipedia.org/wiki/Lisbon"
+    },
+    {
+      "id": "f-porto",
+      "claim": "ec.fact.f-porto",
+      "source": "Wikipedia: Porto",
+      "url": "https://en.wikipedia.org/wiki/Porto"
+    },
+    {
+      "id": "f-dublin",
+      "claim": "ec.fact.f-dublin",
+      "source": "Wikipedia: Dublin",
+      "url": "https://en.wikipedia.org/wiki/Dublin"
+    },
+    {
+      "id": "f-berlin",
+      "claim": "ec.fact.f-berlin",
+      "source": "Wikipedia: Berlin",
+      "url": "https://en.wikipedia.org/wiki/Berlin"
+    },
+    {
+      "id": "f-brandenburg-1791",
+      "claim": "ec.fact.f-brandenburg-1791",
+      "source": "Wikipedia: Brandenburg Gate",
+      "url": "https://en.wikipedia.org/wiki/Brandenburg_Gate"
+    },
+    {
+      "id": "f-berlin-wall",
+      "claim": "ec.fact.f-berlin-wall",
+      "source": "Wikipedia: Berlin Wall",
+      "url": "https://en.wikipedia.org/wiki/Berlin_Wall"
+    },
+    {
+      "id": "f-vienna",
+      "claim": "ec.fact.f-vienna",
+      "source": "Wikipedia: Vienna",
+      "url": "https://en.wikipedia.org/wiki/Vienna"
+    },
+    {
+      "id": "f-congress-vienna",
+      "claim": "ec.fact.f-congress-vienna",
+      "source": "Wikipedia: Congress of Vienna",
+      "url": "https://en.wikipedia.org/wiki/Congress_of_Vienna"
+    },
+    {
+      "id": "f-salzburg",
+      "claim": "ec.fact.f-salzburg",
+      "source": "Wikipedia: Salzburg",
+      "url": "https://en.wikipedia.org/wiki/Salzburg"
+    },
+    {
+      "id": "f-prague",
+      "claim": "ec.fact.f-prague",
+      "source": "Wikipedia: Prague",
+      "url": "https://en.wikipedia.org/wiki/Prague"
+    },
+    {
+      "id": "f-charles-bridge-1357",
+      "claim": "ec.fact.f-charles-bridge-1357",
+      "source": "Wikipedia: Charles Bridge",
+      "url": "https://en.wikipedia.org/wiki/Charles_Bridge"
+    },
+    {
+      "id": "f-budapest",
+      "claim": "ec.fact.f-budapest",
+      "source": "Wikipedia: Budapest",
+      "url": "https://en.wikipedia.org/wiki/Budapest"
+    },
+    {
+      "id": "f-bucharest",
+      "claim": "ec.fact.f-bucharest",
+      "source": "Wikipedia: Bucharest",
+      "url": "https://en.wikipedia.org/wiki/Bucharest"
+    },
+    {
+      "id": "f-zagreb",
+      "claim": "ec.fact.f-zagreb",
+      "source": "Wikipedia: Zagreb",
+      "url": "https://en.wikipedia.org/wiki/Zagreb"
+    },
+    {
+      "id": "f-croatia-1991",
+      "claim": "ec.fact.f-croatia-1991",
+      "source": "Wikipedia: Croatia",
+      "url": "https://en.wikipedia.org/wiki/Croatia"
+    },
+    {
+      "id": "f-rome",
+      "claim": "ec.fact.f-rome",
+      "source": "Wikipedia: Rome",
+      "url": "https://en.wikipedia.org/wiki/Rome"
+    },
+    {
+      "id": "f-colosseum-80",
+      "claim": "ec.fact.f-colosseum-80",
+      "source": "Wikipedia: Colosseum",
+      "url": "https://en.wikipedia.org/wiki/Colosseum"
+    },
+    {
+      "id": "f-milan",
+      "claim": "ec.fact.f-milan",
+      "source": "Wikipedia: Milan",
+      "url": "https://en.wikipedia.org/wiki/Milan"
+    },
+    {
+      "id": "f-valletta",
+      "claim": "ec.fact.f-valletta",
+      "source": "Wikipedia: Valletta",
+      "url": "https://en.wikipedia.org/wiki/Valletta"
+    },
+    {
+      "id": "f-athens",
+      "claim": "ec.fact.f-athens",
+      "source": "Wikipedia: Athens",
+      "url": "https://en.wikipedia.org/wiki/Athens"
+    },
+    {
+      "id": "f-parthenon-432",
+      "claim": "ec.fact.f-parthenon-432",
+      "source": "Wikipedia: Parthenon",
+      "url": "https://en.wikipedia.org/wiki/Parthenon"
+    },
+    {
+      "id": "f-danube",
+      "claim": "ec.fact.f-danube",
+      "source": "Wikipedia: Danube",
+      "url": "https://en.wikipedia.org/wiki/Danube"
+    },
+    {
+      "id": "f-sava",
+      "claim": "ec.fact.f-sava",
+      "source": "Wikipedia: Sava",
+      "url": "https://en.wikipedia.org/wiki/Sava"
+    }
+  ],
+  "extensions": {}
+}

@@ -5,7 +5,7 @@ import { makeTextResolver, validateCourse, type CheckContext } from '../src/shar
 import type { CoursePack, TextCatalog } from '../src/shared/course'
 
 export const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'courses')
-export const FIXTURE_NAMES = ['solar-system', 'hr-a1-greetings'] as const
+export const FIXTURE_NAMES = ['solar-system', 'hr-a1-greetings', 'european-capitals'] as const
 
 export interface LoadedFixture {
   dir: string

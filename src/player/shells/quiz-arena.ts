@@ -6,6 +6,7 @@ import { button, clear, h, isTyping, pulse, type Child } from '../dom'
 import { buildFeedback, answerLines, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
 import { itemImage } from '../items/common'
+import { shellPicker } from '../kit/screens'
 import {
   allMastered,
   browserStorage,
@@ -38,7 +39,7 @@ import type { ItemContext, ItemRenderer, ItemView, ScreenName, Shell, ShellHost 
  */
 
 const SHELL_ID = 'quiz-arena'
-/** The look of this shell: a theme id of src/design/themes (the bundle loads the chalkboard only). */
+/** The look of this shell: a theme id of src/design/themes. */
 const THEME_ID = 'chalkboard'
 const NO_IMAGE_KINDS = new Set(['hotspot', 'listening', 'flashcard'])
 
@@ -320,6 +321,7 @@ class QuizArena {
       this.courseTitle().toLocaleLowerCase() === this.pack.subject.toLocaleLowerCase() ? null : h('p', { class: 'subject', testid: 'course-subject' }, this.pack.subject.charAt(0).toLocaleUpperCase() + this.pack.subject.slice(1)),
       h('p', { class: 'audience' }, this.pack.audience),
       picker,
+      shellPicker(this.host, ui, SHELL_ID),
       h('div', { class: 'settings' }, timer, sound),
       h('div', { class: 'actions actions-center' }, button('start', started ? ui('continue') : ui('start'), () => this.go('map'), { class: 'btn btn-primary btn-big', ...(this.confirmReset ? {} : { 'data-autofocus': '' }) })),
       h(

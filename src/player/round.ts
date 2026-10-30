@@ -118,6 +118,27 @@ export function startRound(
   }
 }
 
+/**
+ * A round over any pool of item ids: what the other shells ask from (a castle wing, a quest, a hunt, a case). `size` fresh questions
+ * (default: the whole pool); `pickNext`, `recordResult`, `roundAccuracy` and `missedIds` work on it as on a quiz round, so every shell
+ * gets the same adaptive pick, in-session retries, due-card preference and interleaving.
+ */
+export function startPool(pool: readonly string[], opts: { kind?: RoundKind; unitId?: string; size?: number; difficulty?: number } = {}): RoundState {
+  const ids = [...new Set(pool)]
+  const kind = opts.kind ?? 'unit'
+  return {
+    kind,
+    ...(opts.unitId ? { unitId: opts.unitId } : {}),
+    size: Math.max(0, Math.min(opts.size ?? ids.length, ids.length)),
+    pool: ids,
+    asked: [],
+    session: newSession(),
+    adaptive: newAdaptive(opts.difficulty ?? (kind === 'boss' ? 4 : 3)),
+    results: [],
+    dueTaken: 0
+  }
+}
+
 const isDueSeen = (card: Card | undefined, now: number): boolean => card !== undefined && card.last !== null && card.due <= now
 
 export interface NextQuestion {

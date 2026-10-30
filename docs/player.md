@@ -149,3 +149,120 @@ import '../../player/style/embed.css'   // tokens + chalkboard theme + motion + 
 ### Keyboard and accessibility checks in the bot
 
 `node scripts/play.mjs <build-dir> --mode perfect --keyboard` plays with the keyboard only (`page.keyboard`: Tab and Shift+Tab to reach a control, Enter or Space to use it, arrow keys in the word search, digits for options and grades, typing for text; no element click, no mouse; the summary reports `keyboard.mouseClicks: 0`). It fails when a control cannot be reached with Tab, when the focus is not inside the game after a screen change, when the feedback does not move the focus to `next`, or when a control reached with Tab has no focus outline. `--axe` injects `node_modules/axe-core` into the page and runs it once on every distinct screen, item kind and feedback kind (title, map, each item kind, right and wrong feedback, summary, review, end); a serious or critical violation fails the run and the JSON summary has `axe: { runs, violations: { critical, serious, moderate, minor }, rules, screens, minor }`. The two flags combine with every mode and with `--shots` / `--viewport`. `tests/bot.e2e.test.ts` runs the keyboard mode and axe on both golden fixtures.
+
+## Shells (EGS-10+)
+
+One course plays in every shell it enables (`pack.shells.enabled`). Besides the quiz arena there are five: `encyclopedia` (parchment and brass), `mindmaze` (castle stone), `rpg` (pixel quest), `roleplay` (postcard) and `detective` (noir). They are our own code like the arena: DOM and CSS, Canvas 2D or SVG where a map needs it, no game engine.
+
+### Picking a shell
+
+- `EduEngine.playableShells()` is the course's `shells.enabled` that the bundle has registered, in order (the quiz arena when none is).
+- The shell that opens: `?shell=<id>` in the address, else the learner's last choice (`localStorage` key `edu-studio:shell:<pack.id>`), else `GameData.shell` (the first enabled), else the first playable.
+- Every title screen has the game-style picker when the course plays in two or more shells: `shell-picker` with one `shell-<id>` button each (`aria-pressed="true"` on the current one). Picking one calls `EduEngine.switchShell(id)`: the shell is unmounted (its key handler and timers stop), the root is cleared, the other one is mounted. Nothing reloads.
+- The progress is one store per course (`edu-studio:progress:<pack.id>`): the SM-2 cards, the review queue, the score and the settings are shared by every shell (a fact learned in the castle is due in the arena too). Each shell keeps its own unit stars, its finish flag and its own data in `progress.shells[<id>]` (a castle wing cleared is not a quiz round won); export and import carry it. An old progress file without `shells` still imports.
+
+### The shell kit (`src/player/kit/`)
+
+Every shell after the quiz arena is built on it, so the learning rules and the bot contract are the same everywhere:
+
+| Piece | What it does |
+|---|---|
+| `ShellSession` (`session.ts`) | The edition (language, the player's words `ui`, the shell's words `s`, text resolver, check context); progress (`sp`, `shellData` / `setShellData`, `unitStars`, `isUnlocked`, `allMastered`, `recordUnit` with stars from first-try accuracy: 1 from 50 %, 2 from 70 %, 3 from 90 %, 2 stars = mastered and unlocks the units that require it; `finish`); `answer()` (shared `checkItem`, the SM-2 card, the review queue, combo, score, steps, the explanatory feedback); runs (`startRun` / `next` / `record` / `accuracy`: the quiz arena's round logic over any pool of items: adaptive difficulty aiming at 70-85 %, a miss coming back after 2-4 other questions, due cards first, no two of a kind in a row); `render(screen, body)` into the standard frame and `publish()` |
+| `ask()` (`question.ts`) | The question screen: the same test ids as the arena (`prompt`, `item-body`, the item widgets, `hint`, `feedback`, `feedback-why`, `feedback-answer`, `feedback-explanation`, `feedback-dyk`, `next`, `retry-tag`, `leave`), screen `item` while the question waits and `feedback` after the answer. The shell adds a frame (`hud`: the door, the battle, the speaker), a `lead` line, and what the answer did in its world (`feedback-effect`: "The door swings open", "You lose a torch"). Number keys, Enter on the feedback and the focus work as in the arena |
+| `titleScreen()`, `endScreen()` (`screens.ts`) | The shared title (course title, language, game style, start, export / import / reset) and end (stars per unit, score, accuracy, `play-again`, `to-title`) |
+| `makeShellUi()` (`strings.ts`) | A shell's own words: an English and a Croatian table in `src/player/shells/<id>/strings.ts`, keys prefixed by the shell; a course overrides any with `ui.<key>` in its catalog |
+| `kit.css` | The picker, the frame above a question, the effect line |
+
+A shell module is `src/player/shells/<id>/index.ts` (it imports its theme `src/design/themes/<theme>.css` and its own CSS, so `player.css` carries every look: about 690 KB with the fonts inlined, still one file over `file://`) and registers in `src/player/main.ts`.
+
+### State and screens
+
+Every shell publishes the same `getState()` as the arena, with these rules:
+
+- `screen` is `title`, `item`, `feedback` and `end` as in the arena, and the shell's own screens otherwise (listed per shell below).
+- `item` and `feedback` carry `itemId`, `itemKind`, `itemIndex` and `context` (what the question is for: `door`, `battle`, `hunt`, `line`, `clue` ...); `feedback` carries `lastResult`.
+- `mastery` is the shell's own unit stars; `reviewQueue`, `score`, `combo` and `steps` are the shared ones; `finished` is true on the end screen.
+- `view` is the shell's own JSON state (the room, hit points, the clues found ...), documented per shell.
+- `EduEngine.debug.shell` holds the mounted shell's read-only helpers for the bot (a route to the next door, the solution of a case ...); it is cleared on unmount.
+
+The learning rules hold in every shell: every challenge is a retrieval question with explanatory feedback (the why of the chosen distractor, the answer, the explanation, a did-you-know after a right answer); a miss comes back later in the same run and stays in the review queue; units unlock at mastery; a final challenge mixes the units; a wrong answer costs something in the world (a torch, hit points, a wilting plant, a cold trail) but never ends in a dead end.
+
+### The course section of a shell (`src/shared/shells/`)
+
+A shell's authored content is `pack.shells.config[<id>]` (the pack schema is unchanged, so old courses still validate). `src/shared/shells/<id>.ts` defines it (`ShellDef`): the zod schema, the text keys it uses (every visible string is a catalog key, so Book Translator translates it with the rest), the assets it names, its reference checks (validator: `SHELL_SCHEMA`, `UNKNOWN_*`) and its shell lint (codes prefixed `ENC_`, `MAZE_`, `RPG_`, `RP_`, `DET_`, plus `SHELL_UNKNOWN` (warning) and `SHELL_SECTION_MISSING`). `edu_lint` runs it on every build; the text keys of the section are checked per edition like the pack's own (`TEXT_MISSING`, `PLACEHOLDER`).
+
+### The autoplay bot in a shell
+
+`node scripts/play.mjs <build> --mode perfect|wrong|random --shell <id>` opens the game in that shell. `play.mjs` checks the title (and the picker) and hands over to the shell's driver, `scripts/bot/<id>.mjs` (registry `scripts/bot/index.mjs`): it walks the shell's world through test ids and `EduEngine.debug.shell`, and answers every question with the shared `answerCurrent` (the same item widgets and feedback checks as the arena). Each driver documents what perfect, wrong and random mean in its shell and sets its step bound. `--keyboard`, `--axe`, `--shots` and `--viewport` work in every shell.
+
+### The encyclopedia explorer (`encyclopedia`, EGS-10)
+
+Theme `parchment` (parchment and brass, EB Garamond, oxblood rubrics). You browse a printed book: an index of articles in chapters (the units), cross-links in the text, a timeline, a map, and scavenger hunts that send you back into the articles to find the answers. Pages turn (the theme's `edu-enter-page` on the page content; the index tabs stay put), a drop cap opens every article, and the clue of a hunt is a slip of paper pinned with a brass pin on every page. No images beyond the course's own: the title book and the seal are drawn in CSS; `prefers-reduced-motion` turns every animation off.
+
+#### Screens (`getState().screen`) and test ids
+
+Every world screen has the tabs (`nav-index`, `nav-timeline` and `nav-map` only when the course has events / an image, `nav-codex`, `nav-hunts`, and `menu` for the title page). While a hunt is on, the pinned clue is on all of them: `clue-bar` (`data-step`), `clue` (the riddle), `clue-retry` (a missed step coming back), `clue-drop` ("Put the hunt aside").
+
+| Screen | What it is | Test ids |
+|---|---|---|
+| `title` | the kit's title with a closed book as art | kit ids (`start` reads "Open the book" / "Continue reading", `course-title`, `shell-picker` ...) |
+| `explore` | the home: masthead (the course title, h1), status line, search, the plate (the first image), the index in chapters. A locked chapter's articles stay readable: reading is free, the hunts are gated | `explore-title` (h1), `status` with `status-found`, `status-stars`, `status-read`, `search` (input; Enter opens the first hit), `search-status` (live), `search-results`, `result-<articleId>`, `plate`, `chapter-<unitId>` (`data-locked`), `chapter-locked-<unitId>`, `chapter-other` (articles of no unit), `article-<articleId>` (`data-read`) |
+| `article` | one article as a spread: the text page (running head, title h1, the collect seal when this page answers the pinned clue, the body with cross-links) and the plate page (figure with its alt as caption, the audio slot when the article has an audio asset, "See also", the sources) | `article` (`data-article`), `article-title` (h1), `article-body`, `article-figure`, `article-audio` (only with an audio asset), `link-<articleId>` (first mention of another article's title in the body: longest title first, whole words, case-insensitive), `related`, `related-<articleId>`, `citations`, `citation-<factId>`, `citation-link-<factId>` (opens in a new tab, `rel="noopener noreferrer"`), `back` (the screen you came from: the index, the timeline, the map, the codex, another article), `collect-<stepId>` |
+| `timeline` | events on a ruler true to scale in a box that scrolls inside itself (cards above and below with leader lines); the focus moves between cards with the arrow keys, Home and End; the detail line follows the focus | `timeline-title` (h1), `timeline`, `event-<eventId>` (`data-year`, `data-article`, `data-lane`), `event-detail` (`data-event`) |
+| `map` | the image with brass rings at the pins (x / y in image pixels, drawn as percentages; the map keeps a width at which the two nearest pins stay a tap apart and scrolls inside its box on a phone); the arrow keys move between pins; the same places as a list under it | `map-title` (h1), `map`, `place-<placeId>` (`aria-label` = the name; the name shows on hover and focus), `places`, `place-link-<placeId>` |
+| `codex` | the collectibles of the hunts: name, the fact it taught (the item's did-you-know, else its explanation), a link to the article; the ones not found yet are "?" | `codex-title` (h1), `codex-count` (`data-found`, `data-total`), `codex-empty`, `codex-<stepId>` (`data-found`), `codex-link-<stepId>` |
+| `hunts` | one card per hunt under its chapter (stars per unit), the grand hunt, the result of the hunt just played | `hunts-title` (h1), `hunt-result` (`data-stars`, `data-collected`, `data-total`, `data-final`) with `hunt-result-stars`, `hunt-chapter-<unitId>`, `hunt-stars-<unitId>`, `hunt-<huntId>` (`data-locked`, `data-stars`, `disabled` while locked), `hunt-locked-<huntId>`, `hunt-chapter-final`, `hunt-final`, `hunt-stars-final`, `hunt-locked-final`, `finish` (once the grand hunt has a star) |
+| `item`, `feedback` | the kit's `ask()`, context `hunt`; the hud is the hunt, the clue number and one brass pip per collectible (the pip fills when it is collected) | kit ids, `hunt-hud`, `leave` ("Back to the article"), `feedback-effect` ("Collected: ... It is in your codex." / "Not collected yet. Read the article again: the clue comes back.") |
+| `end` | the kit's end screen after `finish`, plus the count of collectibles and articles read | kit ids, `end-collected` |
+
+#### The hunt loop (the question is about the article you found)
+
+1. A hunt (one per unit, authored or automatic) pins its first clue (the riddle) on every page.
+2. Browse, search or follow links. On the target article the seal `collect-<stepId>` appears ("This page answers your clue").
+3. Collect asks the step's item (`ask()`, context `hunt`; `leave` goes back to the article). Right: the collectible joins the codex, the next clue is pinned and you land on the article you just read. Wrong: the feedback explains, the step stays open and comes back as a retry (the shared run logic: a miss returns after 2-4 other questions, at most twice more; `clue-retry` marks it and the seal says "Back again. Read this page more closely."). A hunt always ends: after the retries it is over with fewer stars and can be hunted again; nothing is a dead end.
+4. When the run is over, `recordUnit` gives the stars from the first-try accuracy (1 from 50 %, 2 from 70 %, 3 from 90 %); 2+ stars master the unit and open the hunts of the units that require it (`hunt-result` says which). The best run counts.
+5. The grand hunt (`hunt-final`) opens when every unit is mastered and mixes the first and the last step of every unit's hunts (a boss run); 1+ star offers `finish` -> `end`.
+
+#### `view` (JSON-safe, on every world screen)
+
+`{ found: [stepId], read: [articleId], counts: { found, total, stars, maxStars, read, articles }, hunt: null | { id, final, step, article, item, retry, answered, size, collected: [stepId] } }`, plus per screen: `explore` `query`; `article` `article`; `timeline` `event`; `hunts` `result` (`{ huntId, final, stars, accuracy, collected, total, unlocked }` or null); `item` / `feedback` `step`, `article`. The found steps and the articles read are saved in `progress.shells.encyclopedia.data` (ids the course no longer has are dropped on load).
+
+#### Debug helpers (`EduEngine.debug.shell`, read-only)
+
+- `hunts()`: `[{ id, unit, open, stars, steps: [{ id, article, item }] }]`; `finalHunt()`: `{ open, steps }`.
+- `target()`: the pinned step or null: `{ hunt, final, step, article, item, retry, clue, term, via }`; `term` is a short query that finds the article by its title, `via` is `{ from, testid }` (the article to open and the `link-<id>` / `related-<id>` to press to reach the target by a link) or null.
+- `searchTerm(id)`, `links(id)` (`{ links, related }`), `articles()`, `timeline()`, `places()`, `codex()` (`[{ id, found }]`), `queue()` (the review queue).
+
+#### Rules of the shell
+
+- Every challenge is an `ask()` with the kit's explanatory feedback; picking, retries and stars are the shared run logic (`startRun` / `next` / `record` / `recordUnit`).
+- Cross-links are computed from the article titles of the edition being read (so the Croatian edition links "Beč", not "Vienna"); search ignores case and accents and finds titles first, then body sentences.
+- Reading is free (a locked chapter's articles open), the hunts are gated by mastery; the question IS the page you found (the lint warns when a step's right answer is not in its article).
+- Colours only from the parchment theme's `--edu-*` slots; focus ring 3 px (`--edu-focus`); every control is a `<button>` / `<input>` / `<a>`; 44 px targets (inline cross-links in running text excepted); no horizontal scroll from 360 px (the timeline and the map scroll inside their own box); no text under 13 px; no external URL except the sources a course cites (opened in a new tab).
+
+#### The course section `pack.shells.config.encyclopedia` (all of it optional)
+
+```jsonc
+{
+  "timeline": [{ "id": "t-voyager", "year": 1977, "label": "enc.t.voyager", "text": "enc.t.voyager.text", "article": "art-giants" }],  // year < 0 is BC, no year 0
+  "map": { "asset": "img-solar-system", "width": 800, "height": 300, "places": [{ "id": "p-sun", "x": 60, "y": 150, "label": "enc.p.sun", "article": "art-sun" }] },
+  "hunts": [{ "id": "h-sun", "unit": "u-sun-planets", "title": "enc.h.sun.title", "intro": "enc.h.sun.intro",
+              "steps": [{ "id": "s-sun-star", "clue": "enc.h.sun.s-sun-star.clue", "article": "art-sun", "item": "q-sun-mcq", "collectible": "enc.h.sun.s-sun-star.name" }] }]
+}
+```
+
+Every text value is a catalog key (so Book Translator translates it); step ids are unique across all hunts. A part that is missing falls back to the automatic layout (or is hidden): without `hunts`, one hunt per unit whose steps are the unit's articles (at most 6; a unit without articles gets one built from each objective and its facts), each asking an item of the objective that cites a fact the article cites ("Find the article about ..."); without `timeline`, the dated entries of `order` items with `timeline: true`, linked to the article that names them; without `map`, the first image asset with no pins (the `map` tab is hidden when the course has no image). Courses play without the section (`requiresSection: false`).
+
+#### Lint codes (`src/shared/shells/encyclopedia.ts`)
+
+Validator: `UNKNOWN_UNIT` (a hunt's unit), `DUPLICATE_ID` (hunts, events, places, steps), `UNKNOWN_ASSET` (the map's asset), `MISSING_TEXT` (a catalog key without a string, checked per edition).
+Lint errors: `ENC_HUNT_TARGET_MISSING`, `ENC_HUNT_ITEM_MISSING`, `ENC_HUNT_ITEM_DUPLICATE` (two steps of a hunt ask the same item: the second could never come up), `ENC_UNIT_NO_HUNT` (a unit no hunt covers could never be mastered), `ENC_HUNT_EMPTY`, `ENC_TIMELINE_ARTICLE_MISSING`, `ENC_MAP_ARTICLE_MISSING`, `ENC_MAP_PLACE_OUTSIDE`, `ENC_MAP_NO_IMAGE`.
+Warnings: `ENC_ANSWER_NOT_IN_ARTICLE` (the right answer of a step's item, by option text, canonical typed answer, cloze gaps, flashcard back or hotspot label, is not in the target article in some edition; words are matched by stem, so Croatian inflection passes; true / false, multi-select and ordering kinds are skipped), `ENC_HUNT_ITEM_OTHER_UNIT`.
+The automatic layout is linted too.
+
+#### The bot driver (`scripts/bot/encyclopedia.mjs`)
+
+- `perfect`: every unit's hunt in prerequisite order to 3 stars, then the grand hunt and `finish` -> `end`. Per clue it reads the pinned clue, reaches the target article by search + a click on the result, by the index, by search + Enter, or by a cross-link / "See also" (in turn), presses `collect-<step>` and answers right. It also searches for nonsense (no results, `search-status` says so), reads a locked chapter's article, checks every article page once (title, body, `link-*` for every mention, `related-*`, `citation-*`, the figure, no audio slot without audio, new-tab citation links), uses Home / End / the arrow keys on the timeline and the arrow keys on the map, opens an event and a place (and one place from the list), and counts the codex (empty at the start, every collectible after the unit hunts). The page content must animate with `edu-enter-page`.
+- `wrong`: every answer wrong (`--rounds N` plays each open hunt N times; runs with `prefers-reduced-motion: reduce`, and checks that nothing animates). The clue stays pinned, the target article and its `collect-<step>` are always there, a missed clue comes back (more answers than steps), the codex stays empty, the review queue fills, the hunt ends with 0 stars and can be played again, the other chapters and the grand hunt stay locked, `finish` never shows.
+- `random`: a seeded learner (`--accuracy`) hunts until every unit is mastered (2+ stars), then the grand hunt until it earns a star, within `maxSteps = ceil(6 * (steps of all hunts + 2 * units) * factor) + 20` (reduced motion, like `wrong`).
+- `--keyboard`, `--axe`, `--shots` and `--viewport` work as in every shell. The summary adds `encyclopedia: { hunts, steps, search, searchEnter, index, crossLinks, related, articlesChecked, events, places, collectibles, locked, reducedMotion }`.

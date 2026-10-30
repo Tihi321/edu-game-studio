@@ -19,6 +19,24 @@ export interface UnitProgress {
   rounds: number
 }
 
+/**
+ * The progress of one game shell other than the quiz arena (EGS-10+), in `Progress.shells[<shellId>]`: its own unit stars and boss (a
+ * castle wing cleared is not a quiz round won), whether it was finished, and its own data (rooms opened, clues found, plants ...), which
+ * the shell validates itself when it reads it. The SM-2 cards, the review queue, the score and the settings are shared by every shell.
+ */
+export interface ShellProgress {
+  units: Record<string, UnitProgress>
+  boss: UnitProgress
+  finished: boolean
+  /** The shell's own JSON data (at most MAX_SHELL_DATA characters as JSON). */
+  data?: unknown
+}
+
+/** The largest shell data kept (JSON characters): a broken or hostile file cannot fill the storage. */
+export const MAX_SHELL_DATA = 200_000
+
+export const emptyShellProgress = (): ShellProgress => ({ units: {}, boss: emptyUnit(), finished: false })
+
 export interface Progress {
   version: typeof PROGRESS_VERSION
   /** `pack.id`. */
@@ -36,6 +54,8 @@ export interface Progress {
   settings: { lang?: string; timer: boolean; sound: boolean }
   /** Epoch ms of the last save. */
   updatedAt: number
+  /** Progress of the other game shells, by shell id (the quiz arena's stars are `units` and `boss` above). */
+  shells: Record<string, ShellProgress>
 }
 
 export const emptyUnit = (): UnitProgress => ({ stars: 0, best: 0, rounds: 0 })
@@ -53,7 +73,8 @@ export function newProgress(packId: string): Progress {
     answered: 0,
     right: 0,
     settings: { timer: false, sound: true },
-    updatedAt: 0
+    updatedAt: 0,
+    shells: {}
   }
 }
 
@@ -179,11 +200,35 @@ export function parseProgress(text: string, pack: Pick<CoursePack, 'id' | 'units
     }
   }
   p.updatedAt = num(src.updatedAt, 0, 8.64e15, 0)
+  if (isObj(src.shells)) {
+    for (const [id, raw] of Object.entries(src.shells)) {
+      if (!/^[a-z0-9][a-z0-9-]{0,40}$/.test(id) || !isObj(raw)) continue
+      const sp = emptyShellProgress()
+      if (isObj(raw.units)) for (const [uid, u] of Object.entries(raw.units)) if (unitIds.has(uid)) sp.units[uid] = cleanUnit(u)
+      sp.boss = cleanUnit(raw.boss)
+      sp.finished = raw.finished === true
+      if (raw.data !== undefined) {
+        try {
+          const json = JSON.stringify(raw.data)
+          if (json !== undefined && json.length <= MAX_SHELL_DATA) sp.data = JSON.parse(json) as unknown
+        } catch {
+          /* unserialisable data is dropped */
+        }
+      }
+      p.shells[id] = sp
+    }
+  }
   return { ok: true, progress: p }
 }
 
 /** True when the pack has progress worth continuing (any stars, cards or score). */
 export const hasProgress = (p: Progress): boolean => p.answered > 0 || Object.keys(p.units).length > 0 || p.boss.rounds > 0
+
+/** True when a shell has progress worth continuing (its stars, its data or a finish). */
+export const hasShellProgress = (p: Progress, shellId: string): boolean => {
+  const sp = p.shells[shellId]
+  return !!sp && (Object.keys(sp.units).length > 0 || sp.boss.rounds > 0 || sp.finished || sp.data !== undefined)
+}
 
 // ---- storage ----
 

@@ -2,7 +2,7 @@
 /**
  * The autoplay bot: plays a BUILT game folder in headless Chromium over file:// and proves it is playable.
  *
- *   node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--seed N] [--accuracy 0.75] [--shots <dir>]
+ *   node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>]
  *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]
  *
  * It needs the folder alone (index.html, game-data.json, player.js ...) and `playwright` with Chromium; no TypeScript and no
@@ -17,6 +17,13 @@
  *            cannot finish: the boss never opens).
  *   random   a seeded learner who is right with probability --accuracy (default 0.75); must reach the end screen within maxSteps.
  *
+ * Game shells (EGS-10+): `--shell <id>` opens the game in that shell (`?shell=<id>`; default: the game's own, `game-data.json` `shell`).
+ * This file opens the game and checks the title (and the shell picker when the course plays in two or more shells); the shell's
+ * DRIVER (`scripts/bot/<shell>.mjs`, registry `scripts/bot/index.mjs`) plays the rest: it walks the shell's world through its test ids
+ * and its `EduEngine.debug.shell` helpers, and answers every question with the shared `answerCurrent` (same item widgets, same
+ * feedback checks in every shell). What perfect / wrong / random mean in a shell is in the driver's header. The modes above describe
+ * the quiz arena's driver (`scripts/bot/quiz-arena.mjs`).
+ *
  * Flags that apply to every mode:
  *   --keyboard  plays with the keyboard ONLY (page.keyboard: Tab / Shift+Tab to reach a control, Enter or Space to use it, arrows in the
  *               word search, digits for options and grades, typing for text): no element click, no mouse. A control that Tab cannot reach,
@@ -26,7 +33,8 @@
  *               distinct screen and item kind (title, map, each item kind, each feedback kind, summary, review, end); a serious or
  *               critical violation is a failure; the counts are in the JSON summary (`axe`).
  *
- * Step bound (all modes, unless --max-steps): maxSteps = ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)
+ * Step bound (all modes, unless --max-steps): the driver's `maxSteps`; the quiz arena's is
+ * maxSteps = ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)
  * where roundLength and bossLength come from the pack's quiz-arena config (defaults 7 and 10). A round has roundLength fresh questions
  * plus at most two retries per miss; the factor 6 leaves room for retries and for repeating a unit or the boss a few times.
  *
@@ -36,14 +44,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
+import { DRIVERS } from './bot/index.mjs'
 
-const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]'
+const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--json] [--verbose]'
 const ACTION_TIMEOUT = 8000
 
 // ---------------------------------------------------------------- arguments
 
 function parseArgs(argv) {
-  const o = { dir: '', mode: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, json: false, verbose: false }
+  const o = { dir: '', mode: '', shell: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, json: false, verbose: false }
   const rest = argv.slice()
   const take = (flag) => {
     const v = rest.shift()
@@ -53,6 +62,7 @@ function parseArgs(argv) {
   while (rest.length) {
     const a = rest.shift()
     if (a === '--mode') o.mode = take(a)
+    else if (a === '--shell') o.shell = take(a)
     else if (a === '--seed') o.seed = Number(take(a))
     else if (a === '--accuracy') o.accuracy = Number(take(a))
     else if (a === '--shots') o.shots = take(a)
@@ -111,11 +121,11 @@ async function run(opts) {
   const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'))
   const pack = data.pack
   const items = new Map(pack.items.map((i) => [i.id, i]))
-  const arena = pack.shells?.config?.['quiz-arena'] ?? {}
-  const roundLength = arena.roundLength ?? 7
-  const bossLength = arena.bossLength ?? 10
+  const shellId = opts.shell || data.shell || 'quiz-arena'
+  const driver = DRIVERS[shellId]
+  if (!driver) throw Object.assign(new Error(`the bot has no driver for the shell "${shellId}" (scripts/bot/index.mjs)`), { exitCode: 2 })
   const factor = Math.max(1, 0.75 / opts.accuracy) ** 2
-  const maxSteps = opts.maxSteps > 0 ? opts.maxSteps : Math.ceil(6 * (pack.units.length * roundLength + bossLength) * (opts.mode === 'random' ? factor : 1))
+  const maxSteps = opts.maxSteps > 0 ? opts.maxSteps : driver.maxSteps({ pack, data, opts, factor: opts.mode === 'random' ? factor : 1 })
 
   const started = Date.now()
   const log = (...a) => opts.verbose && console.error('[play]', ...a)
@@ -126,7 +136,7 @@ async function run(opts) {
   }
   const consoleErrors = []
   let consoleWarnings = 0
-  const summary = { mode: opts.mode, seed: opts.seed, steps: 0, correct: 0, wrong: 0, screens: [], kinds: {}, finished: false, consoleErrors: 0, durationMs: 0 }
+  const summary = { mode: opts.mode, shell: shellId, seed: opts.seed, steps: 0, correct: 0, wrong: 0, screens: [], kinds: {}, finished: false, consoleErrors: 0, durationMs: 0 }
   const screens = new Set()
   const checks = { whys: 0, explanations: 0, answers: 0 }
 
@@ -589,19 +599,19 @@ async function run(opts) {
     return item
   }
 
-  /** Plays the round on screen to its summary. */
-  async function playRound(label) {
+  /** Answers the questions on screen until the screen is no longer `item` (a round ends, a door opens, a battle turn ends). */
+  async function answerWhileItem(label) {
     for (let guard = 0; guard < maxSteps + 50; guard++) {
       const s = await state()
       screens.add(s.screen)
-      if (s.screen === 'summary') return s
-      if (s.screen !== 'item') throw new Error(`unexpected screen "${s.screen}" in round ${label}`)
+      if (s.screen !== 'item') return s
       await answerCurrent(s)
     }
-    throw new Error(`the round ${label} did not end`)
+    throw new Error(`the questions of ${label} did not end`)
   }
 
-  const startRound = async (testid, label) => {
+  /** Presses a control that opens a question (a unit, a door, an NPC) and checks that the question screen came. */
+  async function openQuestion(testid, label) {
     const prev = await state()
     await press(testid)
     await waitChange(prev, `opening ${label}`)
@@ -610,127 +620,51 @@ async function run(opts) {
     return s
   }
 
-  /** Summary screen: screenshot and light checks, then back to the map. */
-  async function leaveSummary(label, roundKind) {
-    await shot(`summary-${roundKind}`, `summary-${roundKind}`)
-    await overflowCheck(`summary of ${label}`)
+  /** Presses a control and waits for the published state to change (and, with `screen`, for that screen). */
+  async function pressAndWait(testid, what = testid, screen) {
     const prev = await state()
-    await press('to-map')
-    await waitChange(prev, `to-map after ${label}`)
-    await waitScreen('map', 'to-map')
+    await press(testid)
+    await waitChange(prev, what)
+    if (screen) await waitScreen(screen, what)
+    return state()
   }
 
-  // ------------------------------------------------------------ the game
+  /** The shell's own bot helpers in the page (`EduEngine.debug.shell.<name>(...args)`): read-only, see docs/player.md. */
+  const shellDebug = (name, ...args) => page.evaluate(([n, a]) => {
+    const fn = window.EduEngine.debug.shell?.[n]
+    if (typeof fn !== 'function') throw new Error(`the shell has no debug helper "${n}"`)
+    return fn(...a)
+  }, [name, args])
 
-  const unitOpen = async (id) => !(await page.locator(tid(`unit-${id}`)).isDisabled()) && (await page.locator(tid(`unit-${id}`)).getAttribute('data-locked')) !== 'true'
+  /** Everything a shell driver (scripts/bot/<shell>.mjs) needs. */
+  const bot = {
+    page, opts, data, pack, items, tid, text, log, fail, summary, screens, checks, maxSteps, shellId, driver,
+    state, exists, click, press, activate, typeInto, tabTo, focusedId, waitChange, waitScreen, shot, overflowCheck, focusInMain,
+    ask, answerCurrent, answerWhileItem, openQuestion, pressAndWait, shellDebug, wantRight, rng,
+    get answered() {
+      return answered
+    }
+  }
+
+  // ------------------------------------------------------------ the game: the title here, the rest by the shell's driver
 
   try {
-    await page.goto(pathToFileURL(path.join(dir, 'index.html')).href + `?seed=${opts.seed}`)
+    await page.goto(pathToFileURL(path.join(dir, 'index.html')).href + `?seed=${opts.seed}` + (opts.shell ? `&shell=${encodeURIComponent(opts.shell)}` : ''))
     await page.waitForSelector(tid('course-title'))
     let st = await state()
     if (st.screen !== 'title') throw new Error(`the game did not open on the title screen (got "${st.screen}")`)
     if (st.seed !== opts.seed) fail(`the seed was not applied: asked ${opts.seed}, the game reports ${st.seed}`)
+    if (st.shell !== shellId) fail(`the game runs the shell "${st.shell}", the bot expected "${shellId}"`)
+    const playable = await page.evaluate(() => (typeof window.EduEngine.playableShells === 'function' ? window.EduEngine.playableShells() : []))
+    if (playable.length > 1) {
+      if (!(await exists('shell-picker'))) fail(`the title has no shell-picker although the course plays in ${playable.join(', ')}`)
+      else if ((await page.locator(tid(`shell-${st.shell}`)).getAttribute('aria-pressed')) !== 'true') fail(`the shell picker does not mark "${st.shell}" as the current game style`)
+    }
+    summary.shell = st.shell
     screens.add('title')
     await shot('title')
     await overflowCheck('title')
-    {
-      const prev = st
-      await press('start')
-      await waitChange(prev, 'start')
-      await waitScreen('map', 'start')
-    }
-    await shot('map')
-    await overflowCheck('map')
-
-    if (opts.mode === 'wrong') {
-      // one round per unit that is open (no unit is ever mastered), then the review screen
-      for (const u of pack.units) for (let r = 0; r < opts.rounds; r++) {
-        if (!(await unitOpen(u.id))) continue
-        const s = await startRound(`unit-${u.id}`, `unit ${u.id}`)
-        if (s.roundKind !== 'unit' || s.unitId !== u.id) fail(`unit ${u.id}: the round is ${s.roundKind}/${s.unitId}`)
-        const sum = await playRound(u.id)
-        if (!(await exists('summary-misses'))) fail(`unit ${u.id}: the summary lists no misses after an all-wrong round`)
-        if (sum.mastery[u.id] !== 0) fail(`unit ${u.id}: an all-wrong round earned ${sum.mastery[u.id]} star(s)`)
-        await leaveSummary(u.id, 'unit')
-      }
-      st = await state()
-      if (st.reviewQueue.length === 0) fail('the review queue is empty after answering everything wrong')
-      if (!(await exists('review'))) fail('the review entry is not offered on the map')
-      else {
-        const prev = await state()
-        await press('review')
-        await waitChange(prev, 'review')
-        await waitScreen('review', 'review')
-        await shot('review')
-        await overflowCheck('review')
-        for (const id of st.reviewQueue) if (!(await exists(`review-item-${id}`))) fail(`the review screen does not list ${id}`)
-        if (!(await exists('practice'))) fail('the review screen has no practice button')
-        const p2 = await state()
-        if (opts.keyboard) await activate('to-map')
-        else await page.locator(tid('to-map')).last().click() // the review screen has a small back button and a big one
-        await waitChange(p2, 'to-map from review')
-        await waitScreen('map', 'to-map from review')
-      }
-      if (await page.locator(tid('boss')).isEnabled()) fail('the boss is open although no unit was mastered')
-    } else {
-      // perfect and random: play units in prerequisite order, then the boss, until the end screen
-      let bossTries = 0
-      for (let guard = 0; guard < 400; guard++) {
-        st = await state()
-        if (st.screen !== 'map') throw new Error(`expected the map, got "${st.screen}"`)
-        const target = opts.mode === 'perfect' ? 3 : 2 // perfect: every unit to 3 stars; random: mastered
-        let next
-        for (const u of pack.units) if ((st.mastery[u.id] ?? 0) < target && (await unitOpen(u.id))) {
-          next = u
-          break
-        }
-        if (next) {
-          const s = await startRound(`unit-${next.id}`, `unit ${next.id}`)
-          if (s.roundKind !== 'unit' || s.unitId !== next.id) fail(`unit ${next.id}: the round is ${s.roundKind}/${s.unitId}`)
-          await playRound(next.id)
-          await leaveSummary(next.id, 'unit')
-          continue
-        }
-        const stuckUnit = pack.units.find((u) => (st.mastery[u.id] ?? 0) < target)
-        if (stuckUnit) throw new Error(`deadlock: unit ${stuckUnit.id} has ${st.mastery[stuckUnit.id]} star(s) and no open unit is left to play`)
-        if (opts.mode === 'perfect') {
-          for (const u of pack.units) if (st.mastery[u.id] !== 3) fail(`unit ${u.id} has ${st.mastery[u.id]} stars after perfect play`)
-        }
-        await shot('map-mastered')
-        if (await exists('finish')) {
-          const prev = await state()
-          await press('finish')
-          await waitChange(prev, 'finish')
-          break
-        }
-        if (!(await page.locator(tid('boss')).isEnabled())) throw new Error('every unit is mastered but the boss is not open')
-        if (++bossTries > 30) throw new Error('the boss was not beaten in 30 tries')
-        const s = await startRound('boss', 'the boss')
-        if (s.roundKind !== 'boss') fail(`the boss opened a "${s.roundKind}" round`)
-        await playRound('boss')
-        const hasFinish = await exists('finish')
-        await shot('summary-boss', 'summary-boss')
-        await overflowCheck('summary of the boss')
-        if (hasFinish) {
-          const prev = await state()
-          await press('finish')
-          await waitChange(prev, 'finish')
-          break
-        }
-        if (opts.mode === 'perfect') fail('a perfect boss round did not offer the end screen')
-        await leaveSummary('boss', 'boss-retry')
-      }
-      st = await state()
-      if (st.screen !== 'end' || !st.finished) throw new Error(`the end screen was not reached (screen "${st.screen}")`)
-      screens.add('end')
-      await shot('end')
-      await overflowCheck('end')
-      for (const id of ['end-title', 'play-again', 'to-title']) if (!(await exists(id))) fail(`the end screen has no ${id}`)
-      if (opts.mode === 'perfect') {
-        for (const u of pack.units) if (st.mastery[u.id] !== 3) fail(`unit ${u.id} has ${st.mastery[u.id]} stars at the end`)
-        if (st.reviewQueue.length > 0) fail(`the review queue is not empty at the end: ${st.reviewQueue.join(', ')}`)
-      }
-    }
+    await driver.play(bot)
 
     st = await state()
     summary.finished = st.finished === true

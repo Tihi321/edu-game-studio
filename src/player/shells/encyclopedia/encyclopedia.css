@@ -1,0 +1,1467 @@
+/*
+ * The encyclopedia explorer (EGS-10): a printed book on parchment, fitted with brass. Pages turn (the theme's `edu-enter-page` keyframe,
+ * applied to the page content only, so the index tabs stay put), chapters carry Roman numerals in oxblood, entries run to the page
+ * number on dotted leaders, a drop cap opens every article, and the clue of a hunt is a slip of paper pinned with a brass pin.
+ *
+ * Every selector starts with `.edu-stage`. Colours come only from the `--edu-*` slots of the parchment theme (shades are `color-mix` of
+ * those slots, never a hex). motion.css switches every animation off under `prefers-reduced-motion`; the transitions here use
+ * `--edu-dur-*`, which are 0 there.
+ */
+
+.edu-stage[data-shell='encyclopedia'] {
+  --enc-brass: var(--edu-accent);
+  --enc-brass-light: color-mix(in srgb, var(--edu-mark) 70%, var(--edu-accent));
+  --enc-oxblood: var(--edu-accent-2);
+  --enc-paper: var(--edu-surface);
+  --enc-paper-deep: var(--edu-surface-2);
+  --enc-slip: color-mix(in srgb, var(--edu-mark) 34%, var(--edu-surface));
+  --enc-rule: color-mix(in srgb, var(--edu-line-strong) 70%, transparent);
+}
+
+/* ---- the page frame every world screen shares ---- */
+
+.edu-stage .board > .enc-page {
+  animation: none;
+}
+
+.edu-stage .enc-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-4);
+  min-width: 0;
+}
+
+.edu-stage .enc-page > * {
+  min-width: 0;
+}
+
+/* the page content turns over from the spine; the tabs and the pinned clue stay where they are */
+.edu-stage .enc-page > :not(.enc-tabs, .enc-clue) {
+  animation: var(--edu-enter-name, edu-enter-page) calc(var(--edu-dur-slow) * var(--edu-enter-scale, 1)) var(--edu-enter-ease, ease-out) backwards;
+}
+
+.edu-stage .enc-part-title {
+  margin: 0;
+  font-size: var(--edu-text-3xl);
+  text-align: center;
+}
+
+.edu-stage .enc-part-title::after {
+  content: '\2766';
+  display: block;
+  margin-top: 2px;
+  color: var(--enc-oxblood);
+  font-size: var(--edu-text-l);
+  line-height: 1.2;
+}
+
+.edu-stage .enc-part-intro {
+  margin: 0 auto;
+  max-width: 62ch;
+  text-align: center;
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+/* ---- brass index tabs ---- */
+
+.edu-stage .enc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-1);
+  padding-bottom: var(--edu-space-2);
+  border-bottom: 3px double var(--enc-brass);
+}
+
+.edu-stage .enc-tab {
+  min-height: var(--edu-tap);
+  padding: 4px var(--edu-space-4);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-m);
+  font-weight: 700;
+  color: var(--edu-text);
+  background: linear-gradient(180deg, var(--enc-paper), var(--enc-paper-deep));
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-m) var(--edu-radius-m) 0 0;
+  transition:
+    background var(--edu-dur-fast) var(--edu-ease),
+    transform var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-tab:hover {
+  background: var(--enc-slip);
+  transform: translateY(-2px);
+}
+
+.edu-stage .enc-tab[aria-current='page'] {
+  color: var(--edu-accent-ink);
+  background: linear-gradient(180deg, var(--enc-brass-light), var(--enc-brass));
+  box-shadow: var(--edu-shadow-1);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--edu-text) 40%, transparent);
+}
+
+.edu-stage .enc-tab-title {
+  margin-right: auto;
+  border-style: dashed;
+}
+
+/* ---- the clue pinned on every page of a hunt ---- */
+
+.edu-stage .enc-clue {
+  position: sticky;
+  top: var(--edu-space-2);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: var(--edu-space-3);
+  padding: var(--edu-space-3) var(--edu-space-4) var(--edu-space-3) var(--edu-space-5);
+  background: var(--enc-slip);
+  border: 2px solid var(--enc-brass);
+  border-left-width: 8px;
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .enc-clue.is-retry {
+  border-color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-clue-pin {
+  position: absolute;
+  left: -6px;
+  top: -9px;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--edu-mark), var(--enc-brass) 70%);
+  border: 2px solid var(--enc-brass);
+  box-shadow: 0 2px 3px color-mix(in srgb, var(--edu-text) 45%, transparent);
+}
+
+.edu-stage .enc-clue-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.edu-stage .enc-clue-label {
+  color: var(--enc-oxblood);
+  font-size: var(--edu-text-s);
+  font-weight: 700;
+}
+
+.edu-stage .enc-clue-text {
+  margin: 0;
+  font-size: var(--edu-text-l);
+  font-style: italic;
+  line-height: var(--edu-leading);
+}
+
+.edu-stage .enc-clue-retry {
+  align-self: flex-start;
+}
+
+.edu-stage .enc-clue-drop {
+  flex: none;
+}
+
+/* ---- explore: masthead, search, plate, index ---- */
+
+.edu-stage .enc-explore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-5);
+}
+
+.edu-stage .enc-masthead {
+  text-align: center;
+  padding: var(--edu-space-4) var(--edu-space-3) var(--edu-space-3);
+  border-top: 3px double var(--enc-brass);
+  border-bottom: 3px double var(--enc-brass);
+}
+
+.edu-stage .enc-eyebrow {
+  margin: 0;
+  color: var(--enc-oxblood);
+  font-size: var(--edu-text-l);
+  font-style: italic;
+}
+
+.edu-stage .enc-title {
+  margin: var(--edu-space-1) 0 0;
+  font-size: var(--edu-text-4xl);
+  line-height: var(--edu-leading-tight);
+  text-wrap: balance;
+}
+
+.edu-stage .enc-orn {
+  margin: 0;
+  color: var(--enc-oxblood);
+  font-size: var(--edu-text-xl);
+  line-height: 1.3;
+}
+
+.edu-stage .enc-sub {
+  margin: 0 auto var(--edu-space-3);
+  max-width: 52ch;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-l);
+  font-style: italic;
+}
+
+.edu-stage .enc-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--edu-space-2) var(--edu-space-3);
+  margin: 0;
+}
+
+.edu-stage .enc-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--edu-space-2);
+  padding: 2px var(--edu-space-3);
+  background: var(--enc-paper);
+  border: 1px solid var(--enc-brass);
+  border-radius: 999px;
+}
+
+.edu-stage .enc-stat-label {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .enc-stat-value {
+  color: var(--enc-oxblood);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.edu-stage .enc-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--edu-space-5);
+  align-items: start;
+}
+
+@media (min-width: 840px) {
+  .edu-stage .enc-columns {
+    grid-template-columns: minmax(250px, 310px) minmax(0, 1fr);
+  }
+}
+
+.edu-stage .enc-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-4);
+  min-width: 0;
+}
+
+/* search */
+
+.edu-stage .enc-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-2);
+  padding: var(--edu-space-3);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .enc-search-label {
+  font-weight: 700;
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-search-box {
+  position: relative;
+}
+
+.edu-stage .enc-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--edu-tap);
+  padding: 6px 12px 6px 42px;
+  font-family: var(--edu-font-body);
+  font-size: var(--edu-text-m);
+  color: var(--edu-text);
+  background: var(--enc-paper-deep);
+  border: 2px solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-m);
+}
+
+.edu-stage .enc-search-input::placeholder {
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-search-input:focus {
+  border-color: var(--edu-focus);
+  background: var(--enc-paper);
+}
+
+/* a brass magnifying glass drawn with borders */
+.edu-stage .enc-search-glass {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin-top: -10px;
+  border: 3px solid var(--enc-brass);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.edu-stage .enc-search-glass::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  bottom: -7px;
+  width: 9px;
+  height: 3px;
+  background: var(--enc-brass);
+  transform: rotate(45deg);
+}
+
+.edu-stage .enc-search-status {
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  font-style: italic;
+}
+
+.edu-stage .enc-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-results .enc-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--edu-tap);
+  padding: 6px var(--edu-space-3);
+  text-align: left;
+  font-family: var(--edu-font-body);
+  color: var(--edu-text);
+  background: var(--enc-paper-deep);
+  border: 1px solid var(--edu-line-strong);
+  border-left: 5px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+  transition: background var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-results .enc-result:hover {
+  background: var(--enc-slip);
+}
+
+.edu-stage .enc-results .enc-result-title {
+  font-weight: 700;
+  font-size: var(--edu-text-m);
+}
+
+.edu-stage .enc-results .enc-result-snippet {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  line-height: 1.35;
+}
+
+/* the plate (frontispiece) */
+
+.edu-stage .enc-plate,
+.edu-stage .enc-figure {
+  margin: 0;
+  padding: var(--edu-space-2);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  box-shadow:
+    inset 0 0 0 4px var(--enc-paper),
+    inset 0 0 0 5px var(--enc-rule),
+    var(--edu-shadow-1);
+}
+
+.edu-stage .enc-plate-frame,
+.edu-stage .enc-figure-frame {
+  padding: var(--edu-space-2);
+  background: var(--enc-paper-deep);
+  border: 1px solid var(--edu-line-strong);
+}
+
+.edu-stage .enc-plate img,
+.edu-stage .enc-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.edu-stage .enc-plate figcaption,
+.edu-stage .enc-figure figcaption {
+  margin-top: var(--edu-space-2);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  font-style: italic;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.edu-stage .enc-plate-no {
+  color: var(--enc-oxblood);
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* the index: chapters, entries on dotted leaders */
+
+.edu-stage .enc-index {
+  columns: 250px 2;
+  column-gap: var(--edu-space-5);
+}
+
+.edu-stage .enc-chapter {
+  min-width: 0;
+  margin-bottom: var(--edu-space-5);
+  break-inside: avoid;
+}
+
+.edu-stage .enc-chapter-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--edu-space-3);
+  margin: 0 0 var(--edu-space-2);
+  padding-bottom: var(--edu-space-1);
+  font-size: var(--edu-text-xl);
+  line-height: var(--edu-leading-tight);
+  color: var(--edu-text);
+  border-bottom: 2px solid var(--enc-brass);
+}
+
+.edu-stage .enc-numeral {
+  min-width: 1.6em;
+  color: var(--enc-oxblood);
+  font-weight: 700;
+  font-style: italic;
+}
+
+.edu-stage .enc-chapter-note {
+  margin: 0 0 var(--edu-space-2);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.edu-stage .enc-entries {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-entry {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  min-height: var(--edu-tap);
+  padding: 6px var(--edu-space-1);
+  text-align: left;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  color: var(--edu-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--edu-radius-s);
+  transition: background var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-entry:hover {
+  background: var(--enc-slip);
+}
+
+.edu-stage .enc-entry-title {
+  font-weight: 600;
+}
+
+.edu-stage .enc-entry-leader {
+  flex: 1;
+  min-width: 14px;
+  margin: 0 var(--edu-space-2);
+  border-bottom: 2px dotted var(--edu-line-strong);
+  transform: translateY(-4px);
+}
+
+.edu-stage .enc-entry-read {
+  color: var(--edu-good);
+  font-weight: 700;
+}
+
+.edu-stage .enc-chapter[data-locked='true'] .enc-chapter-name {
+  color: var(--edu-text-dim);
+}
+
+/* ---- an article: a spread, text page and plate page ---- */
+
+.edu-stage .enc-article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .enc-spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+  box-shadow: var(--edu-shadow-2);
+}
+
+@media (min-width: 860px) {
+  .edu-stage .enc-spread {
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+    /* the gutter: the paper darkens towards the spine */
+    background:
+      linear-gradient(90deg, transparent calc(62% - 26px), color-mix(in srgb, var(--edu-text) 14%, transparent) calc(62% - 1px), color-mix(in srgb, var(--edu-text) 6%, transparent) 62%, transparent calc(62% + 22px)),
+      var(--enc-paper);
+  }
+}
+
+.edu-stage .enc-text {
+  padding: var(--edu-space-5) clamp(16px, 4vw, 44px) var(--edu-space-6);
+  min-width: 0;
+}
+
+.edu-stage .enc-runhead {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2);
+  margin: 0 0 var(--edu-space-3);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  font-style: italic;
+}
+
+.edu-stage .enc-runhead-sep {
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-article-title {
+  margin: 0;
+  font-size: var(--edu-text-3xl);
+  line-height: var(--edu-leading-tight);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.edu-stage .enc-rule {
+  margin: var(--edu-space-3) auto var(--edu-space-4);
+  width: min(60%, 220px);
+  height: 7px;
+  border-top: 1px solid var(--enc-brass);
+  border-bottom: 3px double var(--enc-brass);
+}
+
+.edu-stage .enc-body {
+  max-width: var(--edu-measure);
+  margin: 0 auto;
+  font-size: var(--edu-text-l);
+  line-height: var(--edu-leading-loose);
+  hyphens: auto;
+}
+
+.edu-stage .enc-body p {
+  margin: 0 0 var(--edu-space-3);
+}
+
+.edu-stage .enc-body p:first-child::first-letter {
+  float: left;
+  margin: 0.04em 0.1em 0 0;
+  padding: 0 0.04em;
+  font-family: var(--edu-font-display);
+  font-size: 3.5em;
+  line-height: 0.82;
+  font-weight: 700;
+  color: var(--enc-oxblood);
+}
+
+/* a cross-link: a button that reads as a link in the text */
+.edu-stage .enc-xlink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--enc-oxblood);
+  text-align: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px dotted var(--enc-oxblood);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.edu-stage .enc-xlink:hover {
+  background: var(--enc-slip);
+  border-bottom-style: solid;
+}
+
+.edu-stage .enc-plates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-4);
+  padding: var(--edu-space-5) clamp(14px, 3vw, 30px);
+  background: color-mix(in srgb, var(--enc-paper-deep) 55%, transparent);
+  border-top: 1px solid var(--enc-rule);
+  min-width: 0;
+}
+
+@media (min-width: 860px) {
+  .edu-stage .enc-plates {
+    border-top: 0;
+    border-left: 1px solid var(--enc-rule);
+    background: transparent;
+  }
+}
+
+.edu-stage .enc-audio {
+  align-self: flex-start;
+}
+
+.edu-stage .enc-related h2,
+.edu-stage .enc-sources h2 {
+  margin: 0 0 var(--edu-space-2);
+  padding-bottom: 2px;
+  font-size: var(--edu-text-l);
+  color: var(--enc-oxblood);
+  border-bottom: 1px solid var(--enc-brass);
+}
+
+.edu-stage .enc-related ul,
+.edu-stage .enc-sources ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-related-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--edu-space-2);
+  min-height: var(--edu-tap);
+  padding: 4px var(--edu-space-2);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-m);
+  font-weight: 600;
+  color: var(--edu-text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--edu-radius-s);
+}
+
+.edu-stage .enc-related-btn::before {
+  content: '\261E';
+  color: var(--enc-brass);
+}
+
+.edu-stage .enc-related-btn:hover {
+  background: var(--enc-slip);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.edu-stage .enc-sources li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--edu-space-2);
+  padding: 4px 0;
+  font-size: var(--edu-text-s);
+  line-height: 1.35;
+  border-bottom: 1px dotted var(--edu-line);
+}
+
+.edu-stage .enc-source-name {
+  font-weight: 700;
+}
+
+.edu-stage .enc-source-claim {
+  flex: 1 1 100%;
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--enc-oxblood);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* the collect seal: this page answers the clue */
+
+.edu-stage .enc-collect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--edu-space-2) var(--edu-space-4);
+  margin: 0 auto var(--edu-space-4);
+  padding: var(--edu-space-3) var(--edu-space-4);
+  max-width: var(--edu-measure);
+  background: var(--enc-slip);
+  border: 2px dashed var(--enc-brass);
+  border-radius: var(--edu-radius-m);
+}
+
+.edu-stage .enc-collect-hint {
+  color: var(--edu-text);
+  font-style: italic;
+}
+
+.edu-stage .enc-seal {
+  color: var(--edu-accent-ink);
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--enc-oxblood) 70%, var(--edu-surface)), var(--enc-oxblood) 62%);
+  border: 3px solid var(--enc-brass);
+  border-radius: 999px;
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .enc-seal:hover:not(:disabled) {
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--enc-oxblood) 55%, var(--edu-surface)), var(--enc-oxblood) 70%);
+  transform: translateY(-1px) rotate(-1deg);
+}
+
+/* ---- timeline ---- */
+
+.edu-stage .enc-timeline,
+.edu-stage .enc-map-view,
+.edu-stage .enc-codex,
+.edu-stage .enc-hunts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-4);
+  min-width: 0;
+}
+
+.edu-stage .enc-tl-scroll {
+  max-width: 100%;
+  /* the box scrolls inside itself: its wide content must not widen the page (and, on a phone, the frame round it) */
+  contain: inline-size;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background:
+    var(--parch-grain),
+    linear-gradient(180deg, var(--enc-paper), var(--enc-paper-deep));
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+  box-shadow: inset 0 0 30px color-mix(in srgb, var(--edu-accent) 18%, transparent);
+}
+
+.edu-stage .enc-tl-track {
+  position: relative;
+}
+
+.edu-stage .enc-tl-lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.edu-stage .enc-tl-lines path {
+  fill: none;
+  stroke: var(--enc-brass);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.edu-stage .enc-tl-ruler {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 42px;
+}
+
+.edu-stage .enc-tl-ruler::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 19px;
+  height: 4px;
+  background: var(--enc-brass);
+  border-top: 1px solid var(--edu-text);
+  border-bottom: 1px solid var(--edu-text);
+}
+
+.edu-stage .enc-tl-tick {
+  position: absolute;
+  top: 12px;
+  width: 1px;
+  height: 7px;
+  background: var(--edu-text);
+}
+
+.edu-stage .enc-tl-tick.is-major {
+  top: 8px;
+  width: 2px;
+  height: 11px;
+}
+
+.edu-stage .enc-tl-tick-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 16px;
+  transform: translateX(-50%);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-xs);
+  white-space: nowrap;
+}
+
+.edu-stage .enc-tl-mark {
+  position: absolute;
+  top: 15px;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  background: var(--enc-oxblood);
+  border: 2px solid var(--enc-paper);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--enc-oxblood);
+}
+
+.edu-stage .enc-tl-card {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: var(--edu-tap);
+  padding: 6px var(--edu-space-2);
+  text-align: left;
+  font-family: var(--edu-font-body);
+  font-size: var(--edu-text-s);
+  line-height: 1.25;
+  color: var(--edu-text);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+  box-shadow: var(--edu-shadow-1);
+  transition:
+    background var(--edu-dur-fast) var(--edu-ease),
+    transform var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-tl-card:hover,
+.edu-stage .enc-tl-card:focus-visible {
+  background: var(--enc-slip);
+  transform: translateY(-2px);
+}
+
+.edu-stage .enc-tl-card:not(.has-article) {
+  border-style: dashed;
+}
+
+.edu-stage .enc-tl-card-year {
+  color: var(--enc-oxblood);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.edu-stage .enc-tl-card-label {
+  font-weight: 600;
+}
+
+.edu-stage .enc-tl-card-more {
+  margin-top: 2px;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-xs);
+  font-style: italic;
+}
+
+.edu-stage .enc-tl-detail {
+  margin: 0;
+  padding: var(--edu-space-3) var(--edu-space-4);
+  background: var(--enc-slip);
+  border-left: 6px solid var(--enc-brass);
+  font-size: var(--edu-text-m);
+  line-height: var(--edu-leading);
+}
+
+.edu-stage .enc-tl-detail-year {
+  color: var(--enc-oxblood);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+}
+
+.edu-stage .enc-tl-detail-label {
+  font-weight: 700;
+}
+
+/* ---- map ---- */
+
+.edu-stage .enc-map-figure {
+  margin: 0;
+  padding: var(--edu-space-2);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  box-shadow:
+    inset 0 0 0 4px var(--enc-paper),
+    inset 0 0 0 5px var(--enc-rule),
+    var(--edu-shadow-1);
+  min-width: 0;
+}
+
+.edu-stage .enc-map-figure figcaption {
+  margin-top: var(--edu-space-2);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  font-style: italic;
+  text-align: center;
+}
+
+.edu-stage .enc-map-scroll {
+  max-width: 100%;
+  contain: inline-size;
+  overflow-x: auto;
+  padding: 6px;
+}
+
+.edu-stage .enc-map-stage {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--edu-line-strong);
+}
+
+.edu-stage .enc-map-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.edu-stage .enc-pin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--edu-tap);
+  height: var(--edu-tap);
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.edu-stage .enc-pin-head {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  background: color-mix(in srgb, var(--enc-oxblood) 30%, transparent);
+  border: 3px solid var(--edu-mark);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--enc-brass),
+    0 2px 4px color-mix(in srgb, var(--edu-text) 50%, transparent);
+  transition:
+    transform var(--edu-dur-fast) var(--edu-ease),
+    background var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-pin:hover .enc-pin-head,
+.edu-stage .enc-pin:focus-visible .enc-pin-head {
+  background: var(--edu-mark);
+  transform: scale(1.2);
+}
+
+.edu-stage .enc-pin-name {
+  position: absolute;
+  bottom: calc(100% - 4px);
+  left: 50%;
+  z-index: 3;
+  padding: 1px var(--edu-space-2);
+  transform: translateX(-50%);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  font-weight: 700;
+  color: var(--edu-text);
+  white-space: nowrap;
+  background: var(--enc-paper);
+  border: 1px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+  box-shadow: var(--edu-shadow-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .enc-pin:hover .enc-pin-name,
+.edu-stage .enc-pin:focus-visible .enc-pin-name {
+  opacity: 1;
+}
+
+.edu-stage .enc-places h2 {
+  margin: 0 0 var(--edu-space-2);
+  font-size: var(--edu-text-l);
+  color: var(--enc-oxblood);
+  border-bottom: 1px solid var(--enc-brass);
+}
+
+.edu-stage .enc-places ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: var(--edu-space-1) var(--edu-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-place-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--edu-space-2);
+  width: 100%;
+  min-height: var(--edu-tap);
+  padding: 4px var(--edu-space-2);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-m);
+  font-weight: 600;
+  text-align: left;
+  color: var(--edu-text);
+  background: var(--enc-paper);
+  border: 1px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+}
+
+.edu-stage .enc-place-btn:hover {
+  background: var(--enc-slip);
+}
+
+.edu-stage .enc-place-dot {
+  flex: none;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--enc-brass);
+  border-radius: 50%;
+  background: var(--enc-oxblood);
+}
+
+/* ---- codex ---- */
+
+.edu-stage .enc-codex-count {
+  margin: 0;
+  text-align: center;
+  color: var(--enc-oxblood);
+  font-weight: 700;
+  font-size: var(--edu-text-l);
+}
+
+.edu-stage .enc-codex-empty {
+  margin: 0;
+  text-align: center;
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-codex-group h2 {
+  margin: 0 0 var(--edu-space-3);
+  padding-bottom: var(--edu-space-1);
+  font-size: var(--edu-text-xl);
+  border-bottom: 2px solid var(--enc-brass);
+}
+
+.edu-stage .enc-codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: var(--edu-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-specimen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--edu-space-2);
+  padding: var(--edu-space-3) var(--edu-space-4);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .enc-specimen.is-unknown {
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  color: var(--edu-text-dim);
+  background: var(--enc-paper-deep);
+  border-style: dashed;
+  box-shadow: none;
+  text-align: center;
+}
+
+.edu-stage .enc-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  font-size: var(--edu-text-xl);
+  font-weight: 700;
+  color: var(--edu-mark-ink);
+  background: radial-gradient(circle at 35% 30%, var(--edu-mark), var(--enc-brass) 85%);
+  border: 3px double var(--enc-brass);
+  border-radius: 50%;
+  box-shadow: 0 2px 3px color-mix(in srgb, var(--edu-text) 40%, transparent);
+}
+
+.edu-stage .enc-specimen.is-unknown .enc-medal {
+  color: var(--edu-text-dim);
+  background: transparent;
+  border: 3px dotted var(--edu-line-strong);
+  box-shadow: none;
+}
+
+.edu-stage .enc-specimen-name {
+  margin: 0;
+  font-size: var(--edu-text-l);
+  line-height: var(--edu-leading-tight);
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-specimen.is-unknown .enc-specimen-name {
+  font-size: var(--edu-text-m);
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-specimen-taught {
+  margin: 0;
+  font-size: var(--edu-text-m);
+  line-height: 1.4;
+}
+
+.edu-stage .enc-specimen-taught-label {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.edu-stage .enc-specimen-link {
+  margin-top: auto;
+}
+
+/* ---- hunts ---- */
+
+.edu-stage .enc-hunts > .enc-result {
+  padding: var(--edu-space-3) var(--edu-space-4);
+  text-align: center;
+  background: var(--enc-slip);
+  border: 3px double var(--enc-brass);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .enc-hunts > .enc-result.is-good {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .enc-hunts .enc-result-title {
+  margin: 0;
+  font-size: var(--edu-text-xl);
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-hunts .enc-result-text {
+  margin: var(--edu-space-2) 0 0;
+  font-size: var(--edu-text-l);
+}
+
+.edu-stage .enc-hunt-chapter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .enc-hunt-chapter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--edu-space-2) var(--edu-space-4);
+  border-bottom: 2px solid var(--enc-brass);
+}
+
+.edu-stage .enc-hunt-chapter-head .enc-chapter-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  border-bottom: 0;
+}
+
+.edu-stage .enc-hunt-chapter-head .stars {
+  margin-top: 0;
+}
+
+.edu-stage .enc-hunt-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--edu-space-1) var(--edu-space-4);
+  padding: var(--edu-space-3) var(--edu-space-4);
+  background: var(--enc-paper);
+  border: 2px solid var(--enc-brass);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-1);
+}
+
+@media (min-width: 640px) {
+  .edu-stage .enc-hunt-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .edu-stage .enc-hunt-card > :not(.enc-hunt-go) {
+    grid-column: 1;
+  }
+
+  .edu-stage .enc-hunt-card > .enc-hunt-go {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+  }
+}
+
+.edu-stage .enc-hunt-card[data-locked='true'] {
+  background: var(--enc-paper-deep);
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.edu-stage .enc-hunt-title {
+  margin: 0;
+  font-size: var(--edu-text-xl);
+  color: var(--edu-text);
+}
+
+.edu-stage .enc-hunt-intro {
+  margin: 0;
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-hunt-meta {
+  margin: 0;
+  font-size: var(--edu-text-s);
+  color: var(--enc-oxblood);
+  font-weight: 700;
+}
+
+.edu-stage .enc-hunt-note {
+  margin: 0;
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .enc-hunt-go {
+  justify-self: start;
+  margin-top: var(--edu-space-2);
+}
+
+@media (min-width: 640px) {
+  .edu-stage .enc-hunt-go {
+    justify-self: end;
+    margin-top: 0;
+  }
+}
+
+.edu-stage .enc-grand .enc-hunt-card {
+  background: linear-gradient(180deg, var(--enc-slip), var(--enc-paper));
+  border-width: 3px;
+  border-style: double;
+}
+
+.edu-stage .enc-grand .enc-hunt-card[data-locked='true'] {
+  background: var(--enc-paper-deep);
+  border-style: dashed;
+}
+
+/* ---- above a question: the hunt, the clue and the brass pips ---- */
+
+.edu-stage .enc-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--edu-space-2) var(--edu-space-4);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--edu-space-2) var(--edu-space-3);
+  background: var(--enc-slip);
+  border: 1px solid var(--enc-brass);
+  border-radius: var(--edu-radius-s);
+}
+
+.edu-stage .enc-hud-title {
+  font-weight: 700;
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-hud-step {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .enc-hud-pips {
+  display: inline-flex;
+  gap: var(--edu-space-1);
+  margin-left: auto;
+}
+
+.edu-stage .enc-hud-pip {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--enc-brass);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.edu-stage .enc-hud-pip.is-found {
+  background: radial-gradient(circle at 35% 30%, var(--edu-mark), var(--enc-brass));
+}
+
+/* ---- the title page: a closed book drawn in CSS ---- */
+
+.edu-stage .enc-emblem {
+  position: relative;
+  width: 168px;
+  height: 118px;
+  margin: var(--edu-space-3) auto var(--edu-space-4);
+}
+
+.edu-stage .enc-emblem-leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  width: 80px;
+  background: linear-gradient(90deg, var(--enc-paper-deep), var(--enc-paper));
+  border: 3px solid var(--enc-brass);
+  box-shadow:
+    inset 0 0 0 4px var(--enc-paper),
+    inset 0 0 0 5px var(--enc-rule);
+}
+
+.edu-stage .enc-emblem-leaf-a {
+  left: 4px;
+  border-radius: 6px 0 0 6px;
+  transform: skewY(-4deg);
+  transform-origin: right bottom;
+}
+
+.edu-stage .enc-emblem-leaf-b {
+  right: 4px;
+  border-radius: 0 6px 6px 0;
+  transform: skewY(4deg);
+  transform-origin: left bottom;
+  background: linear-gradient(270deg, var(--enc-paper-deep), var(--enc-paper));
+}
+
+.edu-stage .enc-emblem-spine {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  box-sizing: border-box;
+  width: 12px;
+  margin-left: -6px;
+  background: linear-gradient(90deg, var(--enc-oxblood), color-mix(in srgb, var(--enc-oxblood) 70%, var(--edu-text)));
+  border: 2px solid var(--enc-brass);
+  border-radius: 3px;
+}
+
+.edu-stage .enc-emblem-clasp {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  background: radial-gradient(circle at 35% 30%, var(--edu-mark), var(--enc-brass) 80%);
+  border: 2px solid var(--edu-text);
+  border-radius: 50%;
+}
+
+/* ---- the end page ---- */
+
+.edu-stage .enc-end-stats {
+  margin: 0;
+  color: var(--enc-oxblood);
+  font-size: var(--edu-text-l);
+  font-style: italic;
+}
+
+/* ---- phones ---- */
+
+@media (max-width: 640px) {
+  .edu-stage .enc-tab {
+    padding: 4px var(--edu-space-3);
+    font-size: var(--edu-text-s);
+  }
+
+  .edu-stage .enc-clue {
+    flex-wrap: wrap;
+    padding-left: var(--edu-space-4);
+  }
+
+  .edu-stage .enc-clue-main {
+    flex-basis: 100%;
+  }
+
+  .edu-stage .enc-clue-drop {
+    margin-left: auto;
+  }
+
+  .edu-stage .enc-hud-pips {
+    margin-left: 0;
+  }
+
+  .edu-stage .enc-body {
+    font-size: var(--edu-text-m);
+  }
+
+  .edu-stage .enc-collect {
+    flex-direction: column;
+  }
+}

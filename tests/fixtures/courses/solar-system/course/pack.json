@@ -1165,7 +1165,223 @@
         "roundLength": 8,
         "timerSeconds": 30
       },
-      "encyclopedia": {}
+      "encyclopedia": {
+        "timeline": [
+          {
+            "id": "t-galileo",
+            "year": 1610,
+            "label": "enc.t.t-galileo",
+            "text": "enc.t.t-galileo.text",
+            "article": "art-moons"
+          },
+          {
+            "id": "t-uranus",
+            "year": 1781,
+            "label": "enc.t.t-uranus",
+            "text": "enc.t.t-uranus.text",
+            "article": "art-giants"
+          },
+          {
+            "id": "t-neptune",
+            "year": 1846,
+            "label": "enc.t.t-neptune",
+            "text": "enc.t.t-neptune.text",
+            "article": "art-giants"
+          },
+          {
+            "id": "t-pluto",
+            "year": 1930,
+            "label": "enc.t.t-pluto",
+            "text": "enc.t.t-pluto.text",
+            "article": "art-beyond"
+          },
+          {
+            "id": "t-sputnik",
+            "year": 1957,
+            "label": "enc.t.t-sputnik",
+            "text": "enc.t.t-sputnik.text"
+          },
+          {
+            "id": "t-apollo",
+            "year": 1969,
+            "label": "enc.t.t-apollo",
+            "text": "enc.t.t-apollo.text"
+          },
+          {
+            "id": "t-voyager",
+            "year": 1977,
+            "label": "enc.t.t-voyager",
+            "text": "enc.t.t-voyager.text",
+            "article": "art-giants"
+          },
+          {
+            "id": "t-horizons",
+            "year": 2015,
+            "label": "enc.t.t-horizons",
+            "text": "enc.t.t-horizons.text",
+            "article": "art-beyond"
+          }
+        ],
+        "map": {
+          "asset": "img-solar-system",
+          "width": 800,
+          "height": 300,
+          "places": [
+            {
+              "id": "p-sun",
+              "x": 60,
+              "y": 150,
+              "label": "enc.p.p-sun",
+              "article": "art-sun"
+            },
+            {
+              "id": "p-mercury",
+              "x": 190,
+              "y": 150,
+              "label": "enc.p.p-mercury",
+              "article": "art-rocky"
+            },
+            {
+              "id": "p-venus",
+              "x": 235,
+              "y": 150,
+              "label": "enc.p.p-venus",
+              "article": "art-rocky"
+            },
+            {
+              "id": "p-earth",
+              "x": 285,
+              "y": 150,
+              "label": "enc.p.p-earth",
+              "article": "art-rocky"
+            },
+            {
+              "id": "p-mars",
+              "x": 335,
+              "y": 150,
+              "label": "enc.p.p-mars",
+              "article": "art-rocky"
+            },
+            {
+              "id": "p-jupiter",
+              "x": 425,
+              "y": 150,
+              "label": "enc.p.p-jupiter",
+              "article": "art-giants"
+            },
+            {
+              "id": "p-saturn",
+              "x": 545,
+              "y": 150,
+              "label": "enc.p.p-saturn",
+              "article": "art-giants"
+            },
+            {
+              "id": "p-uranus",
+              "x": 640,
+              "y": 150,
+              "label": "enc.p.p-uranus",
+              "article": "art-giants"
+            },
+            {
+              "id": "p-neptune",
+              "x": 730,
+              "y": 150,
+              "label": "enc.p.p-neptune",
+              "article": "art-giants"
+            }
+          ]
+        },
+        "hunts": [
+          {
+            "id": "h-sun",
+            "unit": "u-sun-planets",
+            "title": "enc.h.h-sun.title",
+            "intro": "enc.h.h-sun.intro",
+            "steps": [
+              {
+                "id": "s-sun-star",
+                "clue": "enc.h.h-sun.s-sun-star.clue",
+                "article": "art-sun",
+                "item": "q-sun-mcq",
+                "collectible": "enc.h.h-sun.s-sun-star.name"
+              },
+              {
+                "id": "s-sun-mercury",
+                "clue": "enc.h.h-sun.s-sun-mercury.clue",
+                "article": "art-rocky",
+                "item": "q-order-mcq",
+                "collectible": "enc.h.h-sun.s-sun-mercury.name"
+              },
+              {
+                "id": "s-sun-light",
+                "clue": "enc.h.h-sun.s-sun-light.clue",
+                "article": "art-sun",
+                "item": "q-sun-cloze",
+                "collectible": "enc.h.h-sun.s-sun-light.name"
+              }
+            ]
+          },
+          {
+            "id": "h-rocky",
+            "unit": "u-rocky-giant",
+            "title": "enc.h.h-rocky.title",
+            "intro": "enc.h.h-rocky.intro",
+            "steps": [
+              {
+                "id": "s-rocky-venus",
+                "clue": "enc.h.h-rocky.s-rocky-venus.clue",
+                "article": "art-rocky",
+                "item": "q-venus-mcq",
+                "collectible": "enc.h.h-rocky.s-rocky-venus.name"
+              },
+              {
+                "id": "s-rocky-gas",
+                "clue": "enc.h.h-rocky.s-rocky-gas.clue",
+                "article": "art-giants",
+                "item": "q-types-mcq",
+                "collectible": "enc.h.h-rocky.s-rocky-gas.name"
+              },
+              {
+                "id": "s-rocky-rings",
+                "clue": "enc.h.h-rocky.s-rocky-rings.clue",
+                "article": "art-giants",
+                "item": "q-giants-hotspot",
+                "collectible": "enc.h.h-rocky.s-rocky-rings.name"
+              }
+            ]
+          },
+          {
+            "id": "h-moons",
+            "unit": "u-moons-beyond",
+            "title": "enc.h.h-moons.title",
+            "intro": "enc.h.h-moons.intro",
+            "steps": [
+              {
+                "id": "s-moons-mars",
+                "clue": "enc.h.h-moons.s-moons-mars.clue",
+                "article": "art-moons",
+                "item": "q-moons-mcq",
+                "collectible": "enc.h.h-moons.s-moons-mars.name"
+              },
+              {
+                "id": "s-moons-pluto",
+                "clue": "enc.h.h-moons.s-moons-pluto.clue",
+                "article": "art-beyond",
+                "item": "q-beyond-mcq",
+                "collectible": "enc.h.h-moons.s-moons-pluto.name"
+              },
+              {
+                "id": "s-moons-horizons",
+                "clue": "enc.h.h-moons.s-moons-horizons.clue",
+                "article": "art-beyond",
+                "item": "q-explore-mcq",
+                "collectible": "enc.h.h-moons.s-moons-horizons.name"
+              }
+            ]
+          }
+        ]
+      }
     }
   },
   "assets": [

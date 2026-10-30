@@ -95,6 +95,18 @@
     transform var(--edu-dur-fast) var(--edu-ease),
     background var(--edu-dur-fast) var(--edu-ease),
     box-shadow var(--edu-dur-fast) var(--edu-ease);
+  position: relative;
+}
+
+/*
+ * A slightly larger hover area that moves with the button. The hover lift below moves the button by about a pixel; without this, a
+ * pointer resting on its edge hovered, lifted the button away, un-hovered, dropped it back and hovered again, so the button jittered
+ * for as long as the pointer stayed there (and the bot's clicks timed out as "not stable": the old bot.e2e random-75 % flake).
+ */
+.edu-stage .btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 
 .edu-stage .btn:hover:not(:disabled) {

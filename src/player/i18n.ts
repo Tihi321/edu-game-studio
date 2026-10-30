@@ -129,7 +129,16 @@ const EN = {
   error: 'The game could not start.',
   'a11y.skip': 'Skip to the question',
   stars: '{n} of 3 stars',
-  burst: 'Combo x{n}!'
+  burst: 'Combo x{n}!',
+  'shell.choose': 'Game style',
+  'shell.quiz-arena': 'Quiz arena',
+  'shell.encyclopedia': 'Encyclopedia',
+  'shell.mindmaze': 'MindMaze castle',
+  'shell.rpg': 'RPG quest',
+  'shell.roleplay': 'Role-play',
+  'shell.detective': 'Detective',
+  'question.lead': 'Question',
+  'review.none': 'Nothing to review yet.'
 } as const
 
 export type UiKey = keyof typeof EN
@@ -258,7 +267,16 @@ const HR: Partial<Record<UiKey, string>> = {
   error: 'Igra se nije mogla pokrenuti.',
   'a11y.skip': 'Preskoči na pitanje',
   stars: '{n} od 3 zvjezdice',
-  burst: 'Niz x{n}!'
+  burst: 'Niz x{n}!',
+  'shell.choose': 'Način igre',
+  'shell.quiz-arena': 'Kviz',
+  'shell.encyclopedia': 'Enciklopedija',
+  'shell.mindmaze': 'Dvorac MindMaze',
+  'shell.rpg': 'RPG pustolovina',
+  'shell.roleplay': 'Igra uloga',
+  'shell.detective': 'Detektiv',
+  'question.lead': 'Pitanje',
+  'review.none': 'Još nema ničega za ponavljanje.'
 }
 
 const TABLES: Record<string, Partial<Record<UiKey, string>>> = { hr: HR }

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { findUnitCycle, objectivesOf, type CourseItem, type CoursePack } from '../../shared/course'
 import { GAME_DATA_FORMAT, type GameData } from '../../shared/game-data'
 import { ITEM_KINDS, formOf, makeTextResolver, normalizeText, validateCourse, type CheckContext, type ItemKindDef, type TextRef, type TextResolver } from '../../shared/edu'
+import { SHELL_LINT_CODES, SHELL_WARNING_CODES, lintShells, shellTextRefs } from '../../shared/shells'
 import { GAME_DATA_FILE } from './build'
 
 /**
@@ -30,6 +31,10 @@ import { GAME_DATA_FILE } from './build'
  *   PLACEHOLDER_ASSET    (warning) an asset (or the text of an item that uses it) says it is a placeholder, such as a test tone for speech
  * plus every code of `validateCourse` (SCHEMA, UNKNOWN_*, DUPLICATE_ID, MISSING_WHY ...; its MISSING_TEXT is reported as TEXT_MISSING or
  * ACCEPTED_INCOMPLETE), and GAME_DATA_INVALID when `game-data.json` is not a game.
+ *
+ * Game shells (`src/shared/shells`, EGS-10 to EGS-14): the text keys of every shell section are checked like the pack's own, and each
+ * shell's lint adds its codes (SHELL_UNKNOWN (warning), SHELL_SECTION_MISSING, and the shell's own: ENC_*, MAZE_*, RPG_*, RP_*, DET_*;
+ * `SHELL_LINT_CODES`). Their paths start with `shells.config.<shell>`.
  */
 
 export type LintSeverity = 'error' | 'warning'
@@ -69,7 +74,10 @@ export const LINT_CODES = [
   'GAME_DATA_INVALID'
 ] as const
 
-const WARNING_CODES = new Set(['PLACEHOLDER_ASSET'])
+/** Every code the lint can report: its own and the game shells'. */
+export const ALL_LINT_CODES: readonly string[] = [...LINT_CODES, ...SHELL_LINT_CODES]
+
+const WARNING_CODES = new Set(['PLACEHOLDER_ASSET', ...SHELL_WARNING_CODES])
 /** Single-answer kinds: more than one correct option is a mistake. */
 const SINGLE_KEY_KINDS = new Set(['mcq', 'true-false', 'listening'])
 /** The word "placeholder": an error in a text, unless the text belongs to an asset that is labelled a placeholder (then the asset is a warning). */
@@ -103,14 +111,14 @@ class Collector {
   private readonly map = new Map<string, { problem: LintProblem; langs: string[] }>()
   constructor(private readonly editions: readonly string[]) {}
 
-  add(code: string, path: string, message: string, lang?: string): void {
+  add(code: string, path: string, message: string, lang?: string, severity?: LintSeverity): void {
     const key = `${code}|${path}|${message}`
     const hit = this.map.get(key)
     if (hit) {
       if (lang && !hit.langs.includes(lang)) hit.langs.push(lang)
       return
     }
-    this.map.set(key, { problem: { code, severity: WARNING_CODES.has(code) ? 'warning' : 'error', path, message }, langs: lang ? [lang] : [] })
+    this.map.set(key, { problem: { code, severity: severity ?? (WARNING_CODES.has(code) ? 'warning' : 'error'), path, message }, langs: lang ? [lang] : [] })
   }
 
   list(): LintProblem[] {
@@ -131,6 +139,9 @@ function packTextRefs(pack: CoursePack): TextRef[] {
     ...pack.factbase.flatMap((f, i) => (f.claim ? [{ path: `factbase[${i}].claim`, key: f.claim }] : []))
   ].map((r) => ({ ...r, role: 'string' as const }))
 }
+
+/** The pack's own text keys and those of the game shell sections. */
+const allPackTextRefs = (pack: CoursePack): TextRef[] => [...packTextRefs(pack), ...shellTextRefs(pack)]
 
 /**
  * Lints a built game. `assetExists(url)` says whether `<build>/<url>` is a file. Pure apart from that, so a test can lint data in memory.
@@ -174,7 +185,7 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
       else if (blank(res.text(r.key))) out.add('TEXT_MISSING', at, `the string for key "${r.key}" is empty`, lang)
     }
   }
-  for (const r of packTextRefs(pack)) checkRef(r, r.path)
+  for (const r of allPackTextRefs(pack)) checkRef(r, r.path)
   for (const e of entries) for (const r of e.refs) checkRef(r, `items[${e.index}].${r.path}`)
 
   /** Whether every text the item uses is there in an edition (the solve check is moot otherwise). */
@@ -304,6 +315,9 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
   pack.units.forEach((u, i) => {
     if (!reached.has(u.id)) out.add('UNIT_UNREACHABLE', `units[${i}]`, `no learner can reach the unit "${u.id}": it needs ${u.requires.filter((r) => !reached.has(r)).join(', ') || 'itself'}, which can never be mastered`)
   })
+
+  // ---- game shells (src/shared/shells): reachability, completability, puzzles ... ----
+  for (const p of lintShells(data, resolvers)) out.add(p.code, p.path, p.message, p.lang, p.severity)
 
   // ---- assets ----
   pack.assets.forEach((a, i) => {

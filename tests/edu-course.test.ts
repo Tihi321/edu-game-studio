@@ -179,7 +179,7 @@ describe('schema', () => {
   it('unknown shell ids and extensions are accepted, so later shells and features extend the pack', async () => {
     const f = await loadFixture('solar-system')
     const raw = clone(f.rawPack)
-    raw.shells = { enabled: ['quiz-arena', 'mindmaze', 'rpg', 'detective'], config: { mindmaze: { wings: 3 }, rpg: { tileSet: 'x' }, 'something-new': { a: [1, 2] } } }
+    raw.shells = { enabled: ['quiz-arena', 'future-shell'], config: { 'future-shell': { wings: 3 }, 'something-new': { a: [1, 2] } } }
     raw.extensions = { teacherMode: { classes: [] }, multiplayer: { rooms: 4 } }
     const res = validateCourse(raw, f.rawCatalogs)
     expect(res.problems).toEqual([])

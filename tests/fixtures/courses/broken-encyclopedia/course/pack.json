@@ -1,0 +1,358 @@
+{
+  "schema": 1,
+  "id": "broken-encyclopedia",
+  "slug": "broken-encyclopedia",
+  "sourceLang": "en",
+  "languages": [
+    "en"
+  ],
+  "subject": "An encyclopedia that is wrong on purpose",
+  "audience": "tests",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-a",
+      "title": "unit.u-a.title",
+      "requires": []
+    },
+    {
+      "id": "u-b",
+      "title": "unit.u-b.title",
+      "requires": [
+        "u-a"
+      ]
+    },
+    {
+      "id": "u-c",
+      "title": "unit.u-c.title",
+      "requires": [
+        "u-a"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "o-a",
+      "unit": "u-a",
+      "bloom": "remember",
+      "text": "obj.o-a.text",
+      "facts": []
+    },
+    {
+      "id": "o-b",
+      "unit": "u-b",
+      "bloom": "remember",
+      "text": "obj.o-b.text",
+      "facts": []
+    },
+    {
+      "id": "o-c",
+      "unit": "u-c",
+      "bloom": "remember",
+      "text": "obj.o-c.text",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "i-a1",
+      "kind": "mcq",
+      "objective": "o-a",
+      "prompt": "i-a1.prompt",
+      "explanation": "i-a1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-a1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-a1.o.w1",
+          "why": "i-a1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-a1.o.w2",
+          "why": "i-a1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-a2",
+      "kind": "true-false",
+      "objective": "o-a",
+      "prompt": "i-a2.prompt",
+      "explanation": "i-a2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-a2.why"
+    },
+    {
+      "id": "i-b1",
+      "kind": "mcq",
+      "objective": "o-b",
+      "prompt": "i-b1.prompt",
+      "explanation": "i-b1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-b1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-b1.o.w1",
+          "why": "i-b1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-b1.o.w2",
+          "why": "i-b1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-c1",
+      "kind": "mcq",
+      "objective": "o-c",
+      "prompt": "i-c1.prompt",
+      "explanation": "i-c1.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "options": [
+        {
+          "id": "right",
+          "text": "i-c1.o.right"
+        },
+        {
+          "id": "w1",
+          "text": "i-c1.o.w1",
+          "why": "i-c1.o.w1.why"
+        },
+        {
+          "id": "w2",
+          "text": "i-c1.o.w2",
+          "why": "i-c1.o.w2.why"
+        }
+      ],
+      "answer": "right",
+      "shuffle": true
+    },
+    {
+      "id": "i-b2",
+      "kind": "true-false",
+      "objective": "o-b",
+      "prompt": "i-b2.prompt",
+      "explanation": "i-b2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": true,
+      "why": "i-b2.why"
+    },
+    {
+      "id": "i-c2",
+      "kind": "true-false",
+      "objective": "o-c",
+      "prompt": "i-c2.prompt",
+      "explanation": "i-c2.explanation",
+      "difficulty": 2,
+      "tags": [],
+      "answer": false,
+      "why": "i-c2.why"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "encyclopedia"
+    ],
+    "config": {
+      "encyclopedia": {
+        "timeline": [
+          {
+            "id": "t-ok",
+            "year": 1900,
+            "label": "enc.t.ok",
+            "article": "art-a"
+          },
+          {
+            "id": "t-gone",
+            "year": 1950,
+            "label": "enc.t.gone",
+            "article": "art-nope"
+          }
+        ],
+        "map": {
+          "asset": "aud-sound",
+          "width": 100,
+          "height": 100,
+          "places": [
+            {
+              "id": "p-ok",
+              "x": 10,
+              "y": 10,
+              "label": "enc.p.ok",
+              "article": "art-a"
+            },
+            {
+              "id": "p-gone",
+              "x": 20,
+              "y": 20,
+              "label": "enc.p.gone",
+              "article": "art-nope"
+            },
+            {
+              "id": "p-out",
+              "x": 500,
+              "y": 20,
+              "label": "enc.p.out",
+              "article": "art-a"
+            }
+          ]
+        },
+        "hunts": [
+          {
+            "id": "h-a",
+            "unit": "u-a",
+            "title": "enc.h.a.title",
+            "steps": [
+              {
+                "id": "s-a1",
+                "clue": "enc.step.clue",
+                "article": "art-a",
+                "item": "i-a1",
+                "collectible": "enc.step.name"
+              },
+              {
+                "id": "s-a2",
+                "clue": "enc.step.clue",
+                "article": "art-nope",
+                "item": "i-a2",
+                "collectible": "enc.step.name"
+              },
+              {
+                "id": "s-a3",
+                "clue": "enc.step.clue",
+                "article": "art-a",
+                "item": "i-nope",
+                "collectible": "enc.step.name"
+              },
+              {
+                "id": "s-a4",
+                "clue": "enc.step.clue",
+                "article": "art-a",
+                "item": "i-a1",
+                "collectible": "enc.step.name"
+              },
+              {
+                "id": "s-a5",
+                "clue": "enc.step.clue",
+                "article": "art-a",
+                "item": "i-b1",
+                "collectible": "enc.step.name"
+              }
+            ]
+          },
+          {
+            "id": "h-empty",
+            "unit": "u-a",
+            "title": "enc.h.empty.title",
+            "steps": []
+          },
+          {
+            "id": "h-b",
+            "unit": "u-b",
+            "title": "enc.h.b.title",
+            "steps": [
+              {
+                "id": "s-b1",
+                "clue": "enc.step.clue",
+                "article": "art-b",
+                "item": "i-b1",
+                "collectible": "enc.step.name"
+              }
+            ]
+          },
+          {
+            "id": "h-b",
+            "unit": "u-b",
+            "title": "enc.h.b2.title",
+            "steps": [
+              {
+                "id": "s-b2",
+                "clue": "enc.step.clue",
+                "article": "art-b",
+                "item": "i-b2",
+                "collectible": "enc.step.nope"
+              }
+            ]
+          },
+          {
+            "id": "h-ghost",
+            "unit": "u-nope",
+            "title": "enc.h.ghost.title",
+            "steps": [
+              {
+                "id": "s-g1",
+                "clue": "enc.step.clue",
+                "article": "art-a",
+                "item": "i-a2",
+                "collectible": "enc.step.name"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "aud-sound",
+      "kind": "audio",
+      "file": "assets/beeps.wav",
+      "alt": "asset.sound.alt"
+    }
+  ],
+  "cues": [],
+  "factbase": [],
+  "extensions": {},
+  "encyclopedia": {
+    "articles": [
+      {
+        "id": "art-a",
+        "title": "art.a.title",
+        "body": "art.a.body",
+        "citations": [],
+        "related": [],
+        "unit": "u-a"
+      },
+      {
+        "id": "art-b",
+        "title": "art.b.title",
+        "body": "art.b.body",
+        "citations": [],
+        "related": [],
+        "unit": "u-b"
+      },
+      {
+        "id": "art-c",
+        "title": "art.c.title",
+        "body": "art.c.body",
+        "citations": [],
+        "related": [],
+        "unit": "u-c"
+      }
+    ]
+  }
+}

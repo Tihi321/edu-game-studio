@@ -1,9 +1,9 @@
 import type { CheckResult } from '../shared/edu'
-import type { PlayerState, RoundKind, ScreenName } from './types'
+import type { AnyScreen, PlayerState, RoundKind } from './types'
 
 /** Everything the snapshot is made from. The shell fills it; `buildSnapshot` turns it into the JSON-safe `getState()` value. */
 export interface SnapshotInput {
-  screen: ScreenName
+  screen: AnyScreen
   shell: string
   lang: string
   seed: number
@@ -21,6 +21,10 @@ export interface SnapshotInput {
   mastery: Readonly<Record<string, number>>
   finished: boolean
   steps: number
+  /** Shells: what the open question is for (kept on `item` and `feedback` only). */
+  context?: string
+  /** Shells: their own state, JSON-safe (it is deep-copied). */
+  view?: Readonly<Record<string, unknown>>
 }
 
 /** A fresh, JSON-safe object (no undefined, no shared references): the caller can keep or mutate it without touching the shell. */
@@ -46,6 +50,8 @@ export function buildSnapshot(i: SnapshotInput): PlayerState {
     reviewQueue: [...i.reviewQueue],
     mastery: { ...i.mastery },
     finished: i.finished,
-    steps: i.steps
+    steps: i.steps,
+    ...(inItem && i.context ? { context: i.context } : {}),
+    ...(i.view ? { view: JSON.parse(JSON.stringify(i.view)) as Record<string, unknown> } : {})
   }
 }

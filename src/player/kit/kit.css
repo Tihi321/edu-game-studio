@@ -1,0 +1,55 @@
+/*
+ * The shell kit's own pieces (EGS-10): the game-style picker on every title screen, the frame a shell puts above a question
+ * (`shell-hud`) and the line that says what the answer did in the shell's world (`feedback-effect`). Colours from the --edu-* slots
+ * only, every selector under .edu-stage, so each theme dresses them.
+ */
+
+.edu-stage .shell-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--edu-space-2);
+  margin: var(--edu-space-2) 0;
+}
+
+.edu-stage .shell-picker-label {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+  margin-right: var(--edu-space-1);
+}
+
+.edu-stage .shell-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--edu-space-2) var(--edu-space-3);
+  margin-bottom: var(--edu-space-3);
+}
+
+.edu-stage .shell-hud > :only-child {
+  flex: 1 1 100%;
+}
+
+.edu-stage .fb-effect {
+  margin: 0;
+  padding: var(--edu-space-2) var(--edu-space-3);
+  border-radius: var(--edu-radius-m);
+  font-weight: 700;
+  background: var(--edu-surface);
+  color: var(--edu-text);
+  border: var(--edu-border) solid var(--edu-line-strong);
+}
+
+.edu-stage .fb-effect.is-good {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .fb-effect.is-bad {
+  border-color: var(--edu-bad);
+}
+
+.edu-stage .fb-effect.is-info {
+  border-color: var(--edu-accent);
+}

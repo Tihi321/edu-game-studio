@@ -19,14 +19,15 @@ The learning rules every shell follows (retrieval practice, spaced repetition, e
 
 ## Status
 
-**Phase 1 and the design pass done (EGS-01 to EGS-05).** A course written by hand (or over MCP) builds into a playable quiz-arena game that lints clean and passes the autoplay bot, also played with the keyboard only and checked with axe-core. The studio has its own look and pages for every part of a course. The content pipeline (roles that write a course from a topic) and the other shells come ticket by ticket: see `ROADMAP.md`.
+**Phase 1, the design pass and game shells done (EGS-01 to EGS-05, EGS-10).** A course written by hand (or over MCP) builds into a playable game that lints clean and passes the autoplay bot, also played with the keyboard only and checked with axe-core. Besides the quiz arena it plays in the encyclopedia explorer: the title screen has a game-style picker, so one course plays in every shell it enables. The studio has its own look and pages for every part of a course. The content pipeline (roles that write a course from a topic), the other shells and the media come ticket by ticket: see `ROADMAP.md`.
 
 What works now:
 
 - The engine: model router (LM Studio, Strata, DeepSeek, Anthropic, Gemini, OpenRouter, any OpenAI-compatible server you add, and `client`, where Claude does the model work through MCP at no cost), job queue, scheduler, agents, budget caps, seed refresh.
 - The MCP server on port 7463 (`edu_*` tools, see `docs/mcp-guide.md`), with course create and edit, items, text, validate, build and lint.
 - The course contract (`src/shared/course.ts`): 13 item kinds with checkers, tolerant answer matching, SM-2 spaced repetition and adaptive difficulty.
-- The player (`src/player/`, `docs/player.md`): our own DOM/CSS runtime with the chalkboard quiz arena; a built game works over `file://`.
+- The player (`src/player/`, `docs/player.md`): our own DOM/CSS runtime (Canvas 2D for the RPG map) with the chalkboard quiz arena and the encyclopedia explorer (`src/player/shells/`), all built on the shell kit (`src/player/kit/`: the same questions, feedback, spaced repetition, mastery and progress in every shell); a built game works over `file://`.
+- Game shell sections (`src/shared/shells/`): what a course authors for a shell (`shells.config.<shell>`), checked by the validator and by `edu_lint` (every room reachable, every door's question there, quests that can be finished, dialogues that end); without a section a shell builds an automatic layout from the units.
 - `edu_lint` and the autoplay bot (`scripts/play.mjs`).
 - The generator clients (ComfyUI, Pixel Studio, Chiptune Studio, Google Flow) with their status tools; the course tools that use them come in the media tickets.
 - The design system (`src/design/`, `docs/design.md` "Look"): shared `--edu-*` tokens, a theme registry with four looks (chalkboard for the quiz arena, castle stone, parchment and brass, pixel quest) that later shells pick by id, bundled OFL fonts (no CDN), motion that stops under `prefers-reduced-motion`, and a contrast test for every theme.
@@ -53,7 +54,7 @@ yarn install
 | `yarn engine -- <command>` | The course CLI (no engine is started; `--data <dir>` or `EDU_DATA` picks the data folder): `courses`, `import-course <folder> [--slug s] [--overwrite]`, `validate <slug>`, `build <slug> [--force]` (writes `courses/<slug>/build/`, needs the player bundle), `lint <slug> [--json]` (exit 0 clean, 1 errors), `help` |
 | `yarn mcp [--port N]` | The engine without Electron, serving MCP over HTTP (= `node out/engine/index.js --mcp-only`) |
 | `yarn key:set <NAME>` | Stores an API key (for example `DEEPSEEK_API_KEY`) in the Windows credential store |
-| `yarn play <build-dir> --mode <perfect, wrong or random>` | The autoplay bot (`node scripts/play.mjs`): plays a built game in headless Chromium; see "Autoplay bot" |
+| `yarn play <build-dir> --mode <perfect, wrong or random> [--shell <id>]` | The autoplay bot (`node scripts/play.mjs`): plays a built game in headless Chromium, in any shell the course enables; see "Autoplay bot" |
 | `yarn previews` | Builds the static theme previews (chalkboard, castle, parchment, pixel) into `.claude/temp/theme-previews/`, screenshots them at 1280x800 and 390x844 and runs axe-core |
 | `yarn studio:shots` | Builds the studio renderer with a mocked `window.edustudio` (the golden fixtures), screenshots every page and Course tab at 1280x800 and 390x844 (light and dark, empty, loading and error states) into `.claude/temp/screens/phase2/studio/` and runs axe-core on each; fails on a serious or critical violation |
 | `yarn test` | Vitest |
@@ -81,7 +82,7 @@ yarn play .claude/temp/play-data/courses/solar-system/build --mode perfect --sho
 yarn play .claude/temp/play-data/courses/solar-system/build --mode perfect --keyboard --axe   # keyboard only (no mouse) and axe-core on every screen
 ```
 
-Options: `--seed N` (the game's `?seed=`, default 1, replayable), `--accuracy` (random mode), `--shots <dir>` (one PNG per distinct screen and item kind, `<mode>-<nn>-<screen>[-<kind>].png`), `--viewport WxH` (default 1280x800), `--max-steps N` (default: `ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)`), `--keyboard` (plays with the keyboard only: Tab, Shift+Tab, Enter, Space, arrows, digits and typing; it checks that the focus lands on the right control and that the focus ring shows), `--axe` (runs axe-core on every distinct screen and item kind and fails on a serious or critical violation), `--json` (compact summary). The summary on stdout has `mode, seed, steps, correct, wrong, screens, kinds, finished, consoleErrors, durationMs` plus `ok` and `failures`; exit 0 = success, 1 = a failed check, 2 = bad usage, 3 = Chromium cannot be launched. `tests/bot.e2e.test.ts` builds both golden fixtures and runs all three modes on each, plus keyboard-only and axe runs (skipped with a message when Chromium is missing).
+Options: `--seed N` (the game's `?seed=`, default 1, replayable), `--accuracy` (random mode), `--shots <dir>` (one PNG per distinct screen and item kind, `<mode>-<nn>-<screen>[-<kind>].png`), `--viewport WxH` (default 1280x800), `--max-steps N` (default: `ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)`), `--keyboard` (plays with the keyboard only: Tab, Shift+Tab, Enter, Space, arrows, digits and typing; it checks that the focus lands on the right control and that the focus ring shows), `--axe` (runs axe-core on every distinct screen and item kind and fails on a serious or critical violation), `--json` (compact summary). The summary on stdout has `mode, seed, steps, correct, wrong, screens, kinds, finished, consoleErrors, durationMs` plus `ok` and `failures`; exit 0 = success, 1 = a failed check, 2 = bad usage, 3 = Chromium cannot be launched. `tests/bot.e2e.test.ts` builds the golden fixtures and runs all three modes on each in the quiz arena, plus keyboard-only and axe runs (skipped with a message when Chromium is missing). `--shell <id>` plays another shell through its driver (`scripts/bot/<id>.mjs`); each shell has its own `tests/bot-<id>.e2e.test.ts`.
 
 ## Data folder
 
