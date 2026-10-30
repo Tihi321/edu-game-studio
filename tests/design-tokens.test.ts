@@ -89,7 +89,8 @@ describe('the theme registry', () => {
       'chalkboard',
       'castle',
       'parchment',
-      'pixel'
+      'pixel',
+      'postcard'
     ])
     for (const t of THEMES) expect(existsSync(path.join(DESIGN, 'themes', `${t.id}.css`)), t.id).toBe(true)
   })

@@ -1,0 +1,692 @@
+/*
+ * The language role-play shell (EGS-13): the CEFR stamp, scene postcards, speech bubbles with portrait discs, the other speaker's recovery
+ * lines and the vocabulary garden (potted plants, one drawing per growth stage). Everything is scoped under `.edu-stage`; colours come
+ * only from the `--edu-*` slots and the postcard theme's own `--postcard-*` variables (src/design/themes/postcard.css). Motion: a plant
+ * grows in when its card is drawn; motion.css switches every animation off under `prefers-reduced-motion`.
+ */
+
+/* ---- the title: a postage stamp with the level ---- */
+
+.edu-stage .pc-title-art {
+  display: grid;
+  justify-items: center;
+  gap: var(--edu-space-3);
+  margin: var(--edu-space-3) 0;
+}
+
+.edu-stage .pc-intro {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--edu-text-dim);
+  text-align: center;
+}
+
+.edu-stage .pc-stamp {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-width: 112px;
+  padding: 10px 14px 8px;
+  border: 3px dashed var(--edu-line-strong);
+  outline: 4px solid var(--edu-surface);
+  outline-offset: -1px;
+  border-radius: 4px;
+  background: var(--edu-surface);
+  box-shadow: var(--edu-shadow-2);
+  transform: rotate(3deg);
+  color: var(--edu-accent);
+}
+
+.edu-stage .pc-stamp-level {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-3xl);
+  line-height: 1;
+  color: var(--edu-accent-2);
+}
+
+.edu-stage .pc-stamp-lang {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  color: var(--edu-accent);
+  border-top: 2px solid var(--edu-accent);
+  margin-top: 4px;
+  padding-top: 2px;
+}
+
+.edu-stage .pc-level {
+  display: inline-block;
+  padding: 1px 10px;
+  border: 2px solid var(--edu-accent);
+  border-radius: var(--edu-radius-s);
+  background: var(--edu-surface);
+  color: var(--edu-accent);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+  line-height: 1.5;
+}
+
+/* ---- the scene list: one postcard per conversation ---- */
+
+.edu-stage .pc-scene-list {
+  list-style: none;
+  margin: var(--edu-space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--edu-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.edu-stage .pc-scene-item {
+  display: grid;
+  min-width: 0;
+}
+
+.edu-stage .pc-scene {
+  display: grid;
+  align-content: start;
+  gap: var(--edu-space-2);
+  width: 100%;
+  min-height: var(--edu-tap);
+  padding: var(--edu-space-3) var(--edu-space-4) var(--edu-space-4);
+  text-align: left;
+  color: var(--edu-text);
+  font: inherit;
+  background: var(--edu-surface);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-top: 8px solid var(--edu-accent);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-1);
+  cursor: pointer;
+  transition:
+    transform var(--edu-dur-fast) var(--edu-ease),
+    box-shadow var(--edu-dur-fast) var(--edu-ease);
+}
+
+.edu-stage .pc-scene:hover:not(:disabled) {
+  transform: translateY(-2px) rotate(-0.4deg);
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .pc-scene.is-finale {
+  border-top-color: var(--edu-accent-2);
+}
+
+.edu-stage .pc-scene.is-mastered {
+  border-color: var(--edu-good);
+  border-top-color: var(--edu-good);
+}
+
+.edu-stage .pc-scene.is-locked {
+  cursor: not-allowed;
+  background: var(--edu-surface-2);
+  border-style: dashed;
+  border-top-style: solid;
+  border-top-color: var(--edu-line-strong);
+}
+
+.edu-stage .pc-scene-kicker {
+  color: var(--edu-accent-2);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-scene-name {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-xl);
+  line-height: var(--edu-leading-tight);
+  color: var(--edu-text);
+}
+
+.edu-stage .pc-scene-setting {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-scene-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--edu-space-2);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-lock {
+  flex-basis: 100%;
+  color: var(--edu-text);
+  font-weight: 700;
+}
+
+/* ---- a scene: the conversation ---- */
+
+.edu-stage .pc-scene-title {
+  margin-top: var(--edu-space-2);
+}
+
+.edu-stage .pc-setting {
+  margin: 0 0 var(--edu-space-4);
+  padding: var(--edu-space-2) var(--edu-space-3);
+  border-left: 4px solid var(--edu-accent-2);
+  background: color-mix(in srgb, var(--edu-accent-2) 8%, var(--edu-surface));
+  border-radius: 0 var(--edu-radius-m) var(--edu-radius-m) 0;
+  color: var(--edu-text);
+}
+
+.edu-stage .pc-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .pc-log-hud {
+  margin: 0;
+}
+
+.edu-stage .pc-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--edu-space-2);
+  animation: edu-enter-rise var(--edu-dur-med) var(--edu-ease) backwards;
+}
+
+.edu-stage .pc-line.is-you {
+  grid-template-columns: minmax(0, 1fr) 44px;
+  justify-items: end;
+}
+
+.edu-stage .pc-line.is-you .pc-avatar {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.edu-stage .pc-line.is-you .pc-bubble {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.edu-stage .pc-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--edu-line-strong);
+  border-radius: 50%;
+  background: var(--edu-series-1);
+  color: var(--edu-series-ink);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  overflow: hidden;
+}
+
+.edu-stage .pc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edu-stage .pc-av-1 {
+  background: var(--edu-series-1);
+}
+.edu-stage .pc-av-2 {
+  background: var(--edu-series-2);
+}
+.edu-stage .pc-av-3 {
+  background: var(--edu-series-3);
+}
+.edu-stage .pc-av-4 {
+  background: var(--edu-series-4);
+}
+.edu-stage .pc-av-5 {
+  background: var(--edu-series-5);
+}
+.edu-stage .pc-av-6 {
+  background: var(--edu-series-6);
+}
+
+.edu-stage .pc-bubble {
+  position: relative;
+  min-width: 0;
+  max-width: min(100%, 34rem);
+  padding: var(--edu-space-2) var(--edu-space-3) var(--edu-space-3);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-l);
+  background: var(--edu-surface);
+  box-shadow: var(--edu-shadow-1);
+}
+
+/* the tail of the bubble points at the portrait */
+.edu-stage .pc-bubble::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -8px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-left: var(--edu-border) solid var(--edu-line-strong);
+  border-bottom: var(--edu-border) solid var(--edu-line-strong);
+  transform: rotate(45deg);
+}
+
+.edu-stage .pc-line.is-you .pc-bubble {
+  background: color-mix(in srgb, var(--edu-accent) 13%, var(--edu-surface));
+  border-color: var(--edu-accent);
+}
+
+.edu-stage .pc-line.is-you .pc-bubble::before {
+  left: auto;
+  right: -8px;
+  border-left: 0;
+  border-bottom: 0;
+  border-top: var(--edu-border) solid var(--edu-accent);
+  border-right: var(--edu-border) solid var(--edu-accent);
+}
+
+.edu-stage .pc-line.is-help .pc-bubble {
+  border-style: dashed;
+  border-color: var(--edu-accent-2);
+  background: color-mix(in srgb, var(--edu-accent-2) 9%, var(--edu-surface));
+}
+
+.edu-stage .pc-line.is-help .pc-bubble::before {
+  border-color: var(--edu-accent-2);
+}
+
+.edu-stage .pc-line.is-hud .pc-bubble {
+  border-color: var(--edu-accent);
+}
+
+.edu-stage .pc-name {
+  margin: 0;
+  color: var(--edu-accent-2);
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-lead {
+  margin: 0;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-text {
+  margin: 2px 0 0;
+  font-size: var(--edu-text-l);
+  line-height: var(--edu-leading-snug, 1.35);
+  color: var(--edu-text);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .pc-hidden-text {
+  color: var(--edu-text-dim);
+  font-style: italic;
+  font-size: var(--edu-text-m);
+}
+
+.edu-stage .pc-note {
+  margin: var(--edu-space-2) 0 0;
+  padding-left: var(--edu-space-2);
+  border-left: 3px solid var(--edu-accent-2);
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-translation {
+  margin: var(--edu-space-2) 0 0;
+  padding-top: var(--edu-space-2);
+  border-top: 2px dashed var(--edu-line);
+  color: var(--edu-text-dim);
+  font-style: italic;
+}
+
+.edu-stage .pc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-1) var(--edu-space-2);
+  margin-top: var(--edu-space-1);
+}
+
+.edu-stage .pc-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: var(--edu-space-5);
+  padding: var(--edu-space-3) 0 var(--edu-space-2);
+  background: linear-gradient(to top, var(--edu-bg) 70%, transparent);
+}
+
+/* ---- the frame above a question ---- */
+
+.edu-stage .pc-hud {
+  display: grid;
+  gap: var(--edu-space-2);
+  width: 100%;
+  padding-bottom: var(--edu-space-3);
+  border-bottom: 2px dashed var(--edu-line);
+}
+
+.edu-stage .pc-hud-label {
+  margin: 0;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-hud-help {
+  margin: 0;
+  padding: var(--edu-space-2) var(--edu-space-3);
+  border-left: 4px solid var(--edu-accent-2);
+  background: color-mix(in srgb, var(--edu-accent-2) 9%, var(--edu-surface));
+  border-radius: 0 var(--edu-radius-m) var(--edu-radius-m) 0;
+}
+
+.edu-stage .pc-hud-plant {
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+}
+
+.edu-stage .pc-hud-pot .pc-plant {
+  width: 100%;
+  height: auto;
+}
+
+.edu-stage .pc-hud-stage {
+  margin: 0;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  color: var(--edu-text);
+}
+
+/* ---- a scene is done ---- */
+
+.edu-stage .pc-done {
+  display: grid;
+  gap: var(--edu-space-2);
+  justify-items: center;
+  text-align: center;
+}
+
+.edu-stage .pc-done .stars {
+  font-size: 3rem;
+}
+
+.edu-stage .pc-words {
+  width: min(100%, 36rem);
+  text-align: left;
+}
+
+.edu-stage .pc-word-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .pc-word {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--edu-space-1) var(--edu-space-3);
+  padding: var(--edu-space-2) var(--edu-space-3);
+  border: 2px solid var(--edu-line);
+  border-radius: var(--edu-radius-m);
+  background: var(--edu-surface);
+}
+
+.edu-stage .pc-word-text {
+  font-weight: 400;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .pc-word-gloss {
+  flex: 1 1 8rem;
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .pc-none {
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .pc-stage-chip {
+  display: inline-block;
+  padding: 0 10px;
+  border: 2px solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-pill);
+  background: var(--edu-surface-2);
+  color: var(--edu-text);
+  font-size: var(--edu-text-s);
+  line-height: 1.6;
+}
+
+.edu-stage .stage-sprout .pc-stage-chip {
+  background: color-mix(in srgb, var(--postcard-leaf-pale) 45%, var(--edu-surface));
+}
+
+.edu-stage .stage-bud .pc-stage-chip {
+  background: color-mix(in srgb, var(--postcard-petal-light) 60%, var(--edu-surface));
+}
+
+.edu-stage .stage-bloom .pc-stage-chip {
+  background: color-mix(in srgb, var(--edu-good) 20%, var(--edu-surface));
+  border-color: var(--edu-good);
+}
+
+.edu-stage .stage-wilted .pc-stage-chip {
+  background: var(--edu-warn-bg);
+  border-color: var(--edu-warn);
+  color: var(--edu-warn);
+}
+
+/* ---- the garden ---- */
+
+.edu-stage .pc-garden-stats {
+  margin: 0;
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-m);
+}
+
+.edu-stage .pc-plant-list {
+  list-style: none;
+  margin: var(--edu-space-5) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--edu-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+}
+
+.edu-stage .pc-plant-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--edu-space-3);
+  align-items: start;
+  padding: var(--edu-space-3);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-m);
+  background: var(--edu-surface);
+  box-shadow: var(--edu-shadow-1);
+}
+
+.edu-stage .pc-plant-card.stage-bloom {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .pc-plant-card.stage-wilted {
+  border-style: dashed;
+  border-color: var(--edu-warn);
+}
+
+.edu-stage .pc-plant-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.edu-stage .pc-plant-body p {
+  margin: 0;
+}
+
+.edu-stage .pc-plant-word {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  color: var(--edu-accent);
+  overflow-wrap: anywhere;
+}
+
+.edu-stage .pc-plant-gloss {
+  color: var(--edu-text);
+}
+
+.edu-stage .pc-plant-met,
+.edu-stage .pc-plant-next {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .pc-plant-met {
+  font-style: italic;
+}
+
+.edu-stage .pc-packet {
+  margin-top: var(--edu-space-4);
+  color: var(--edu-text-dim);
+  text-align: center;
+}
+
+/* ---- the potted plants (inline SVG, one drawing per stage) ---- */
+
+.edu-stage .pc-plant {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.edu-stage .pc-grow {
+  transform-box: view-box;
+  transform-origin: 60px 96px;
+  animation: pc-grow-in var(--edu-dur-slow) var(--edu-ease-bounce) backwards;
+}
+
+.edu-stage .pc-pot {
+  fill: var(--postcard-terracotta);
+}
+
+.edu-stage .pc-pot-shade {
+  fill: color-mix(in srgb, var(--postcard-terracotta) 70%, var(--postcard-soil));
+}
+
+.edu-stage .pc-rim {
+  fill: var(--postcard-terracotta-light);
+  stroke: var(--postcard-terracotta);
+  stroke-width: 2;
+}
+
+.edu-stage .pc-soil {
+  fill: var(--postcard-soil);
+}
+
+.edu-stage .pc-seed {
+  fill: var(--edu-mark);
+  stroke: var(--postcard-soil);
+  stroke-width: 1;
+}
+
+.edu-stage .pc-seed-dot {
+  fill: var(--edu-mark);
+}
+
+.edu-stage .pc-stem {
+  fill: none;
+  stroke: var(--postcard-leaf-dark);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.edu-stage .pc-stem-wilt {
+  stroke: var(--postcard-wilt-dark);
+}
+
+.edu-stage .pc-leaf {
+  fill: var(--postcard-leaf);
+  stroke: var(--postcard-leaf-dark);
+  stroke-width: 1.5;
+}
+
+.edu-stage .pc-leaf.pc-l2 {
+  fill: var(--postcard-leaf-pale);
+}
+
+.edu-stage .pc-leaf-wilt {
+  fill: var(--postcard-wilt);
+  stroke: var(--postcard-wilt-dark);
+}
+
+.edu-stage .pc-bud {
+  fill: var(--postcard-petal);
+  stroke: var(--postcard-terracotta);
+  stroke-width: 1.5;
+}
+
+.edu-stage .pc-bud-wilt {
+  fill: var(--postcard-wilt-dark);
+  stroke: var(--postcard-wilt-dark);
+}
+
+.edu-stage .pc-sepal {
+  fill: var(--postcard-leaf-dark);
+}
+
+.edu-stage .pc-petal {
+  fill: var(--postcard-petal);
+  stroke: var(--postcard-petal-light);
+  stroke-width: 1.5;
+}
+
+.edu-stage .pc-centre {
+  fill: var(--postcard-centre);
+  stroke: var(--postcard-terracotta);
+  stroke-width: 1.5;
+}
+
+@keyframes pc-grow-in {
+  from {
+    transform: scale(0.55);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---- small screens: one column, big targets ---- */
+
+@media (max-width: 480px) {
+  .edu-stage .pc-line {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .edu-stage .pc-line.is-you {
+    grid-template-columns: minmax(0, 1fr) 36px;
+  }
+
+  .edu-stage .pc-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: var(--edu-text-m);
+  }
+
+  .edu-stage .pc-plant-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .edu-stage .pc-scene-list,
+  .edu-stage .pc-plant-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

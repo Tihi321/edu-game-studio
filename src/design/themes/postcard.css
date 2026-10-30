@@ -1,0 +1,137 @@
+/*
+ * Theme "postcard" (language role-play): a travel postcard written in an Adriatic café. Cream card stock inside an air-mail border of
+ * sea blue and terracotta, a postage stamp that carries the CEFR level, speech bubbles on the table, the speaker names set in Young
+ * Serif and the vocabulary garden in terracotta pots. Atkinson Hyperlegible Next for the running text. Light ground; AA contrast for every
+ * text slot (checked by tests/design-tokens.test.ts). Motion: a new screen rises onto the card; a plant grows when it is watered.
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="postcard"]`. Postcard-only extras are `--postcard-*`.
+ */
+@import '../fonts/young-serif/font.css';
+@import '../fonts/atkinson-hyperlegible-next/font.css';
+
+[data-edu-theme='postcard'] {
+  color-scheme: light;
+
+  --edu-bg: #f4e9d0; /* the card stock */
+  --edu-bg-2: #ecdebd; /* the table the card lies on */
+  --edu-surface: #fffaf0; /* a note, a speech bubble */
+  --edu-surface-2: #f2e6c8;
+  --edu-line: #d6c29a;
+  --edu-line-strong: #76653f;
+  --edu-text: #1d2a44; /* navy ink */
+  --edu-text-dim: #46506c;
+  --edu-accent: #17608c; /* sea blue */
+  --edu-accent-ink: #ffffff;
+  --edu-accent-2: #a23d22; /* terracotta */
+  --edu-good: #176640;
+  --edu-good-ink: #ffffff;
+  --edu-bad: #a5302c;
+  --edu-bad-ink: #ffffff;
+  --edu-warn: #7a4a00;
+  --edu-warn-bg: #fbe4a6;
+  --edu-mark: #f2c94c; /* the lemon of the café */
+  --edu-mark-ink: #2a2412;
+  --edu-focus: #17608c;
+  --edu-shadow-1: 0 1px 0 rgb(29 42 68 / 0.12), 0 2px 6px rgb(29 42 68 / 0.1);
+  --edu-shadow-2: 0 2px 0 rgb(29 42 68 / 0.12), 0 14px 30px rgb(29 42 68 / 0.22);
+  --edu-series-1: #f2d27a;
+  --edu-series-2: #9ccbe6;
+  --edu-series-3: #eeaa9a;
+  --edu-series-4: #a9d6a4;
+  --edu-series-5: #f0b57a;
+  --edu-series-6: #c9b7ee;
+  --edu-series-ink: #1d2a44;
+
+  --edu-font-display: 'Young Serif', Georgia, 'Times New Roman', serif;
+  --edu-font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  /* shape: soft paper corners, speech-bubble round controls */
+  --edu-radius-s: 6px;
+  --edu-radius-m: 12px;
+  --edu-radius-l: 18px;
+  --edu-border: 2px;
+
+  /* screen entrance: the card is laid on the table */
+  --edu-enter-name: edu-enter-rise;
+  --edu-enter-scale: 1;
+  --edu-enter-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* postcard-only */
+  --postcard-sea: #17608c;
+  --postcard-sea-light: #8fc3e0;
+  --postcard-terracotta: #a23d22;
+  --postcard-terracotta-light: #d9774f;
+  --postcard-cream: #f4e9d0;
+  --postcard-leaf: #3f8f4a;
+  --postcard-leaf-dark: #2c6a36;
+  --postcard-leaf-pale: #8fbf7d;
+  --postcard-petal: #e7728f;
+  --postcard-petal-light: #f6b6c4;
+  --postcard-centre: #f2c94c;
+  --postcard-soil: #5b3f2a;
+  --postcard-wilt: #a59463;
+  --postcard-wilt-dark: #7d6f45;
+  --postcard-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .33 0 0 0 0 .15 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='.13'/%3E%3C/svg%3E");
+  /* a wave drawn in sea blue, under the title */
+  --postcard-wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='14' viewBox='0 0 120 14'%3E%3Cpath d='M0 7 Q15 -1 30 7 T60 7 T90 7 T120 7' fill='none' stroke='%2317608c' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+  /* the postmark: a ring with three waves, faint */
+  --postcard-postmark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='96' viewBox='0 0 150 96'%3E%3Cg fill='none' stroke='%2317608c' stroke-width='2.4' opacity='.3'%3E%3Ccircle cx='48' cy='48' r='38'/%3E%3Ccircle cx='48' cy='48' r='31'/%3E%3Cpath d='M92 30 q10 -6 20 0 t20 0 t18 0 M92 48 q10 -6 20 0 t20 0 t18 0 M92 66 q10 -6 20 0 t20 0 t18 0'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---- the dressing of the shell frame: an air-mail border around a postcard ---- */
+
+[data-edu-theme='postcard'] .frame {
+  padding: clamp(8px, 1.4vw, 13px);
+  border: 0;
+  border-radius: 6px;
+  background: repeating-linear-gradient(-45deg, var(--postcard-terracotta) 0 14px, var(--postcard-cream) 14px 23px, var(--postcard-sea) 23px 37px, var(--postcard-cream) 37px 46px);
+  box-shadow:
+    0 2px 0 rgb(29 42 68 / 0.18),
+    0 22px 46px rgb(29 42 68 / 0.28);
+}
+
+[data-edu-theme='postcard'] .board {
+  overflow: clip;
+  border: 0;
+  border-radius: 3px;
+  background:
+    var(--postcard-paper),
+    radial-gradient(ellipse at 12% 0%, rgb(255 255 255 / 0.55), transparent 55%),
+    linear-gradient(170deg, var(--edu-surface), var(--edu-bg) 40%, var(--edu-bg));
+  box-shadow:
+    inset 0 0 0 1px var(--edu-line),
+    inset 0 0 38px rgb(162 61 34 / 0.1);
+}
+
+/* a faint postmark in the top right corner of the title and the end card (the other screens keep that corner for their buttons) */
+[data-edu-theme='postcard'] .board-title::before,
+[data-edu-theme='postcard'] .board-end::before,
+[data-edu-theme='postcard'] .board-scene-done::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  width: 150px;
+  height: 96px;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--postcard-postmark) center / contain no-repeat;
+}
+
+/* the title gets a wave under it */
+[data-edu-theme='postcard'] .title-screen .screen-title::after,
+[data-edu-theme='postcard'] .end-screen .screen-title::after {
+  content: '';
+  display: block;
+  width: 96px;
+  height: 14px;
+  margin: 6px auto 0;
+  background: var(--postcard-wave) center / 100% 100% no-repeat;
+}
+
+/* confetti of the combo burst: terracotta and lemon */
+[data-edu-theme='postcard'] .dust {
+  background: var(--edu-accent-2);
+  border-radius: 50%;
+}

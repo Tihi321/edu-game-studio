@@ -853,11 +853,460 @@
   ],
   "shells": {
     "enabled": [
-      "quiz-arena"
+      "quiz-arena",
+      "roleplay"
     ],
     "config": {
       "quiz-arena": {
         "roundLength": 8
+      },
+      "roleplay": {
+        "speakers": [
+          {
+            "id": "ana",
+            "name": "rp.sp.ana"
+          },
+          {
+            "id": "luka",
+            "name": "rp.sp.luka"
+          },
+          {
+            "id": "marija",
+            "name": "rp.sp.marija"
+          },
+          {
+            "id": "ivan",
+            "name": "rp.sp.ivan"
+          },
+          {
+            "id": "you",
+            "name": "rp.sp.you",
+            "learner": true
+          }
+        ],
+        "scenes": [
+          {
+            "id": "cafe",
+            "unit": "u-greetings",
+            "title": "rp.sc.cafe.title",
+            "setting": "rp.sc.cafe.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.sc.cafe.l1",
+                "translation": "rp.sc.cafe.l1.tr",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-mcq",
+                "help": "rp.sc.cafe.l2.help",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "say": "ana",
+                "text": "rp.sc.cafe.l3",
+                "translation": "rp.sc.cafe.l3.tr",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "say": "ana",
+                "text": "rp.sc.cafe.l4",
+                "translation": "rp.sc.cafe.l4.tr",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "ana",
+                "text": "rp.sc.cafe.l5",
+                "translation": "rp.sc.cafe.l5.tr",
+                "audio": "aud-dobar-dan",
+                "listen": true,
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "g-hello-listen",
+                "help": "rp.sc.cafe.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "ana",
+                "text": "rp.sc.cafe.l7",
+                "translation": "rp.sc.cafe.l7.tr",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "g-evening-typed",
+                "help": "rp.sc.cafe.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "ana",
+                "text": "rp.sc.cafe.l9",
+                "translation": "rp.sc.cafe.l9.tr",
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "reply": "g-bye-typed",
+                "help": "rp.sc.cafe.l10.help",
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "say": "ana",
+                "text": "rp.sc.cafe.l11",
+                "translation": "rp.sc.cafe.l11.tr",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "school",
+            "unit": "u-introductions",
+            "title": "rp.sc.school.title",
+            "setting": "rp.sc.school.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "luka",
+                "text": "rp.sc.school.l1",
+                "translation": "rp.sc.school.l1.tr",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "say": "luka",
+                "text": "rp.sc.school.l2",
+                "translation": "rp.sc.school.l2.tr",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "reply": "g-name-typed",
+                "help": "rp.sc.school.l3.help",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "say": "luka",
+                "text": "rp.sc.school.l4",
+                "translation": "rp.sc.school.l4.tr",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "luka",
+                "text": "rp.sc.school.l5",
+                "translation": "rp.sc.school.l5.tr",
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "g-how-mcq",
+                "help": "rp.sc.school.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "luka",
+                "text": "rp.sc.school.l7",
+                "translation": "rp.sc.school.l7.tr",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "g-how-typed",
+                "help": "rp.sc.school.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "marija",
+                "text": "rp.sc.school.l9",
+                "translation": "rp.sc.school.l9.tr",
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "say": "marija",
+                "text": "rp.sc.school.l10",
+                "translation": "rp.sc.school.l10.tr",
+                "audio": "aud-zovem-se-ana",
+                "listen": true,
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "reply": "g-name-listen",
+                "help": "rp.sc.school.l11.help",
+                "next": "l12"
+              },
+              {
+                "id": "l12",
+                "say": "marija",
+                "text": "rp.sc.school.l12",
+                "translation": "rp.sc.school.l12.tr",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "hotel",
+            "unit": "u-polite",
+            "title": "rp.sc.hotel.title",
+            "setting": "rp.sc.hotel.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "marija",
+                "text": "rp.sc.hotel.l1",
+                "translation": "rp.sc.hotel.l1.tr",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-polite-mcq",
+                "help": "rp.sc.hotel.l2.help",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "say": "marija",
+                "text": "rp.sc.hotel.l3",
+                "translation": "rp.sc.hotel.l3.tr",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "reply": "g-formal-mcq",
+                "help": "rp.sc.hotel.l4.help",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "marija",
+                "text": "rp.sc.hotel.l5",
+                "translation": "rp.sc.hotel.l5.tr",
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "g-polite-typed",
+                "help": "rp.sc.hotel.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "marija",
+                "text": "rp.sc.hotel.l7",
+                "translation": "rp.sc.hotel.l7.tr",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "g-formal-typed",
+                "help": "rp.sc.hotel.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "marija",
+                "text": "rp.sc.hotel.l9",
+                "translation": "rp.sc.hotel.l9.tr",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "final",
+            "title": "rp.sc.final.title",
+            "setting": "rp.sc.final.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ivan",
+                "text": "rp.sc.final.l1",
+                "translation": "rp.sc.final.l1.tr",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-evening-typed",
+                "help": "rp.sc.final.l2.help",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "say": "ivan",
+                "text": "rp.sc.final.l3",
+                "translation": "rp.sc.final.l3.tr",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "reply": "g-name-typed",
+                "help": "rp.sc.final.l4.help",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "ivan",
+                "text": "rp.sc.final.l5",
+                "translation": "rp.sc.final.l5.tr",
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "g-polite-mcq",
+                "help": "rp.sc.final.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "luka",
+                "text": "rp.sc.final.l7",
+                "translation": "rp.sc.final.l7.tr",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "g-how-mcq",
+                "help": "rp.sc.final.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "marija",
+                "text": "rp.sc.final.l9",
+                "translation": "rp.sc.final.l9.tr",
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "reply": "g-formal-typed",
+                "help": "rp.sc.final.l10.help",
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "say": "luka",
+                "text": "rp.sc.final.l11",
+                "translation": "rp.sc.final.l11.tr",
+                "next": "l12"
+              },
+              {
+                "id": "l12",
+                "reply": "g-bye-typed",
+                "help": "rp.sc.final.l12.help",
+                "next": "l13"
+              },
+              {
+                "id": "l13",
+                "say": "marija",
+                "text": "rp.sc.final.l13",
+                "translation": "rp.sc.final.l13.tr",
+                "next": null
+              }
+            ]
+          }
+        ],
+        "garden": [
+          {
+            "id": "w-dobro-jutro",
+            "text": "rp.w.dobro-jutro",
+            "gloss": "rp.w.dobro-jutro.gloss",
+            "item": "g-hello-mcq"
+          },
+          {
+            "id": "w-dobar-dan",
+            "text": "rp.w.dobar-dan",
+            "gloss": "rp.w.dobar-dan.gloss",
+            "item": "g-hello-typed"
+          },
+          {
+            "id": "w-dobra-vecer",
+            "text": "rp.w.dobra-vecer",
+            "gloss": "rp.w.dobra-vecer.gloss",
+            "item": "g-evening-typed"
+          },
+          {
+            "id": "w-bok",
+            "text": "rp.w.bok",
+            "gloss": "rp.w.bok.gloss",
+            "item": "g-hello-card"
+          },
+          {
+            "id": "w-laku-noc",
+            "text": "rp.w.laku-noc",
+            "gloss": "rp.w.laku-noc.gloss",
+            "item": "g-bye-mcq"
+          },
+          {
+            "id": "w-dovidenja",
+            "text": "rp.w.dovidenja",
+            "gloss": "rp.w.dovidenja.gloss",
+            "item": "g-bye-typed"
+          },
+          {
+            "id": "w-zovem-se",
+            "text": "rp.w.zovem-se",
+            "gloss": "rp.w.zovem-se.gloss",
+            "item": "g-name-typed"
+          },
+          {
+            "id": "w-drago-mi-je",
+            "text": "rp.w.drago-mi-je",
+            "gloss": "rp.w.drago-mi-je.gloss",
+            "item": "g-name-card"
+          },
+          {
+            "id": "w-kako-si",
+            "text": "rp.w.kako-si",
+            "gloss": "rp.w.kako-si.gloss",
+            "item": "g-how-mcq"
+          },
+          {
+            "id": "w-dobro-sam",
+            "text": "rp.w.dobro-sam",
+            "gloss": "rp.w.dobro-sam.gloss",
+            "item": "g-how-typed"
+          },
+          {
+            "id": "w-hvala",
+            "text": "rp.w.hvala",
+            "gloss": "rp.w.hvala.gloss",
+            "item": "g-polite-typed"
+          },
+          {
+            "id": "w-molim",
+            "text": "rp.w.molim",
+            "gloss": "rp.w.molim.gloss",
+            "item": "g-polite-match"
+          },
+          {
+            "id": "w-kako-ste",
+            "text": "rp.w.kako-ste",
+            "gloss": "rp.w.kako-ste.gloss",
+            "item": "g-formal-typed"
+          }
+        ],
+        "finale": "final"
       }
     }
   },

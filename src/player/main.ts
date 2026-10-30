@@ -12,6 +12,7 @@ import { BUILTIN_RENDERERS } from './items'
 import { encyclopediaShell } from './shells/encyclopedia'
 import { mindmazeShell } from './shells/mindmaze'
 import { quizArenaShell } from './shells/quiz-arena'
+import { roleplayShell } from './shells/roleplay'
 import { rpgShell } from './shells/rpg'
 
 /**
@@ -25,6 +26,7 @@ engine.registerShell(quizArenaShell.id, quizArenaShell)
 engine.registerShell(encyclopediaShell.id, encyclopediaShell)
 engine.registerShell(mindmazeShell.id, mindmazeShell)
 engine.registerShell(rpgShell.id, rpgShell)
+engine.registerShell(roleplayShell.id, roleplayShell)
 window.EduEngine = engine
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => engine.start())

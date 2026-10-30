@@ -12,6 +12,7 @@ export type ThemeId =
   | 'castle'
   | 'parchment'
   | 'pixel'
+  | 'postcard'
 
 export interface ThemeInfo {
   id: ThemeId
@@ -79,6 +80,17 @@ export const THEMES: readonly ThemeInfo[] = [
     display: "'Pixelify Sans', 'Courier New', monospace",
     body: "'Pixelify Sans', 'Atkinson Hyperlegible Next', sans-serif",
     pixel: true
+  },
+  {
+    id: 'postcard',
+    label: 'Adriatic postcard',
+    description: 'A travel postcard from a café on the Adriatic: cream card stock in an air-mail border, sea blue and terracotta, a postage stamp with your level and a garden of potted plants.',
+    shell: 'roleplay',
+    scheme: 'light',
+    fonts: ['young-serif', 'atkinson-hyperlegible-next'],
+    swatch: { bg: '#f4e9d0', surface: '#fffaf0', text: '#1d2a44', accent: '#17608c', accent2: '#a23d22' },
+    display: "'Young Serif', Georgia, 'Times New Roman', serif",
+    body: "'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif"
   }
 ]
 

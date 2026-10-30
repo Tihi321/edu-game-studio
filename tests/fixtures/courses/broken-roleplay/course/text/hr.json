@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "lang": "hr",
+  "strings": {
+    "t.dobro-jutro": "Dobro jutro",
+    "t.laku-noc": "Laku noć",
+    "t.dobra-vecer": "Dobra večer",
+    "t.dovidenja": "Doviđenja",
+    "t.cloze.dobra-vecer": "Dobra {{1}}!",
+    "t.gap.vecer": "večer",
+    "t.gap.jutro": "jutro",
+    "t.gap.noc": "noć",
+    "t.dobar-dan": "Dobar dan",
+    "t.bok": "Bok",
+    "t.cloze.laku-noc": "Laku {{1}}!",
+    "t.gap.dan": "dan",
+    "t.do-sutra": "Do sutra",
+    "t.vidimo-se": "Vidimo se",
+    "t.cloze.zovem-se": "Zovem {{1}} Ana.",
+    "t.gap.se": "se",
+    "t.gap.sam": "sam",
+    "t.gap.si": "si",
+    "t.zovem-se-ana": "Zovem se Ana",
+    "t.drago-mi-je": "Drago mi je",
+    "t.kako-se-zoves": "Kako se zoveš?",
+    "t.kako-se-zovete": "Kako se zovete?",
+    "t.dlg.1": "Bok! Kako se zoveš?",
+    "t.dlg.2": "Bok! Zovem se Ana. A ti?",
+    "t.dlg.3": "Zovem se Marko.",
+    "t.dlg.4": "Drago mi je, Marko.",
+    "t.dobro-sam-hvala": "Dobro sam, hvala.",
+    "t.zovem-se-ivan": "Zovem se Ivan.",
+    "t.dovidenja-dot": "Doviđenja.",
+    "t.laku-noc-dot": "Laku noć.",
+    "t.hvala": "Hvala",
+    "t.molim": "Molim",
+    "t.oprostite": "Oprostite",
+    "t.oprosti": "Oprosti",
+    "t.kako-ste": "Kako ste?",
+    "t.kako-si": "Kako si?",
+    "t.hvala-ti": "Hvala ti",
+    "t.hvala-vam": "Hvala Vam",
+    "t.cloze.kako-ste": "Kako {{1}}?",
+    "t.gap.ste": "ste",
+    "rp.sc.cafe.l1": "Dobro došli!",
+    "rp.sc.cafe.l3": "Ja sam Ana. Ovo je moj kafić.",
+    "rp.sc.cafe.l4": "Opet vi!",
+    "rp.sc.cafe.l5": "Dobar dan!",
+    "rp.sc.cafe.l7": "Opet vi! Već je večer.",
+    "rp.sc.cafe.l9": "Sada zatvaram kafić. Idem kući.",
+    "rp.sc.cafe.l11": "Laku noć! Do sutra!",
+    "rp.w.dobro-jutro": "Dobro jutro",
+    "rp.w.dobar-dan": "Dobar dan",
+    "rp.w.dobra-vecer": "Dobra večer",
+    "rp.w.bok": "Bok",
+    "rp.w.laku-noc": "Laku noć",
+    "rp.w.dovidenja": "Doviđenja",
+    "rp.w.zovem-se": "Zovem se Ana",
+    "rp.w.drago-mi-je": "Drago mi je",
+    "rp.w.kako-si": "Kako si?",
+    "rp.w.dobro-sam": "Dobro sam, hvala",
+    "rp.w.hvala": "Hvala",
+    "rp.w.molim": "Molim",
+    "rp.w.kako-ste": "Kako ste?",
+    "rp.bad.line": "Dobar dan!"
+  },
+  "accepted": {
+    "g-hello-typed.answer": [
+      "Dobar dan"
+    ],
+    "g-evening-typed.answer": [
+      "Dobra večer",
+      "Dobar večer"
+    ],
+    "t.gap.vecer": [
+      "večer"
+    ],
+    "g-bye-typed.answer": [
+      "Doviđenja",
+      "Do viđenja"
+    ],
+    "t.gap.noc": [
+      "noć"
+    ],
+    "t.w.bok": [
+      "Bok"
+    ],
+    "t.w.jutro": [
+      "Jutro"
+    ],
+    "t.w.dan": [
+      "Dan"
+    ],
+    "t.w.vecer": [
+      "Večer"
+    ],
+    "t.w.noc": [
+      "Noć"
+    ],
+    "t.w.hvala": [
+      "Hvala"
+    ],
+    "t.w.molim": [
+      "Molim"
+    ],
+    "g-name-typed.answer": [
+      "Zovem se Ana",
+      "Ja se zovem Ana"
+    ],
+    "t.gap.se": [
+      "se"
+    ],
+    "g-name-listen.answer": [
+      "Zovem se Ana"
+    ],
+    "g-how-typed.answer": [
+      "Dobro sam, hvala.",
+      "Dobro sam hvala",
+      "Dobro sam, hvala ti"
+    ],
+    "g-polite-typed.answer": [
+      "Hvala"
+    ],
+    "g-formal-typed.answer": [
+      "Kako ste?"
+    ],
+    "t.gap.ste": [
+      "ste"
+    ]
+  }
+}

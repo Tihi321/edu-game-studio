@@ -18,7 +18,8 @@ const THEMES = [
   ['chalkboard', 'Chalkboard'],
   ['castle', 'Castle stone'],
   ['parchment', 'Parchment and brass'],
-  ['pixel', 'Pixel quest']
+  ['pixel', 'Pixel quest'],
+  ['postcard', 'Adriatic postcard']
 ]
 const VIEWPORTS = [
   ['desktop', { width: 1280, height: 800 }],

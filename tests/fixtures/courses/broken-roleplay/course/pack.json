@@ -1,0 +1,1280 @@
+{
+  "schema": 1,
+  "id": "broken-roleplay",
+  "slug": "broken-roleplay",
+  "sourceLang": "en",
+  "languages": [
+    "en"
+  ],
+  "targetLang": "hr",
+  "subject": "Croatian for beginners: greetings and polite phrases",
+  "audience": "English speakers learning Croatian from scratch",
+  "cefr": "A1",
+  "matching": {
+    "diacritics": "warn",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-greetings",
+      "title": "hr.unit.greetings.title",
+      "summary": "hr.unit.greetings.summary",
+      "requires": []
+    },
+    {
+      "id": "u-introductions",
+      "title": "hr.unit.intro.title",
+      "summary": "hr.unit.intro.summary",
+      "requires": [
+        "u-greetings"
+      ]
+    },
+    {
+      "id": "u-polite",
+      "title": "hr.unit.polite.title",
+      "summary": "hr.unit.polite.summary",
+      "requires": [
+        "u-introductions"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-hello",
+      "unit": "u-greetings",
+      "bloom": "remember",
+      "text": "hr.obj.obj-hello",
+      "facts": []
+    },
+    {
+      "id": "obj-bye",
+      "unit": "u-greetings",
+      "bloom": "remember",
+      "text": "hr.obj.obj-bye",
+      "facts": []
+    },
+    {
+      "id": "obj-name",
+      "unit": "u-introductions",
+      "bloom": "apply",
+      "text": "hr.obj.obj-name",
+      "facts": []
+    },
+    {
+      "id": "obj-how",
+      "unit": "u-introductions",
+      "bloom": "understand",
+      "text": "hr.obj.obj-how",
+      "facts": []
+    },
+    {
+      "id": "obj-polite",
+      "unit": "u-polite",
+      "bloom": "remember",
+      "text": "hr.obj.obj-polite",
+      "facts": []
+    },
+    {
+      "id": "obj-formal",
+      "unit": "u-polite",
+      "bloom": "understand",
+      "text": "hr.obj.obj-formal",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "g-hello-mcq",
+      "kind": "mcq",
+      "objective": "obj-hello",
+      "prompt": "g-hello-mcq.prompt",
+      "explanation": "g-hello-mcq.explanation",
+      "didYouKnow": "g-hello-mcq.dyk",
+      "difficulty": 1,
+      "tags": [
+        "greetings"
+      ],
+      "options": [
+        {
+          "id": "jutro",
+          "text": "t.dobro-jutro"
+        },
+        {
+          "id": "noc",
+          "text": "t.laku-noc",
+          "why": "why.laku-noc.7lx6ow"
+        },
+        {
+          "id": "vecer",
+          "text": "t.dobra-vecer",
+          "why": "why.dobra-vecer.1o3pkot"
+        },
+        {
+          "id": "dovid",
+          "text": "t.dovidenja",
+          "why": "why.dovidenja.tioegr"
+        }
+      ],
+      "answer": "jutro",
+      "shuffle": true
+    },
+    {
+      "id": "g-hello-typed",
+      "kind": "typed",
+      "objective": "obj-hello",
+      "prompt": "g-hello-typed.prompt",
+      "explanation": "g-hello-typed.explanation",
+      "difficulty": 2,
+      "tags": [
+        "greetings"
+      ],
+      "answer": "g-hello-typed.answer",
+      "strictDiacritics": false
+    },
+    {
+      "id": "g-evening-typed",
+      "kind": "typed",
+      "objective": "obj-hello",
+      "prompt": "g-evening-typed.prompt",
+      "explanation": "g-evening-typed.explanation",
+      "didYouKnow": "g-evening-typed.dyk",
+      "difficulty": 3,
+      "tags": [
+        "greetings",
+        "accents"
+      ],
+      "answer": "g-evening-typed.answer",
+      "strictDiacritics": true
+    },
+    {
+      "id": "g-hello-cloze",
+      "kind": "cloze",
+      "objective": "obj-hello",
+      "prompt": "g-hello-cloze.prompt",
+      "explanation": "g-hello-cloze.explanation",
+      "difficulty": 2,
+      "tags": [
+        "greetings",
+        "accents"
+      ],
+      "text": "t.cloze.dobra-vecer",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "t.gap.vecer",
+          "bank": [
+            "t.gap.vecer",
+            "t.gap.jutro",
+            "t.gap.noc"
+          ]
+        }
+      ],
+      "strictDiacritics": true
+    },
+    {
+      "id": "g-hello-match",
+      "kind": "match-pairs",
+      "objective": "obj-hello",
+      "prompt": "g-hello-match.prompt",
+      "explanation": "g-hello-match.explanation",
+      "difficulty": 2,
+      "tags": [
+        "greetings"
+      ],
+      "pairs": [
+        {
+          "id": "jutro",
+          "left": "g-hello-match.l.jutro",
+          "right": "t.dobro-jutro"
+        },
+        {
+          "id": "dan",
+          "left": "g-hello-match.l.dan",
+          "right": "t.dobar-dan"
+        },
+        {
+          "id": "vecer",
+          "left": "g-hello-match.l.vecer",
+          "right": "t.dobra-vecer"
+        },
+        {
+          "id": "bok",
+          "left": "g-hello-match.l.bok",
+          "right": "t.bok"
+        }
+      ]
+    },
+    {
+      "id": "g-hello-card",
+      "kind": "flashcard",
+      "objective": "obj-hello",
+      "prompt": "t.bok",
+      "explanation": "g-hello-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "greetings"
+      ],
+      "back": "g-hello-card.back"
+    },
+    {
+      "id": "g-hello-listen",
+      "kind": "listening",
+      "objective": "obj-hello",
+      "prompt": "g-hello-listen.prompt",
+      "explanation": "g-hello-listen.explanation",
+      "difficulty": 2,
+      "tags": [
+        "greetings",
+        "listening"
+      ],
+      "asset": "aud-dobar-dan",
+      "transcript": "t.dobar-dan",
+      "mode": "choose",
+      "options": [
+        {
+          "id": "dan",
+          "text": "t.dobar-dan"
+        },
+        {
+          "id": "jutro",
+          "text": "t.dobro-jutro",
+          "why": "why.dobro-jutro.1e7xexp"
+        },
+        {
+          "id": "noc",
+          "text": "t.laku-noc",
+          "why": "why.laku-noc.1j0wp2w"
+        }
+      ],
+      "answer": "dan",
+      "shuffle": true
+    },
+    {
+      "id": "g-bye-mcq",
+      "kind": "mcq",
+      "objective": "obj-bye",
+      "prompt": "g-bye-mcq.prompt",
+      "explanation": "g-bye-mcq.explanation",
+      "difficulty": 1,
+      "tags": [
+        "goodbyes"
+      ],
+      "options": [
+        {
+          "id": "noc",
+          "text": "t.laku-noc"
+        },
+        {
+          "id": "jutro",
+          "text": "t.dobro-jutro",
+          "why": "why.dobro-jutro.18d99q8"
+        },
+        {
+          "id": "bok",
+          "text": "t.bok",
+          "why": "why.bok.112vx4f"
+        },
+        {
+          "id": "dovid",
+          "text": "t.dovidenja",
+          "why": "why.dovidenja.14apk7o"
+        }
+      ],
+      "answer": "noc",
+      "shuffle": true
+    },
+    {
+      "id": "g-bye-typed",
+      "kind": "typed",
+      "objective": "obj-bye",
+      "prompt": "g-bye-typed.prompt",
+      "explanation": "g-bye-typed.explanation",
+      "didYouKnow": "g-bye-typed.dyk",
+      "difficulty": 2,
+      "tags": [
+        "goodbyes",
+        "accents"
+      ],
+      "answer": "g-bye-typed.answer",
+      "strictDiacritics": true
+    },
+    {
+      "id": "g-bye-cloze",
+      "kind": "cloze",
+      "objective": "obj-bye",
+      "prompt": "g-bye-cloze.prompt",
+      "explanation": "g-bye-cloze.explanation",
+      "difficulty": 2,
+      "tags": [
+        "goodbyes",
+        "accents"
+      ],
+      "text": "t.cloze.laku-noc",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "t.gap.noc",
+          "bank": [
+            "t.gap.noc",
+            "t.gap.dan",
+            "t.gap.jutro"
+          ]
+        }
+      ],
+      "strictDiacritics": true
+    },
+    {
+      "id": "g-bye-match",
+      "kind": "match-pairs",
+      "objective": "obj-bye",
+      "prompt": "g-bye-match.prompt",
+      "explanation": "g-bye-match.explanation",
+      "difficulty": 2,
+      "tags": [
+        "goodbyes"
+      ],
+      "pairs": [
+        {
+          "id": "dovid",
+          "left": "g-bye-match.l.dovid",
+          "right": "t.dovidenja"
+        },
+        {
+          "id": "noc",
+          "left": "g-bye-match.l.noc",
+          "right": "t.laku-noc"
+        },
+        {
+          "id": "sutra",
+          "left": "g-bye-match.l.sutra",
+          "right": "t.do-sutra"
+        },
+        {
+          "id": "vidimo",
+          "left": "g-bye-match.l.vidimo",
+          "right": "t.vidimo-se"
+        }
+      ]
+    },
+    {
+      "id": "g-bye-card",
+      "kind": "flashcard",
+      "objective": "obj-bye",
+      "prompt": "t.laku-noc",
+      "explanation": "g-bye-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "goodbyes"
+      ],
+      "back": "g-bye-card.back"
+    },
+    {
+      "id": "g-greet-ws",
+      "kind": "word-search",
+      "objective": "obj-hello",
+      "prompt": "g-greet-ws.prompt",
+      "explanation": "g-greet-ws.explanation",
+      "difficulty": 2,
+      "tags": [
+        "greetings",
+        "words"
+      ],
+      "words": [
+        {
+          "id": "bok",
+          "answer": "t.w.bok"
+        },
+        {
+          "id": "jutro",
+          "answer": "t.w.jutro"
+        },
+        {
+          "id": "dan",
+          "answer": "t.w.dan"
+        },
+        {
+          "id": "vecer",
+          "answer": "t.w.vecer"
+        },
+        {
+          "id": "noc",
+          "answer": "t.w.noc"
+        },
+        {
+          "id": "hvala",
+          "answer": "t.w.hvala"
+        },
+        {
+          "id": "molim",
+          "answer": "t.w.molim"
+        }
+      ],
+      "seed": 5,
+      "directions": "forward"
+    },
+    {
+      "id": "g-name-mcq",
+      "kind": "mcq",
+      "objective": "obj-name",
+      "prompt": "g-name-mcq.prompt",
+      "explanation": "g-name-mcq.explanation",
+      "difficulty": 1,
+      "tags": [
+        "names"
+      ],
+      "options": [
+        {
+          "id": "name",
+          "text": "g-name-mcq.opt.name"
+        },
+        {
+          "id": "how",
+          "text": "g-name-mcq.opt.how",
+          "why": "g-name-mcq.why.how"
+        },
+        {
+          "id": "where",
+          "text": "g-name-mcq.opt.where",
+          "why": "g-name-mcq.why.where"
+        },
+        {
+          "id": "age",
+          "text": "g-name-mcq.opt.age",
+          "why": "g-name-mcq.why.age"
+        }
+      ],
+      "answer": "name",
+      "shuffle": true
+    },
+    {
+      "id": "g-name-typed",
+      "kind": "typed",
+      "objective": "obj-name",
+      "prompt": "g-name-typed.prompt",
+      "explanation": "g-name-typed.explanation",
+      "didYouKnow": "g-name-typed.dyk",
+      "difficulty": 3,
+      "tags": [
+        "names"
+      ],
+      "answer": "g-name-typed.answer"
+    },
+    {
+      "id": "g-name-cloze",
+      "kind": "cloze",
+      "objective": "obj-name",
+      "prompt": "g-name-cloze.prompt",
+      "explanation": "g-name-cloze.explanation",
+      "difficulty": 2,
+      "tags": [
+        "names"
+      ],
+      "text": "t.cloze.zovem-se",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "t.gap.se",
+          "bank": [
+            "t.gap.se",
+            "t.gap.sam",
+            "t.gap.si"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-name-match",
+      "kind": "match-pairs",
+      "objective": "obj-name",
+      "prompt": "g-name-match.prompt",
+      "explanation": "g-name-match.explanation",
+      "difficulty": 2,
+      "tags": [
+        "names"
+      ],
+      "pairs": [
+        {
+          "id": "my",
+          "left": "g-name-match.l.my",
+          "right": "t.zovem-se-ana"
+        },
+        {
+          "id": "nice",
+          "left": "g-name-match.l.nice",
+          "right": "t.drago-mi-je"
+        },
+        {
+          "id": "ti",
+          "left": "g-name-match.l.ti",
+          "right": "t.kako-se-zoves"
+        },
+        {
+          "id": "vi",
+          "left": "g-name-match.l.vi",
+          "right": "t.kako-se-zovete"
+        }
+      ]
+    },
+    {
+      "id": "g-name-order",
+      "kind": "order",
+      "objective": "obj-name",
+      "prompt": "g-name-order.prompt",
+      "explanation": "g-name-order.explanation",
+      "difficulty": 3,
+      "tags": [
+        "names",
+        "dialogue"
+      ],
+      "items": [
+        {
+          "id": "l1",
+          "text": "t.dlg.1"
+        },
+        {
+          "id": "l2",
+          "text": "t.dlg.2"
+        },
+        {
+          "id": "l3",
+          "text": "t.dlg.3"
+        },
+        {
+          "id": "l4",
+          "text": "t.dlg.4"
+        }
+      ],
+      "timeline": false
+    },
+    {
+      "id": "g-name-listen",
+      "kind": "listening",
+      "objective": "obj-name",
+      "prompt": "g-name-listen.prompt",
+      "explanation": "g-name-listen.explanation",
+      "difficulty": 4,
+      "tags": [
+        "names",
+        "listening"
+      ],
+      "asset": "aud-zovem-se-ana",
+      "transcript": "t.zovem-se-ana",
+      "mode": "type",
+      "answer": "g-name-listen.answer",
+      "shuffle": true
+    },
+    {
+      "id": "g-name-card",
+      "kind": "flashcard",
+      "objective": "obj-name",
+      "prompt": "t.drago-mi-je",
+      "explanation": "g-name-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "names"
+      ],
+      "back": "g-name-card.back"
+    },
+    {
+      "id": "g-how-mcq",
+      "kind": "mcq",
+      "objective": "obj-how",
+      "prompt": "g-how-mcq.prompt",
+      "explanation": "g-how-mcq.explanation",
+      "difficulty": 2,
+      "tags": [
+        "how-are-you"
+      ],
+      "options": [
+        {
+          "id": "fine",
+          "text": "t.dobro-sam-hvala"
+        },
+        {
+          "id": "name",
+          "text": "t.zovem-se-ivan",
+          "why": "why.zovem-se-ivan.1xuvjg8"
+        },
+        {
+          "id": "bye",
+          "text": "t.dovidenja-dot",
+          "why": "why.dovidenja-dot.1wjpzon"
+        },
+        {
+          "id": "night",
+          "text": "t.laku-noc-dot",
+          "why": "why.laku-noc-dot.ovsgn6"
+        }
+      ],
+      "answer": "fine",
+      "shuffle": true
+    },
+    {
+      "id": "g-how-typed",
+      "kind": "typed",
+      "objective": "obj-how",
+      "prompt": "g-how-typed.prompt",
+      "explanation": "g-how-typed.explanation",
+      "difficulty": 3,
+      "tags": [
+        "how-are-you"
+      ],
+      "answer": "g-how-typed.answer"
+    },
+    {
+      "id": "g-polite-mcq",
+      "kind": "mcq",
+      "objective": "obj-polite",
+      "prompt": "g-polite-mcq.prompt",
+      "explanation": "g-polite-mcq.explanation",
+      "difficulty": 1,
+      "tags": [
+        "polite"
+      ],
+      "options": [
+        {
+          "id": "hvala",
+          "text": "t.hvala"
+        },
+        {
+          "id": "molim",
+          "text": "t.molim",
+          "why": "why.molim.1fukrer"
+        },
+        {
+          "id": "oprostite",
+          "text": "t.oprostite",
+          "why": "why.oprostite.pe96j3"
+        },
+        {
+          "id": "dovid",
+          "text": "t.dovidenja",
+          "why": "why.dovidenja.ait8mf"
+        }
+      ],
+      "answer": "hvala",
+      "shuffle": true
+    },
+    {
+      "id": "g-polite-typed",
+      "kind": "typed",
+      "objective": "obj-polite",
+      "prompt": "g-polite-typed.prompt",
+      "explanation": "g-polite-typed.explanation",
+      "difficulty": 1,
+      "tags": [
+        "polite"
+      ],
+      "answer": "g-polite-typed.answer"
+    },
+    {
+      "id": "g-polite-match",
+      "kind": "match-pairs",
+      "objective": "obj-polite",
+      "prompt": "g-polite-match.prompt",
+      "explanation": "g-polite-match.explanation",
+      "difficulty": 2,
+      "tags": [
+        "polite"
+      ],
+      "pairs": [
+        {
+          "id": "hvala",
+          "left": "g-polite-match.l.hvala",
+          "right": "t.hvala"
+        },
+        {
+          "id": "molim",
+          "left": "g-polite-match.l.molim",
+          "right": "t.molim"
+        },
+        {
+          "id": "oprostite",
+          "left": "g-polite-match.l.oprostite",
+          "right": "t.oprostite"
+        },
+        {
+          "id": "oprosti",
+          "left": "g-polite-match.l.oprosti",
+          "right": "t.oprosti"
+        }
+      ]
+    },
+    {
+      "id": "g-polite-card",
+      "kind": "flashcard",
+      "objective": "obj-polite",
+      "prompt": "t.hvala",
+      "explanation": "g-polite-card.explanation",
+      "difficulty": 1,
+      "tags": [
+        "polite"
+      ],
+      "back": "g-polite-card.back"
+    },
+    {
+      "id": "g-formal-mcq",
+      "kind": "mcq",
+      "objective": "obj-formal",
+      "prompt": "g-formal-mcq.prompt",
+      "explanation": "g-formal-mcq.explanation",
+      "didYouKnow": "g-formal-mcq.dyk",
+      "difficulty": 2,
+      "tags": [
+        "ti-vi"
+      ],
+      "options": [
+        {
+          "id": "ste",
+          "text": "t.kako-ste"
+        },
+        {
+          "id": "si",
+          "text": "t.kako-si",
+          "why": "why.kako-si.1p3oveg"
+        },
+        {
+          "id": "zoves",
+          "text": "t.kako-se-zoves",
+          "why": "why.kako-se-zoves.1e423fs"
+        }
+      ],
+      "answer": "ste",
+      "shuffle": true
+    },
+    {
+      "id": "g-formal-sort",
+      "kind": "sort-groups",
+      "objective": "obj-formal",
+      "prompt": "g-formal-sort.prompt",
+      "explanation": "g-formal-sort.explanation",
+      "difficulty": 3,
+      "tags": [
+        "ti-vi"
+      ],
+      "groups": [
+        {
+          "id": "ti",
+          "title": "g-formal-sort.g.ti"
+        },
+        {
+          "id": "vi",
+          "title": "g-formal-sort.g.vi"
+        }
+      ],
+      "items": [
+        {
+          "id": "kako-si",
+          "text": "t.kako-si",
+          "group": "ti",
+          "why": "g-formal-sort.why.kako-si"
+        },
+        {
+          "id": "kako-ste",
+          "text": "t.kako-ste",
+          "group": "vi",
+          "why": "g-formal-sort.why.kako-ste"
+        },
+        {
+          "id": "kako-se-zoves",
+          "text": "t.kako-se-zoves",
+          "group": "ti",
+          "why": "g-formal-sort.why.kako-se-zoves"
+        },
+        {
+          "id": "kako-se-zovete",
+          "text": "t.kako-se-zovete",
+          "group": "vi",
+          "why": "g-formal-sort.why.kako-se-zovete"
+        },
+        {
+          "id": "hvala-ti",
+          "text": "t.hvala-ti",
+          "group": "ti",
+          "why": "g-formal-sort.why.hvala-ti"
+        },
+        {
+          "id": "hvala-vam",
+          "text": "t.hvala-vam",
+          "group": "vi",
+          "why": "g-formal-sort.why.hvala-vam"
+        }
+      ]
+    },
+    {
+      "id": "g-formal-typed",
+      "kind": "typed",
+      "objective": "obj-formal",
+      "prompt": "g-formal-typed.prompt",
+      "explanation": "g-formal-typed.explanation",
+      "difficulty": 3,
+      "tags": [
+        "ti-vi"
+      ],
+      "answer": "g-formal-typed.answer"
+    },
+    {
+      "id": "g-formal-cloze",
+      "kind": "cloze",
+      "objective": "obj-formal",
+      "prompt": "g-formal-cloze.prompt",
+      "explanation": "g-formal-cloze.explanation",
+      "difficulty": 2,
+      "tags": [
+        "ti-vi"
+      ],
+      "text": "t.cloze.kako-ste",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "t.gap.ste",
+          "bank": [
+            "t.gap.ste",
+            "t.gap.si",
+            "t.gap.sam"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-formal-tf",
+      "kind": "true-false",
+      "objective": "obj-formal",
+      "prompt": "g-formal-tf.prompt",
+      "explanation": "g-formal-tf.explanation",
+      "difficulty": 2,
+      "tags": [
+        "ti-vi",
+        "greetings"
+      ],
+      "answer": false,
+      "why": "g-formal-tf.why"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "roleplay"
+    ],
+    "config": {
+      "quiz-arena": {
+        "roundLength": 8
+      },
+      "roleplay": {
+        "speakers": [
+          {
+            "id": "ana",
+            "name": "rp.sp.ana"
+          },
+          {
+            "id": "luka",
+            "name": "rp.sp.luka"
+          },
+          {
+            "id": "marija",
+            "name": "rp.sp.marija"
+          },
+          {
+            "id": "ivan",
+            "name": "rp.sp.ivan"
+          },
+          {
+            "id": "you",
+            "name": "rp.sp.you",
+            "learner": true
+          },
+          {
+            "id": "ana",
+            "name": "rp.sp.ana"
+          }
+        ],
+        "scenes": [
+          {
+            "id": "cafe",
+            "unit": "u-greetings",
+            "title": "rp.sc.cafe.title",
+            "setting": "rp.sc.cafe.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.sc.cafe.l1",
+                "translation": "rp.sc.cafe.l1.tr",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-mcq",
+                "help": "rp.sc.cafe.l2.help",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "say": "ana",
+                "text": "rp.sc.cafe.l3",
+                "translation": "rp.sc.cafe.l3.tr",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "say": "ana",
+                "text": "rp.sc.cafe.l4",
+                "translation": "rp.sc.cafe.l4.tr",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "ana",
+                "text": "rp.sc.cafe.l5",
+                "translation": "rp.sc.cafe.l5.tr",
+                "audio": "aud-dobar-dan",
+                "listen": true,
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "g-hello-listen",
+                "help": "rp.sc.cafe.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "ana",
+                "text": "rp.sc.cafe.l7",
+                "translation": "rp.sc.cafe.l7.tr",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "g-evening-typed",
+                "help": "rp.sc.cafe.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "ana",
+                "text": "rp.sc.cafe.l9",
+                "translation": "rp.sc.cafe.l9.tr",
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "reply": "g-bye-typed",
+                "help": "rp.sc.cafe.l10.help",
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "say": "ana",
+                "text": "rp.sc.cafe.l11",
+                "translation": "rp.sc.cafe.l11.tr",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-ghost",
+            "unit": "u-nope",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-nostart",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "zz",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-badnext",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": "l9"
+              }
+            ]
+          },
+          {
+            "id": "sc-loop",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": "l1"
+              }
+            ]
+          },
+          {
+            "id": "sc-island",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": null
+              },
+              {
+                "id": "l3",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-badspeaker",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "nobody",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-hello-typed",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-badreply",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "i-nope",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-noreply",
+            "unit": "u-greetings",
+            "title": "rp.bad.title",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "say": "ana",
+                "text": "rp.bad.line",
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "sc-choices",
+            "unit": "u-introductions",
+            "title": "rp.bad.title",
+            "cefr": "B2",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "luka",
+                "text": "rp.bad.en-only",
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "g-how-mcq",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "reply": "g-name-mcq",
+                "next": null
+              }
+            ]
+          }
+        ],
+        "garden": [
+          {
+            "id": "w-dobro-jutro",
+            "text": "rp.w.dobro-jutro",
+            "gloss": "rp.w.dobro-jutro.gloss",
+            "item": "g-hello-mcq"
+          },
+          {
+            "id": "w-dobar-dan",
+            "text": "rp.w.dobar-dan",
+            "gloss": "rp.w.dobar-dan.gloss",
+            "item": "g-hello-typed"
+          },
+          {
+            "id": "w-dobra-vecer",
+            "text": "rp.w.dobra-vecer",
+            "gloss": "rp.w.dobra-vecer.gloss",
+            "item": "g-evening-typed"
+          },
+          {
+            "id": "w-bok",
+            "text": "rp.w.bok",
+            "gloss": "rp.w.bok.gloss",
+            "item": "g-hello-card"
+          },
+          {
+            "id": "w-laku-noc",
+            "text": "rp.w.laku-noc",
+            "gloss": "rp.w.laku-noc.gloss",
+            "item": "g-bye-mcq"
+          },
+          {
+            "id": "w-dovidenja",
+            "text": "rp.w.dovidenja",
+            "gloss": "rp.w.dovidenja.gloss",
+            "item": "g-bye-typed"
+          },
+          {
+            "id": "w-zovem-se",
+            "text": "rp.w.zovem-se",
+            "gloss": "rp.w.zovem-se.gloss",
+            "item": "g-name-typed"
+          },
+          {
+            "id": "w-drago-mi-je",
+            "text": "rp.w.drago-mi-je",
+            "gloss": "rp.w.drago-mi-je.gloss",
+            "item": "g-name-card"
+          },
+          {
+            "id": "w-kako-si",
+            "text": "rp.w.kako-si",
+            "gloss": "rp.w.kako-si.gloss",
+            "item": "g-how-mcq"
+          },
+          {
+            "id": "w-dobro-sam",
+            "text": "rp.w.dobro-sam",
+            "gloss": "rp.w.dobro-sam.gloss",
+            "item": "g-how-typed"
+          },
+          {
+            "id": "w-hvala",
+            "text": "rp.w.hvala",
+            "gloss": "rp.w.hvala.gloss",
+            "item": "g-polite-typed"
+          },
+          {
+            "id": "w-molim",
+            "text": "rp.w.molim",
+            "gloss": "rp.w.molim.gloss",
+            "item": "g-polite-match"
+          },
+          {
+            "id": "w-kako-ste",
+            "text": "rp.w.kako-ste",
+            "gloss": "rp.w.kako-ste.gloss",
+            "item": "g-formal-typed"
+          },
+          {
+            "id": "w-ghost",
+            "text": "rp.w.dobar-dan",
+            "gloss": "rp.w.dobar-dan.gloss",
+            "item": "i-nope"
+          }
+        ],
+        "finale": "sc-gone"
+      }
+    }
+  },
+  "assets": [
+    {
+      "id": "aud-dobar-dan",
+      "kind": "audio",
+      "file": "assets/placeholder-dobar-dan.wav",
+      "alt": "hr.asset.dobar-dan.alt"
+    },
+    {
+      "id": "aud-zovem-se-ana",
+      "kind": "audio",
+      "file": "assets/placeholder-zovem-se-ana.wav",
+      "alt": "hr.asset.zovem-se.alt"
+    }
+  ],
+  "cues": [],
+  "encyclopedia": {
+    "articles": []
+  },
+  "factbase": [],
+  "extensions": {}
+}
