@@ -29,6 +29,7 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
 | Pictures, music, sounds | `edu_asset_list {slug, kind?}`, `edu_asset_plan {slug, fallback?}`, `edu_music_plan {slug, fallback?}`, `edu_asset_generate {slug, ids?, force?, kind?}`, `edu_asset_set {slug, id, prompt?, negative?, provider?}`, `edu_asset_select {slug, id, version}`, `edu_asset_replace {slug, id, file}`, `edu_asset_lock {slug, id, locked}`, `edu_media_settings {slug, set?}` (see "Pictures" and "Music and sound effects") |
+| Live quiz | `edu_live_start {slug, questions?, secondsPerQuestion?, lan?, lang?}` (a Kahoot-style quiz on the local network: returns the join `code`, the secret `hostUrl` and the `playerUrls`), `edu_live_status {roomId?}`, `edu_live_stop {roomId}` (see [live-quiz.md](live-quiz.md)) |
 | Generators | `edu_studios_status` (Pixel Studio, Chiptune Studio, flow-music-mcp; ComfyUI is `edu_comfy_status`), `edu_comfy_status`, `edu_comfy_free`, `edu_voice_status` |
 
 A job id is `<slug>--<task>--<unit>--r<run>`, so `edu_status {slug}` finds the jobs of a course by their prefix. A research job is `<slug>--research--q<hash>--r0` (the hash is of the question's words, so the same question is never asked twice for a course).

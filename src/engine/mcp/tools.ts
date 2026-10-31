@@ -6,6 +6,7 @@ import type { ClientTaskQueue } from '../models/client'
 import { classTools } from './tools-class'
 import { clientTools } from './tools-client'
 import { courseTools } from './tools-course'
+import { liveTools } from './tools-live'
 import { mediaTools } from './tools-media'
 import { pipelineTools } from './tools-pipeline'
 import { researchTools } from './tools-research'
@@ -122,6 +123,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
     // ---- the images of a course (EGS-15) ----
     ...mediaTools(svc, def),
     ...sttTools(def),
+
+    // ---- the live quiz (EGS-21) ----
+    ...liveTools(svc, def),
 
     // ---- generators ----
     def('edu_studios_status', 'Are Pixel Studio, Chiptune Studio, flow-music-mcp (Google Flow: images, Gemini voices) and VibeTTS (local text-to-speech; a tray app that Edu Studio never starts) reachable, and how to start them if not. ComfyUI is not in this list: edu_comfy_status checks it (lanes, engines, background removal).', z.object({}), async () => ({ studios: await svc.studiosStatus(), comfy: 'ComfyUI makes the pictures and is checked by edu_comfy_status' })),

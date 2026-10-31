@@ -12,7 +12,8 @@
   "scripts": {
     "postinstall": "install-electron",
     "build:player": "vite build --config vite.player.config.ts --logLevel warn",
-    "build:engine": "yarn build:player && vite build --config vite.engine.config.ts --logLevel warn",
+    "build:live": "vite build --config vite.live.config.ts --logLevel warn",
+    "build:engine": "yarn build:player && yarn build:live && vite build --config vite.engine.config.ts --logLevel warn",
     "dev": "yarn build:engine && electron-vite dev",
     "build": "yarn build:engine && electron-vite build",
     "engine": "yarn build:engine && node out/engine/index.js",

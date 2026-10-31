@@ -14,5 +14,5 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/player", "src/shared/game-data.ts", "tests/player-*.test.ts", "tests/setup", "vite.player.config.ts"]
+  "include": ["src/player", "src/shared/game-data.ts", "tests/player-*.test.ts", "tests/setup", "vite.player.config.ts", "vite.live.config.ts", "src/live-client", "src/shared/live"]
 }

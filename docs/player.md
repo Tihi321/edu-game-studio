@@ -2,6 +2,8 @@
 
 Our own runtime (plain TypeScript and DOM, no game engine, no React) that plays a built course in a browser, over `file://`. The sources are in `src/player/`; `yarn build:player` bundles them into **one IIFE** `out/player/player.js` and `out/player/player.css` (no code splitting, no external imports, no CDN; the chalkboard theme's fonts, Kalam and Atkinson Hyperlegible Next, are inlined in the CSS as data URIs, so the one CSS file works over `file://`). The engine's build copies both next to `index.html`, `game-data.js` and `assets/` (the layout is in `src/shared/game-data.ts`).
 
+Playing the same questions with a whole class at once (join code, speed points, leaderboard, podium) is the **live quiz**, a separate small client served by the engine: see [live-quiz.md](live-quiz.md). It draws the questions itself (big buttons); it does not use this player or the item renderers, because players must never receive the course pack with the answers.
+
 The autoplay bot (EGS-04, `scripts/play.mjs`) and Playwright drive the game **only through `data-testid`s and `window.EduEngine.getState()`**, both documented here, plus the small solver hook `window.EduEngine.debug` (below).
 
 An image or an audio element that fails to load is a `console.error` (`main.ts` listens for the `error` event of `img`, `audio`, `video` and SVG `image` in the capture phase), so the bot counts it; the bot's own media check (EGS-15) loads every asset URL of `game-data.json` in the page and reports `mediaErrors`.
