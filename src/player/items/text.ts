@@ -1,6 +1,7 @@
 import type { ClozeItem } from '../../shared/course'
 import { button, h } from '../dom'
 import type { ItemContext, ItemRenderer, ItemView } from '../types'
+import { escapeStops, speakButton, type SpeakButton } from './speak'
 import { letterRow, mark, orderedOptions, submitButton, visuallyHidden } from './common'
 
 /**
@@ -22,6 +23,8 @@ const inputAttrs = (ctx: ItemContext): Record<string, string> => ({
 export interface TypedBox {
   el: HTMLElement
   input: HTMLInputElement
+  /** The microphone button, null when the course has no speech (EGS-18). */
+  mic: SpeakButton | null
 }
 
 /** A labelled text input with letter buttons and a Check button; calls `onSubmit(text)` on Enter or Check. Used by typed and listening-type. */
@@ -43,8 +46,10 @@ export function typedBox(ctx: ItemContext, onSubmit: (text: string) => void): Ty
     }
   })
   const letters = letterRow(ctx, () => input)
-  const el = h('div', { class: 'typed' }, h('div', { class: 'typed-row' }, input, submit), letters)
-  return { el, input, submit }
+  const mic = speakButton(ctx, () => input)
+  escapeStops(input, mic)
+  const el = h('div', { class: 'typed' }, h('div', { class: 'typed-row' }, input, mic?.button, submit), mic?.status, letters)
+  return { el, input, submit, mic }
 }
 
 export const typedRenderer: ItemRenderer = {
@@ -57,10 +62,12 @@ export const typedRenderer: ItemRenderer = {
       el: box.el,
       focus: () => box.input.focus(),
       reveal: (result) => {
+        box.mic?.disable()
         box.input.disabled = true
         box.submit.disabled = true
         mark(box.el.querySelector('.typed-row') as HTMLElement, result.correct, ctx)
-      }
+      },
+      destroy: () => box.mic?.stop()
     }
   }
 }
@@ -162,7 +169,10 @@ export const clozeRenderer: ItemRenderer = {
     const submit = submitButton(ctx, go, true)
     const hasTyped = item.gaps.some((g) => !g.bank)
     const letters = hasTyped ? letterRow(ctx, () => lastInput ?? (item.gaps.map((g) => gaps.get(g.id)).find((x) => x && !x.banked)?.el as HTMLInputElement | undefined) ?? null) : null
-    const el = h('div', { class: 'cloze' }, sentence, bankRows, letters, h('div', { class: 'actions' }, submit))
+    // one mic for the gaps: the transcript goes into the gap in focus, else the first empty typed gap
+    const typedGaps = (): HTMLInputElement[] => item.gaps.map((g) => gaps.get(g.id)).filter((x): x is GapEl => !!x && !x.banked).map((x) => x.el as HTMLInputElement)
+    const mic = hasTyped ? speakButton(ctx, () => lastInput ?? typedGaps().find((i) => i.value.trim() === '') ?? typedGaps()[0] ?? null) : null
+    const el = h('div', { class: 'cloze' }, sentence, bankRows, letters, h('div', { class: 'actions' }, mic?.button, submit), mic?.status)
     sync()
 
     const view: ItemView = {
@@ -171,7 +181,9 @@ export const clozeRenderer: ItemRenderer = {
         const first = item.gaps.map((g) => gaps.get(g.id)).find((x) => x && !x.banked)
         ;(first?.el ?? chips.get(item.gaps[0]?.id ?? '')?.[0])?.focus()
       },
+      destroy: () => mic?.stop(),
       reveal: (result) => {
+        mic?.disable()
         locked = true
         submit.disabled = true
         const expected = (result.expected && typeof result.expected === 'object' ? result.expected : {}) as Record<string, string | null>

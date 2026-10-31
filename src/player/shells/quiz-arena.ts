@@ -8,6 +8,8 @@ import { button, clear, h, isTyping, pulse, type Child } from '../dom'
 import { buildFeedback, answerLines, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
 import { itemImage } from '../items/common'
+import { createSpeechService, type SpeechService } from '../speech'
+import { speakToggle } from '../speech/toggle'
 import { shellPicker } from '../kit/screens'
 import {
   allMastered,
@@ -121,6 +123,13 @@ class QuizArena {
     this.rng = rngFor(host.seed, 'arena')
     this.audio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
     this.setLang(this.lang, false)
+  }
+
+  private speechMade: SpeechService | undefined | null = null
+  /** The course's speech service (EGS-18), made once; undefined when the course or the browser has none. */
+  private get speechService(): SpeechService | undefined {
+    if (this.speechMade === null) this.speechMade = createSpeechService(window, this.pack.extensions, this.pack.targetLang)
+    return this.speechMade
   }
 
   mount(): void {
@@ -335,6 +344,10 @@ class QuizArena {
           h('span', { class: 'toggle-text' }, h('b', {}, ui('reduceAudio')), h('small', {}, ui('reduceAudio.hint')))
         )
       : null
+    const speak = speakToggle(ui, this.speechService, this.progress.settings.speak !== false, (on) => {
+      this.progress = { ...this.progress, settings: { ...this.progress.settings, speak: on } }
+      this.save()
+    })
     const fileInput = h('input', {
       type: 'file',
       accept: 'application/json,.json',
@@ -368,7 +381,7 @@ class QuizArena {
       h('p', { class: 'audience' }, this.pack.audience),
       picker,
       shellPicker(this.host, ui, SHELL_ID),
-      h('div', { class: 'settings' }, timer, sound, reduceAudio),
+      h('div', { class: 'settings' }, timer, sound, reduceAudio, speak),
       h('div', { class: 'actions actions-center' }, button('start', started ? ui('continue') : ui('start'), () => this.go('map'), { class: 'btn btn-primary btn-big', ...(this.confirmReset ? {} : { 'data-autofocus': '' }) })),
       h(
         'div',
@@ -594,7 +607,8 @@ class QuizArena {
       ui: (key: UiKey, vars) => this.ui(key, vars),
       specialLetters: SPECIAL_LETTERS[target] ?? [],
       submit: (answer) => this.submit(answer),
-      duck: (on) => this.audio.duck(on)
+      duck: (on) => this.audio.duck(on),
+      ...(this.progress.settings.speak !== false && this.speechService ? { speech: this.speechService } : {})
     }
   }
 

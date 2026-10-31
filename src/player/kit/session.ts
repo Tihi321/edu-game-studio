@@ -7,6 +7,7 @@ import { clear, h, type Child } from '../dom'
 import { GameAudio, loopsOf } from '../audio'
 import { buildFeedback, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
+import { createSpeechService, type SpeechService } from '../speech'
 import {
   allMastered,
   browserStorage,
@@ -240,6 +241,13 @@ export class ShellSession<K extends string = string> {
     return sectionOf<S>(this.pack, this.shellId)
   }
 
+  private speechMade: SpeechService | undefined | null = null
+  /** The course's speech service (EGS-18), made once; undefined when the course or the browser has none. */
+  get speechService(): SpeechService | undefined {
+    if (this.speechMade === null) this.speechMade = createSpeechService(window, this.pack.extensions, this.pack.targetLang)
+    return this.speechMade
+  }
+
   /** Letters offered under a text input for the language of the typed answers. */
   get specialLetters(): string[] {
     return SPECIAL_LETTERS[this.pack.targetLang ?? this.lang] ?? []
@@ -371,7 +379,8 @@ export class ShellSession<K extends string = string> {
       ui: (key: UiKey, vars) => this.ui(key, vars),
       specialLetters: this.specialLetters,
       submit,
-      duck: (on) => this.audio.duck(on)
+      duck: (on) => this.audio.duck(on),
+      ...(this.progress.settings.speak !== false && this.speechService ? { speech: this.speechService } : {})
     }
   }
 

@@ -2,6 +2,7 @@ import { button, h, type Child } from '../dom'
 import type { Ui, UiKey } from '../i18n'
 import { exportProgress, newProgress, parseProgress } from '../progress'
 import type { ShellHost } from '../types'
+import { speakToggle } from '../speech/toggle'
 import type { ShellSession } from './session'
 
 /**
@@ -111,6 +112,10 @@ export function titleScreen<K extends string>(session: ShellSession<K>, opts: Ti
         h('span', { class: 'toggle-text' }, h('b', {}, ui('reduceAudio')), h('small', {}, ui('reduceAudio.hint')))
       )
     : null
+  const speak = speakToggle(ui, session.speechService, session.progress.settings.speak !== false, (on) => {
+    session.progress = { ...session.progress, settings: { ...session.progress.settings, speak: on } }
+    session.save()
+  })
   const say = (text: string, kind: 'ok' | 'bad'): void => {
     state.message = { text, kind }
     redraw()
@@ -188,7 +193,7 @@ export function titleScreen<K extends string>(session: ShellSession<K>, opts: Ti
     opts.art ?? null,
     picker,
     shellPicker(session.host, ui, session.shellId),
-    opts.settings || sound ? h('div', { class: 'settings' }, opts.settings ?? null, sound, reduceAudio) : null,
+    opts.settings || sound || speak ? h('div', { class: 'settings' }, opts.settings ?? null, sound, reduceAudio, speak) : null,
     h('div', { class: 'actions actions-center' }, button('start', opts.startLabel ?? (session.started ? ui('continue') : ui('start')), () => opts.onStart(), { class: 'btn btn-primary btn-big', ...(state.confirmReset ? {} : { 'data-autofocus': '' }) })),
     h(
       'div',

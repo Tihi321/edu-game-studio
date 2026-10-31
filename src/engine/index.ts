@@ -6,6 +6,7 @@ import { Engine } from './engine'
 import { argValue, initDataFolder, resolveDataDir } from './store/dataFolder'
 import { acquireEngineLock, EngineLockHeldError } from './store/lock'
 import { watchDataFolder } from './store/watcher'
+import { createSttServer, sttWanted, type SttServer } from './stt/server'
 import { getParentPort, ParentPortTransport, StdoutTransport } from './transport'
 import type { EngineTransport } from '../shared/protocol'
 
@@ -112,6 +113,18 @@ async function main(): Promise<void> {
     }
     process.stdout.write(`MCP listening on ${mcp.url}\n`)
   }
+  // the local speech-to-text endpoint of speaking practice (EGS-18): off unless EDU_STT=1 or whisper is configured
+  let stt: SttServer | undefined
+  if (sttWanted()) {
+    stt = createSttServer({ log })
+    await stt.start().then(
+      (s) => log(`speech-to-text endpoint on ${s.url}`),
+      (e: unknown) => {
+        log(`speech-to-text endpoint not started: ${e instanceof Error ? e.message : String(e)}`)
+        stt = undefined
+      }
+    )
+  }
   transport.onMessage((cmd) => {
     engine.handleCommand(cmd).catch((err) => log(`command ${cmd.type} failed: ${(err as Error).message}`))
   })
@@ -128,6 +141,7 @@ async function main(): Promise<void> {
     stopping = true
     clearInterval(beat)
     await watcher.close()
+    await stt?.stop()
     await engine.stop()
     transport.close()
     process.exit(0)

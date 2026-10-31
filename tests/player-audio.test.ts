@@ -267,10 +267,10 @@ describe('the setting is kept with the progress', () => {
   it('reduceAudio is exported and imported; an older save without it means false; junk is false', async () => {
     const f = await loadFixture('solar-system')
     let p = newProgress(f.pack.id)
-    expect(p.settings).toEqual({ timer: false, sound: true, reduceAudio: false })
+    expect(p.settings).toEqual({ timer: false, sound: true, reduceAudio: false, speak: true })
     p = { ...p, settings: { ...p.settings, reduceAudio: true, sound: false } }
     const back = parseProgress(exportProgress(p), f.pack)
-    expect(back.ok && back.progress.settings).toEqual({ timer: false, sound: false, reduceAudio: true })
+    expect(back.ok && back.progress.settings).toEqual({ timer: false, sound: false, reduceAudio: true, speak: true })
     const old = JSON.parse(exportProgress(p)) as { progress: { settings: Record<string, unknown> } }
     delete old.progress.settings.reduceAudio
     const parsedOld = parseProgress(JSON.stringify(old), f.pack)

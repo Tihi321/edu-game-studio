@@ -497,3 +497,7 @@ Entity ids: murdle `s1..sN` (suspects), `w1..wN` (weapons), `p1..pN` (places); l
 - **Settings**: `settings.sound` false: nothing plays and the music stops at once. `settings.reduceAudio` true: no music, quieter effects. Both are in the exported progress; an older save without `reduceAudio` means false.
 - **Autoplay** blocked by the browser is caught silently; the music then starts at the first click or key press. A file that cannot be loaded is a `console.error` (`[EduAudio] the sound could not be loaded: <url>`), which the bot counts.
 - `duck(on)` makes the music quieter while a clip plays: the listening item calls it through `ItemContext.duck` (true when the clip starts, false when it ends, pauses, fails or the question goes), and the encyclopedia does the same for an article's audio. That audio is the article's own audio asset, else the narration the voice step made for its text (`pack.extensions.narration['art.<id>.body']`), played by the `article-audio` button.
+
+## Speaking practice (EGS-18)
+
+Text answers of a language course have a microphone button (`speak`) and the title screens a `setting-speak` switch; see `docs/speaking.md` (`ItemContext.speech`, `pack.extensions.speaking`, the local whisper endpoint, privacy).

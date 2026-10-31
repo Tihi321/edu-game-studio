@@ -2,6 +2,7 @@ import type { CourseItem } from '../shared/course'
 import type { CheckContext, CheckResult, SeededRandom, TextResolver } from '../shared/edu'
 import type { GameData } from '../shared/game-data'
 import type { UiKey } from './i18n'
+import type { SpeechService } from './speech/types'
 
 /** The screens the quiz arena shows. The autoplay bot reads `getState().screen`; see `docs/player.md`. */
 export type ScreenName = 'loading' | 'error' | 'title' | 'map' | 'item' | 'feedback' | 'summary' | 'review' | 'end'
@@ -67,6 +68,8 @@ export interface ItemContext {
   submit(answer: unknown): CheckResult
   /** A clip is playing (true) or has stopped (false): the shell's music goes quieter meanwhile (`GameAudio.duck`). Missing in the studio's preview. */
   duck?(on: boolean): void
+  /** Speaking practice (EGS-18): a recognizer for the course's target language, or missing (no recognizer, not a language course, switched off, the studio's preview). */
+  speech?: SpeechService
 }
 
 export interface ItemView {

@@ -71,12 +71,14 @@ export const listeningRenderer: ItemRenderer = {
       el,
       focus: () => play.focus(),
       reveal: (result) => {
+        box.mic?.disable()
         box.input.disabled = true
         box.submit.disabled = true
         mark(box.el.querySelector('.typed-row') as HTMLElement, result.correct, ctx)
         el.appendChild(h('p', { class: 'transcript', testid: 'transcript' }, `${ctx.ui('transcript')} ${ctx.text.t(item.transcript)}`))
       },
       destroy: () => {
+        box.mic?.stop()
         audio.pause()
         ctx.duck?.(false)
       }
