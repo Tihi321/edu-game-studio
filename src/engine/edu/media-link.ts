@@ -12,7 +12,10 @@ import type { VoiceMerge } from '../../shared/voice'
  *   pack.assets[]                    one entry per asset with a file: `{id, kind, file: 'assets/<id>/v<n>.webp', alt: 'asset.<id>.alt'}`
  *   catalog `asset.<id>.alt`         the alt text (a catalog key like every visible string)
  *   article.asset, item.asset        the picture of an article or an item (`backAsset` for a flashcard back; a hotspot keeps its own asset id)
- *   shells.config[shell].art         `{slot: assetId}`: the art of a shell, also of the shells the player does not have yet
+ *   shells.config['quiz-arena'].art  `{slot: assetId}`: the backdrops of the quiz arena
+ *   shells.config.rpg                (EGS-22) the RPG shell's own fields: `tileset` (tiles), `sprites.hero` (hero), `sprites.npc` (npc-1); the section schemas of
+ *                                    the shells are strict, so the other shells' art cannot live in their section
+ *   extensions.art[shell][slot]      (EGS-22) the art of every other slot: npc-2.., the rooms of the castle, the plates of the encyclopedia, a backdrop
  *   pack.cues                        (EGS-16) the music and sound-effect cues of the music plan: `music:<area>` loops and one-shot events. The cues this merge
  *                                    makes have ids `cue-music-*` and `cue-sfx-*`; other cues of the pack (a hand-made course's) are left alone
  *   pack.extensions.audio.loops      (EGS-16) `{assetId: {startSec, endSec}}`: the loop points of a track that Chiptune Studio made (the cue schema is strict, so they
@@ -104,10 +107,7 @@ export function applyMedia(pack: Json, catalog: Pick<TextCatalog, 'strings'>, me
       } else it.asset = id
       links++
     } else if (shells) {
-      const config = isObj(shells.config) ? shells.config : (shells.config = {})
-      const entry: Json = isObj(config[t.shell]) ? (config[t.shell] as Json) : (config[t.shell] = {})
-      const art: Json = isObj(entry.art) ? (entry.art as Json) : (entry.art = {})
-      art[t.slot] = id
+      linkShellArt(pack, shells, t.shell, t.slot, id)
       links++
     }
   }
@@ -163,10 +163,12 @@ function applyVoice(pack: Json, catalog: Pick<TextCatalog, 'strings'>, merge: Me
   // listening items point at their clip; the words that said the sound it had was a placeholder tone go with it
   const placeholderFile = new Set((Array.isArray(pack.assets) ? (pack.assets as Json[]) : []).filter((a) => a.kind === 'audio' && /placeholder/i.test(String(a.file))).map((a) => String(a.id)))
   let listening = 0
+  const swapped = new Map<string, string>() // a placeholder tone -> the spoken clip that replaces it
   for (const it of items) {
     const asset = v.listening[String(it.id)]
     if (it.kind === 'listening' && asset) {
       if (typeof it.asset === 'string' && it.asset !== asset && placeholderFile.has(it.asset)) {
+        if (!swapped.has(it.asset)) swapped.set(it.asset, asset)
         for (const f of ['explanation', 'hint', 'prompt']) {
           const key = it[f]
           if (typeof key === 'string' && typeof catalog.strings[key] === 'string') catalog.strings[key] = catalog.strings[key].replace(PLACEHOLDER_NOTE, '').trim()
@@ -177,13 +179,28 @@ function applyVoice(pack: Json, catalog: Pick<TextCatalog, 'strings'>, merge: Me
     }
   }
 
+  // a shell section that named the tone (a role-play line's clip) points at the spoken clip too
+  if (swapped.size && isObj(pack.shells)) {
+    const relink = (v: unknown): unknown => (typeof v === 'string' ? (swapped.get(v) ?? v) : Array.isArray(v) ? v.map(relink) : isObj(v) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, relink(x)])) : v)
+    pack.shells.config = relink(pack.shells.config)
+  }
+
   // a placeholder sound of the pack that nothing uses any more (the tone a fixture listening item had) goes: the lint would warn about it
   const inMerge = new Set(merge.assets.map((a) => a.id))
   const used = new Set<string>()
   for (const it of items) for (const f of ['asset', 'backAsset']) if (typeof it[f] === 'string') used.add(it[f] as string)
   for (const a of isObj(pack.encyclopedia) && Array.isArray(pack.encyclopedia.articles) ? (pack.encyclopedia.articles as Json[]) : []) if (typeof a.asset === 'string') used.add(a.asset)
   for (const c of Array.isArray(pack.cues) ? (pack.cues as Json[]) : []) if (typeof c.asset === 'string') used.add(c.asset)
-  if (isObj(pack.shells) && isObj(pack.shells.config)) for (const entry of Object.values(pack.shells.config)) if (isObj(entry) && isObj(entry.art)) for (const id of Object.values(entry.art)) if (typeof id === 'string') used.add(id)
+  // every asset a shell section names (the quiz arena's art, the RPG's skin, a role-play line's clip ...): any string of a section that is an asset id of the pack
+  const known = new Set((Array.isArray(pack.assets) ? (pack.assets as Json[]) : []).map((a) => String(a.id)))
+  const walk = (v: unknown): void => {
+    if (typeof v === 'string') {
+      if (known.has(v)) used.add(v)
+    } else if (Array.isArray(v)) v.forEach(walk)
+    else if (isObj(v)) Object.values(v).forEach(walk)
+  }
+  if (isObj(pack.shells)) walk(pack.shells.config)
+  if (isObj(pack.extensions) && isObj(pack.extensions.art)) for (const slots of Object.values(pack.extensions.art)) if (isObj(slots)) for (const id of Object.values(slots)) if (typeof id === 'string') used.add(id)
   const gone = (a: Json): boolean => a.kind === 'audio' && /placeholder/i.test(String(a.file)) && !inMerge.has(String(a.id)) && !used.has(String(a.id))
   const all = Array.isArray(pack.assets) ? (pack.assets as Json[]) : []
   pack.assets = all.filter((a) => !gone(a))
@@ -194,4 +211,29 @@ function applyVoice(pack: Json, catalog: Pick<TextCatalog, 'strings'>, merge: Me
   if (Object.keys(v.narration).length) ext.narration = { ...v.narration }
   else delete ext.narration
   return { derived: v.items.length, listening, narration: Object.keys(v.narration).length }
+}
+
+/** Where a shell's art goes in the pack (see the header): the quiz arena and the RPG in their sections, the rest in `extensions.art`. */
+function linkShellArt(pack: Json, shells: Json, shell: string, slot: string, id: string): void {
+  const config: Json = isObj(shells.config) ? (shells.config as Json) : (shells.config = {})
+  const section = (): Json => (isObj(config[shell]) ? (config[shell] as Json) : (config[shell] = {}))
+  if (shell === 'quiz-arena') {
+    const entry = section()
+    const art: Json = isObj(entry.art) ? (entry.art as Json) : (entry.art = {})
+    art[slot] = id
+    return
+  }
+  if (shell === 'rpg' && (slot === 'tiles' || slot === 'hero' || slot === 'npc-1')) {
+    const entry = section()
+    if (slot === 'tiles') entry.tileset = id
+    else {
+      const sprites: Json = isObj(entry.sprites) ? (entry.sprites as Json) : (entry.sprites = {})
+      sprites[slot === 'hero' ? 'hero' : 'npc'] = id
+    }
+    return
+  }
+  const ext: Json = isObj(pack.extensions) ? (pack.extensions as Json) : (pack.extensions = {})
+  const art: Json = isObj(ext.art) ? (ext.art as Json) : (ext.art = {})
+  const mine: Json = isObj(art[shell]) ? (art[shell] as Json) : (art[shell] = {})
+  mine[slot] = id
 }

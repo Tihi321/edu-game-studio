@@ -37,9 +37,8 @@ describe('the roles', () => {
       'child-safety-reviewer',
       'publisher'
     ])
-    // the renderer's picker list (src/renderer/ui/roles.ts, restyled elsewhere) lags behind: it has no role that is not here, and the Agents page adds the rest from roles.md
-    const MEDIA = ['art-director', 'art-critic', 'composer', 'voice-director']
-    expect([...KNOWN_ROLES]).toEqual([...ROLES].filter((r) => !MEDIA.includes(r)))
+    // the renderer's picker list (src/renderer/ui/roles.ts) is the same list, in the same order (the media roles joined it in EGS-22)
+    expect([...KNOWN_ROLES]).toEqual([...ROLES])
   })
 
   it('config/roles.md lists every role with a model list: writers and designers paid first, checkers and the researcher local first', () => {

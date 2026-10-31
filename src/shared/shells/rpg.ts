@@ -154,7 +154,9 @@ function lint(section: RpgSection | undefined, ctx: ShellLintContext): ShellLint
     })
     for (const u of pack.units) if (!covered.has(u.id)) push('RPG_UNIT_NO_AREA', 'areas', `the unit "${u.id}" has no area, so its quest is made automatically`)
   }
-  if (section !== undefined && section.story.intro.length === 0) push('RPG_NO_STORY', 'story.intro', 'the section has no frame story (no intro lines)', 'warning')
+  // a section that only skins the automatic quest (the pictures of EGS-15: `tileset`, `sprites`) leaves the story to the shell's own sage: nothing is missing
+  const skinOnly = section !== undefined && (section.tileset !== undefined || section.sprites !== undefined) && section.areas.length === 0 && !section.hero && !section.finalBoss
+  if (section !== undefined && !skinOnly && section.story.intro.length === 0) push('RPG_NO_STORY', 'story.intro', 'the section has no frame story (no intro lines)', 'warning')
   if (pack.items.length === 0) push('RPG_QUEST_UNWINNABLE', 'finalBoss', 'the final boss cannot be beaten: the course has no items to ask')
   return out
 }

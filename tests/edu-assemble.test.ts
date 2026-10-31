@@ -15,6 +15,13 @@ useTemp()
 const codes = (ps: { code: string }[]) => [...new Set(ps.map((p) => p.code))].sort()
 
 describe('assembleCourse: the roles\' outputs become the course contract', () => {
+  it('drops a link to an article that was never written (a planned id)', () => {
+    const input = assembleInput()
+    const linked = { ...input, articles: input.articles.map((x, i) => (i === 0 ? { ...x, related: [input.articles[1]!.id, 'a-u9-1'] } : x)) }
+    const { pack } = assembleCourse(linked)
+    expect((pack.encyclopedia as { articles: { related: string[] }[] }).articles[0]!.related).toEqual([input.articles[1]!.id])
+  })
+
   it('the fixture assembles into a pack and a catalog with no validation problem at all', () => {
     const { pack, catalogs } = assembleCourse(assembleInput())
     const res = validateCourse(pack, catalogs)
@@ -59,10 +66,10 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
   it('records the run and the brief, the design and the story; objectives carry their facts', () => {
     const { pack } = assembleCourse(assembleInput())
     expect(pack.extensions).toMatchObject({
-      pipeline: { run: 1, generatedBy: 'edu-pipeline', brief: { topic: 'Ancient Rome' } },
+      pipeline: { run: 1, generatedBy: 'edu-pipeline', brief: { topic: 'Ancient Rome' }, requestedShells: ['detective'] },
       story: { premise: 'story.premise', intro: 'story.intro', outro: 'story.outro', characters: [{ id: 'c1', name: 'story.char.1.name' }], beats: [{ unit: 'u1', text: 'story.beat.u1' }, { unit: 'u2', text: 'story.beat.u2' }] }
     })
-    expect(pack.shells).toEqual({ enabled: ['quiz-arena'], config: { 'quiz-arena': { roundLength: 5, bossLength: 6, timerSeconds: 30 }, rpg: { requested: true } } })
+    expect(pack.shells).toEqual({ enabled: ['quiz-arena', 'rpg'], config: { 'quiz-arena': { roundLength: 5, bossLength: 6, timerSeconds: 30 }, rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } }) // the rpg plays from its automatic layout and tells the frame story; the detective needs authored cases, so it is only recorded
     expect((pack.objectives as { id: string; facts: string[] }[]).find((o) => o.id === 'u1-o1')!.facts).toEqual(['f1', 'f2'])
     expect((pack.items as { id: string; difficulty: number }[]).find((i) => i.id === 'q3')!.difficulty).toBe(3) // the design's value
     const bare = assembleCourse(assembleInput({ design: undefined, story: undefined, brief: undefined }))

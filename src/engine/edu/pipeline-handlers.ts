@@ -253,7 +253,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       task: 'curriculum',
       vars: { ...vars, summary: plan.summary, units: R.units, objectives_per_unit: R.objectivesPerUnit, unit_plan: plan.units.map((u, i) => `${i + 1}. ${u.title}: ${u.focus}`).join('\n'), factbase: factbaseText(fb.facts), notes: R.brief.notes ?? 'none' },
       schema: curriculumSchema,
-      check: (c) => checkCurriculum(c, { factIds: fb.facts.map((f) => f.id), units: R.units, objectivesPerUnit: R.objectivesPerUnit })
+      check: (c) => checkCurriculum(c, { factIds: fb.facts.map((f) => f.id), units: R.units, objectivesPerUnit: R.objectivesPerUnit, factTexts: Object.fromEntries(fb.facts.map((f) => [f.id, f.fact])) })
     })
     await P.writeJson(h.slug, 'curriculum.json', value)
     return { note: `${value.units.length} unit(s), ${value.objectives.length} objective(s)`, path: 'pipeline/curriculum.json' }
@@ -296,8 +296,15 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         await writeUnit(h.slug, u.id, 'articles', { articles: [], round: 1 })
         return { note: 'the format has no articles' }
       }
-      const others: Article[] = []
-      for (const o of cur.units) if (o.id !== u.id) others.push(...(await P.articles(h.slug, o.id)))
+      // The units are written in parallel, so a unit may be written before the others. The ids are fixed by the prompt (`a-<unit>-1` ...), so the
+      // articles a unit has not written yet are known by their planned ids and `related` may name them.
+      const others: { id: string; title: string }[] = []
+      for (const o of cur.units) {
+        if (o.id === u.id) continue
+        const written = await P.articles(h.slug, o.id)
+        if (written.length) others.push(...written)
+        else for (let n = 1; n <= R.articlesPerUnit; n++) others.push({ id: `a-${o.id}-${n}`, title: `${o.title} (planned, not written yet: link to it only when it fits)` })
+      }
       const { value } = await askRole(h.ctx, {
         dataDir,
         role: 'subject-expert',

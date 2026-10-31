@@ -67,7 +67,8 @@ describe('the whole run with art: every planned image is in the pack and the bui
       const withPicture = pack.items.find((i) => i.asset === ids.find((x) => x.startsWith('img-item-')))
       expect(withPicture?.id).toBe(ids.find((x) => x.startsWith('img-item-'))!.replace('img-item-', ''))
       expect(pack.shells.config['quiz-arena']).toMatchObject({ roundLength: 5, art: { 'bg-u1': 'img-quiz-arena-bg-u1', 'bg-u2': 'img-quiz-arena-bg-u2', 'bg-boss': 'img-quiz-arena-bg-boss' } })
-      expect(pack.shells.config.rpg).toMatchObject({ requested: true, art: { tiles: 'img-rpg-tiles', hero: 'img-rpg-hero', 'npc-1': 'img-rpg-npc-1', 'npc-2': 'img-rpg-npc-2' } }) // the rpg shell is not in the player yet: its art is recorded all the same
+      expect(pack.shells.config.rpg).toEqual({ tileset: 'img-rpg-tiles', sprites: { hero: 'img-rpg-hero', npc: 'img-rpg-npc-1' } }) // the rpg shell plays from its automatic layout in its own skin fields
+      expect(((pack as unknown as { extensions: { art?: unknown } }).extensions).art).toEqual({ rpg: { 'npc-2': 'img-rpg-npc-2' } }) // a slot the section has no field for
       expect(validateCourse(pack, { en: { schema: 1, lang: 'en', ...catalog } }).problems).toEqual([])
 
       // the files: in the course (assets/<id>/v1.webp), in the build, at the planned sizes; the manifest says what made them

@@ -88,9 +88,27 @@ export function titleScreen<K extends string>(session: ShellSession<K>, opts: Ti
           onchange: (e: Event) => {
             session.progress = { ...session.progress, settings: { ...session.progress.settings, sound: (e.target as HTMLInputElement).checked } }
             session.save()
+            session.audio.refresh()
           }
         }),
         h('span', { class: 'toggle-text' }, h('b', {}, ui('sound')))
+      )
+    : null
+  const reduceAudio = pack.cues.length
+    ? h(
+        'label',
+        { class: 'toggle' },
+        h('input', {
+          type: 'checkbox',
+          testid: 'setting-reduce-audio',
+          ...(session.progress.settings.reduceAudio ? { checked: true } : {}),
+          onchange: (e: Event) => {
+            session.progress = { ...session.progress, settings: { ...session.progress.settings, reduceAudio: (e.target as HTMLInputElement).checked } }
+            session.save()
+            session.audio.refresh()
+          }
+        }),
+        h('span', { class: 'toggle-text' }, h('b', {}, ui('reduceAudio')), h('small', {}, ui('reduceAudio.hint')))
       )
     : null
   const say = (text: string, kind: 'ok' | 'bad'): void => {
@@ -170,7 +188,7 @@ export function titleScreen<K extends string>(session: ShellSession<K>, opts: Ti
     opts.art ?? null,
     picker,
     shellPicker(session.host, ui, session.shellId),
-    opts.settings || sound ? h('div', { class: 'settings' }, opts.settings ?? null, sound) : null,
+    opts.settings || sound ? h('div', { class: 'settings' }, opts.settings ?? null, sound, reduceAudio) : null,
     h('div', { class: 'actions actions-center' }, button('start', opts.startLabel ?? (session.started ? ui('continue') : ui('start')), () => opts.onStart(), { class: 'btn btn-primary btn-big', ...(state.confirmReset ? {} : { 'data-autofocus': '' }) })),
     h(
       'div',

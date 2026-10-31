@@ -264,6 +264,7 @@ export class EncApp {
     if (this.audio) {
       this.audio.pause()
       this.audio = null
+      this.s.audio.duck(false)
     }
   }
 

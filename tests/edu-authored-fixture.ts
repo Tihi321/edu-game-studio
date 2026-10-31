@@ -161,7 +161,7 @@ export const ITEMS: AuthoredItem[] = [
   }
 ]
 
-export const DESIGN: DesignData = { enabled: ['quiz-arena'], requested: ['rpg'], quizArena: { roundLength: 5, bossLength: 6, timerSeconds: 30 }, difficulty: { q3: 3 }, notes: 'Short rounds for teenagers.' }
+export const DESIGN: DesignData = { enabled: ['quiz-arena', 'rpg'], requested: ['detective'], quizArena: { roundLength: 5, bossLength: 6, timerSeconds: 30 }, difficulty: { q3: 3 }, notes: 'Short rounds for teenagers.' }
 
 export const FRAME: Frame = {
   premise: 'You are a young scribe who must carry a message across the empire.',

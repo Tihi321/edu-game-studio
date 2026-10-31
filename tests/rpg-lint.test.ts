@@ -56,6 +56,12 @@ describe('rpg lint: the golden fixtures', () => {
     })
   }
 
+  it('a section that only skins the automatic quest (tileset, sprites: the pictures of EGS-15) has no missing story; any authored part brings the warning back', async () => {
+    const f = await loadFixture('solar-system')
+    expect(lint(f, rpgShell.schema.parse({ tileset: 'img-rpg-tiles', sprites: { hero: 'img-rpg-hero' } }))).toEqual([])
+    expect(lint(f, rpgShell.schema.parse({ tileset: 'img-rpg-tiles', hero: { name: 'unit.u1.title' } })).map((p) => p.code)).toEqual(['RPG_NO_STORY'])
+  })
+
   it('solar-system without its section: the automatic layout lints clean', async () => {
     const f = await solarSystem()
     const noSection = structuredClone(f.pack)

@@ -60,7 +60,8 @@ const FADE_STEP_MS = 40
 /** How often the loop point of a track is checked, in ms. */
 const LOOP_CHECK_MS = 60
 
-const ALIASES: Record<string, string[]> = { 'level-up': ['level-up', 'unit-complete'] }
+// the shells say `unit-complete` (the pack's old name for it), the quiz arena says `level-up`: a cue of either name plays for both
+const ALIASES: Record<string, string[]> = { 'level-up': ['level-up', 'unit-complete'], 'unit-complete': ['unit-complete', 'level-up'] }
 const GESTURES = ['pointerdown', 'keydown', 'touchstart']
 
 interface Track {
@@ -233,7 +234,7 @@ export class GameAudio {
     else if (!t) this.apply()
   }
 
-  /** Narration or a listening clip plays: the music goes quieter while it does (EGS-17 calls this). */
+  /** Narration or a listening clip plays: the music goes quieter while it does (the listening item, the encyclopedia's narration and the quiz arena call this). */
   duck(on: boolean): void {
     this.ducked = on
     if (this.track) this.setLevel(this.track, this.volumeOf(this.track))

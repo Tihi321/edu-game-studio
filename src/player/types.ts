@@ -65,6 +65,8 @@ export interface ItemContext {
   specialLetters: string[]
   /** Hands the answer over. The shell checks it with `checkItem` and shows the feedback. Calling it again returns the first result. */
   submit(answer: unknown): CheckResult
+  /** A clip is playing (true) or has stopped (false): the shell's music goes quieter meanwhile (`GameAudio.duck`). Missing in the studio's preview. */
+  duck?(on: boolean): void
 }
 
 export interface ItemView {

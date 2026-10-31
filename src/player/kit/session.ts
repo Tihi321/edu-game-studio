@@ -4,6 +4,7 @@ import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type Check
 import type { GameData } from '../../shared/game-data'
 import { sectionOf } from '../../shared/shells'
 import { clear, h, type Child } from '../dom'
+import { GameAudio, loopsOf } from '../audio'
 import { buildFeedback, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
 import {
@@ -97,6 +98,17 @@ const languageOf = (data: GameData, saved: string | undefined): string => {
 /** The kinds whose renderer draws its own picture or audio (the question screen adds no item image for them). */
 export const NO_IMAGE_KINDS = new Set(['hotspot', 'listening', 'flashcard'])
 
+/**
+ * The music area of a screen, as the quiz arena names them: `end` at the end screen, `boss` in a boss run, `unit-<id>` anywhere a unit's world or run is
+ * open (a wing, an area, a scene, a case, a hunt, a round), `menu` on the title and the hubs. An area with no cue plays the `menu` track (`GameAudio`).
+ */
+export function musicAreaOf(screen: AnyScreen, extra: { roundKind?: string; unitId?: string }): string {
+  if (screen === 'end') return 'end'
+  if (extra.roundKind === 'boss') return 'boss'
+  if (screen !== 'title' && extra.roundKind !== 'review' && extra.unitId) return `unit-${extra.unitId}`
+  return 'menu'
+}
+
 export class ShellSession<K extends string = string> {
   readonly host: ShellHost
   readonly data: GameData
@@ -124,6 +136,7 @@ export class ShellSession<K extends string = string> {
   /** Set by `ask()` while a question is open: the question gets the keys first. */
   questionKeys: ((e: KeyboardEvent) => boolean) | null = null
   private keyHandler: ((e: KeyboardEvent) => void) | null = null
+  private gameAudio: GameAudio | null = null
   private extra: PublishExtra = {}
   private readonly strings: ShellStrings<K>
   private readonly onKey = (e: KeyboardEvent): void => {
@@ -159,8 +172,21 @@ export class ShellSession<K extends string = string> {
     document.addEventListener('keydown', this.onKey)
   }
 
+  /**
+   * The game's audio (EGS-16): the music of the area the game is in (`music:<area>` cues, see `musicAreaOf`) and the sound effects (`playCue`), the same in every
+   * shell. Made on first use, so a course without cues never touches it.
+   */
+  get audio(): GameAudio {
+    if (!this.gameAudio) {
+      this.gameAudio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
+    }
+    return this.gameAudio
+  }
+
   /** Stops listening, clears the bot helpers. Call from `Shell.unmount`. */
   unmount(): void {
+    this.gameAudio?.dispose()
+    this.gameAudio = null
     document.removeEventListener('keydown', this.onKey)
     this.questionKeys = null
     this.host.setDebug(null)
@@ -344,7 +370,8 @@ export class ShellSession<K extends string = string> {
       },
       ui: (key: UiKey, vars) => this.ui(key, vars),
       specialLetters: this.specialLetters,
-      submit
+      submit,
+      duck: (on) => this.audio.duck(on)
     }
   }
 
@@ -413,6 +440,7 @@ export class ShellSession<K extends string = string> {
   publish(screen: AnyScreen = this.screen, extra: PublishExtra = this.extra): void {
     this.screen = screen
     this.extra = extra
+    if (this.pack.cues.length) this.audio.setArea(musicAreaOf(screen, extra))
     this.host.publish(
       buildSnapshot({
         screen,
@@ -482,19 +510,8 @@ export class ShellSession<K extends string = string> {
     )
   }
 
-  /** Plays the course's sound cues for an event (`correct`, `wrong`, `unit-complete`, `boss`, or a shell's own) when sound is on. */
+  /** Plays the course's sound effects for an event (`correct`, `wrong`, `combo`, `unit-complete` (also `level-up`), `boss`, or a shell's own): nothing when sound is off, quieter with "reduce audio". */
   playCue(on: string): void {
-    if (!this.progress.settings.sound) return
-    for (const cue of this.pack.cues.filter((c) => c.on === on && !c.loop)) {
-      const url = this.data.assets[cue.asset]
-      if (!url) continue
-      try {
-        const a = new Audio(url)
-        a.volume = cue.volume
-        void a.play().catch(() => undefined)
-      } catch {
-        /* a cue is never worth an error */
-      }
-    }
+    if (this.pack.cues.length) this.audio.sfx(on)
   }
 }

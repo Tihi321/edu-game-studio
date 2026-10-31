@@ -122,6 +122,31 @@ describe('curriculum-designer: curriculum', () => {
   })
 })
 
+describe('curriculum-designer: objectives the facts cannot support (EGS-22)', () => {
+  const factTexts = Object.fromEntries(FACTS.map((f) => [f.id, f.fact]))
+  const one = (text: string, facts: string[]) => curriculumSchema.parse({ units: [{ id: 'u1', title: 'U', summary: 's', requires: [] }], objectives: [{ id: 'o1', unit: 'u1', bloom: 'remember', text, facts }] })
+
+  it('the fixture curriculum passes with the fact texts', () => {
+    expect(checkCurriculum(curriculumSchema.parse(CURRICULUM), { factIds, units: 2, factTexts })).toEqual([])
+  })
+
+  it('"name its causes" on facts that state no cause is flagged, with the facts it rests on', () => {
+    const msgs = checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds, factTexts }).map((p) => p.issue)
+    expect(msgs).toEqual(['it asks for causes or reasons, but the facts it rests on (f3) state none'])
+    // a fact that says it (here: "led to") makes the same objective fine
+    const withCause = { ...factTexts, f3: 'Weak emperors led to the fall of the Senate.' }
+    expect(checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds, factTexts: withCause })).toEqual([])
+  })
+
+  it('consequences and dates are checked the same way; without fact texts, or in another language, nothing is flagged', () => {
+    expect(checkCurriculum(one('Explain the consequences of the Colosseum.', ['f6']), { factIds, factTexts }).map((p) => p.issue)[0]).toMatch(/consequences or effects/)
+    expect(checkCurriculum(one('Say when the Senate met.', ['f3']), { factIds, factTexts }).map((p) => p.issue)[0]).toMatch(/a date or a period/)
+    expect(checkCurriculum(one('Say when the Colosseum opened.', ['f6']), { factIds, factTexts })).toEqual([])
+    expect(checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds })).toEqual([])
+    expect(checkCurriculum(one('Navedi uzroke pada Rima.', ['f3']), { factIds, factTexts })).toEqual([])
+  })
+})
+
 describe('language-coach: scope and accepted', () => {
   it('scope covers every unit; accepted answers merge with the canonical first and ignore repeats', () => {
     const scope = scopeSchema.parse({ units: [{ unit: 'u1', vocabulary: [{ term: 'bok', gloss: 'hello' }], grammar: [] }] })
@@ -301,12 +326,12 @@ describe('explainer: explain and polish', () => {
 
 describe('game-designer, narrative-designer, playtester, publisher', () => {
   it('the design is clamped to the player\'s limits; known shells are kept, others recorded; unknown items dropped', () => {
-    const d = designSchema.parse({ shells: ['rpg', 'quiz-arena', 'mindmaze'], quizArena: { roundLength: 40, bossLength: 1, timerSeconds: 500 }, difficulty: [{ item: 'q1', difficulty: 9 }, { item: 'qx', difficulty: 2 }, { item: 'q2', difficulty: 0 }] })
-    expect(normalizeDesign(d, ['q1', 'q2'])).toEqual({ enabled: ['quiz-arena'], requested: ['rpg', 'mindmaze'], quizArena: { roundLength: 12, bossLength: 4, timerSeconds: 120 }, difficulty: { q1: 5, q2: 1 }, notes: '' })
+    const d = designSchema.parse({ shells: ['detective', 'rpg', 'quiz-arena', 'mindmaze', 'warp'], quizArena: { roundLength: 40, bossLength: 1, timerSeconds: 500 }, difficulty: [{ item: 'q1', difficulty: 9 }, { item: 'qx', difficulty: 2 }, { item: 'q2', difficulty: 0 }] })
+    expect(normalizeDesign(d, ['q1', 'q2'])).toEqual({ enabled: ['quiz-arena', 'rpg', 'mindmaze'], requested: ['detective', 'warp'], quizArena: { roundLength: 12, bossLength: 4, timerSeconds: 120 }, difficulty: { q1: 5, q2: 1 }, notes: '' })
     const e = normalizeDesign(designSchema.parse({ shells: ['quiz-arena'], quizArena: { roundLength: 7, bossLength: 10 }, notes: ' ok ' }), [])
     expect(e).toEqual({ enabled: ['quiz-arena'], requested: [], quizArena: { roundLength: 7, bossLength: 10 }, difficulty: {}, notes: 'ok' })
-    expect(normalizeDesign(designSchema.parse({ shells: ['rpg'], quizArena: { roundLength: 7, bossLength: 10 } }), []).enabled).toEqual(['quiz-arena']) // the quiz arena is always on
-    expect(DESIGN.enabled).toEqual(['quiz-arena'])
+    expect(normalizeDesign(designSchema.parse({ shells: ['detective'], quizArena: { roundLength: 7, bossLength: 10 } }), []).enabled).toEqual(['quiz-arena']) // the quiz arena is always on
+    expect(DESIGN.enabled).toEqual(['quiz-arena', 'rpg'])
   })
 
   it('the frame has a beat for every unit; the Scriptorium brief and the publish answer have their fields', () => {
@@ -470,7 +495,9 @@ describe('the whole chain on the mock model: roles answer, the answers are check
         curriculum: cur, articles: [...arts.articles, ARTICLES[1]!], items, explain, design: normalizeDesign(design, items.map((i) => i.id)), story: frame
       })
       expect(validateCourse(pack, catalogs).problems).toEqual([])
-      expect((pack.shells as { config: Record<string, unknown> }).config.rpg).toEqual({ requested: true })
+      expect((pack.shells as { enabled: string[] }).enabled).toEqual(['quiz-arena', 'rpg']) // the mock designer asks for the rpg: it plays from its automatic layout
+      expect((pack.shells as { config: Record<string, unknown> }).config.rpg).toEqual({ story: { intro: ['story.intro'], outro: ['story.outro'] } }) // the frame story, from the narrative-designer
+      expect((pack.extensions as { pipeline: object }).pipeline).not.toHaveProperty('requestedShells')
     } finally {
       await env.cleanup()
     }

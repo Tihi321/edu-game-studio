@@ -109,6 +109,11 @@ describe('the whole pipeline on the mock team', () => {
       }
       expect(pack.encyclopedia.articles).toHaveLength(2)
       for (const a of pack.encyclopedia.articles) expect(a.citations.length, a.id).toBeGreaterThan(0)
+      // the units are written in parallel, yet each unit's first article links to the other unit's: the planned ids (a-u<n>-1) were in the prompt, no repair round was needed
+      const related = pack.encyclopedia.articles as unknown as { id: string; related: string[] }[]
+      for (const x of related) expect(related.find((o) => o.id !== x.id)!.id, x.id).toBeTruthy()
+      expect(related.map((x) => x.related)).toEqual([['a-u2-1'], ['a-u1-1']])
+      expect(env.author.calls.filter((x) => x.startsWith('subject-expert/articles:'))).toHaveLength(2)
       expect(pack.extensions.pipeline).toMatchObject({ run: 1, generatedBy: 'edu-pipeline' })
       expect(await json(pf(env, 'lint.json'))).toMatchObject({ ok: true, errors: 0, warnings: 0 })
       expect((await readdir(courseFile(env, slug, 'build'))).sort()).toEqual(expect.arrayContaining(['game-data.json', 'index.html', 'player.js']))

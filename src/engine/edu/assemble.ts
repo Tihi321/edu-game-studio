@@ -166,6 +166,7 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
   })
 
   // ---- articles ----
+  const articleIds = new Set(input.articles.map((a) => a.id)) // a link to a planned article that was never written is dropped
   const articles = input.articles.map((a) => {
     const citations = citationsOf(a)
     return {
@@ -173,14 +174,14 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
       title: put(src, `art.${a.id}.title`, a.title),
       body: put(src, `art.${a.id}.body`, numberCitations(a.body, citations)),
       citations,
-      related: a.related,
+      related: a.related.filter((r) => articleIds.has(r)),
       unit: a.unit
     }
   })
 
   // ---- facts, story, shells ----
   for (const [key, value] of Object.entries(input.factbase.strings)) put(src, key, value)
-  const extensions: Record<string, unknown> = { pipeline: { run: input.run, generatedBy: 'edu-pipeline', ...(input.brief !== undefined ? { brief: input.brief } : {}) } }
+  const extensions: Record<string, unknown> = { pipeline: { run: input.run, generatedBy: 'edu-pipeline', ...(input.brief !== undefined ? { brief: input.brief } : {}), ...(input.design?.requested.length ? { requestedShells: input.design.requested } : {}) } }
   if (input.story) {
     const f = input.story
     extensions.story = {
@@ -193,7 +194,7 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
   }
   const d = input.design
   const shells = d
-    ? { enabled: d.enabled, config: { 'quiz-arena': { ...d.quizArena }, ...Object.fromEntries(d.requested.map((s) => [s, { requested: true }])) } }
+    ? { enabled: d.enabled, config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }
     : { enabled: ['quiz-arena'], config: {} }
 
   for (const [key, value] of Object.entries(input.polish ?? {})) {

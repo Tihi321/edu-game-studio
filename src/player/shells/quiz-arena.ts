@@ -593,7 +593,8 @@ class QuizArena {
       },
       ui: (key: UiKey, vars) => this.ui(key, vars),
       specialLetters: SPECIAL_LETTERS[target] ?? [],
-      submit: (answer) => this.submit(answer)
+      submit: (answer) => this.submit(answer),
+      duck: (on) => this.audio.duck(on)
     }
   }
 

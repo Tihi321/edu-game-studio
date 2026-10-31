@@ -242,6 +242,12 @@ describe('sound effects', () => {
     const old = make({ cues: [{ id: 'c', on: 'unit-complete', asset: 'sfx-level-up', loop: false, volume: 1 }] })
     old.sfx('level-up')
     expect(FakeAudio.made[3]).toMatchObject({ src: ASSETS['sfx-level-up'], volume: 1 })
+    // the shells say unit-complete, the quiz arena level-up: the cue named either plays for both
+    a.sfx('unit-complete')
+    expect(FakeAudio.made[4]).toMatchObject({ src: ASSETS['sfx-level-up'], volume: 0.9 })
+    old.sfx('unit-complete')
+    expect(FakeAudio.made[5]).toMatchObject({ src: ASSETS['sfx-level-up'], volume: 1 })
+    FakeAudio.made.length = 4
     a.sfx('combo') // no cue for it: nothing
     a.sfx('boss')
     expect(FakeAudio.made).toHaveLength(4)

@@ -263,7 +263,7 @@ describe('applyMedia: the links in the pack', () => {
     expect(p.items[2]).toMatchObject({ asset: 'map-italy' }) // a hotspot keeps the asset it names
     expect(p.items[3]).toMatchObject({ asset: 'tone' }) // a listening item's asset is audio: never replaced by a picture
     expect(p.shells.config['quiz-arena']).toEqual({ roundLength: 5, art: { 'bg-u1': 'img-quiz-arena-bg-u1' } })
-    expect(p.shells.config.rpg).toEqual({ art: { hero: 'img-rpg-hero' } }) // a shell the pack does not have yet still gets its art recorded
+    expect(p.shells.config.rpg).toEqual({ sprites: { hero: 'img-rpg-hero' } }) // the rpg's own section fields (its schema is strict)
     expect(r).toEqual({ assets: 8, links: 6 })
   })
 

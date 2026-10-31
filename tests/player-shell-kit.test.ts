@@ -5,6 +5,7 @@ import { chooseShell, playableShells, shellChoiceKey } from '../src/player/engin
 import { emptyShellProgress, hasShellProgress, MAX_SHELL_DATA, newProgress, parseProgress } from '../src/player/progress'
 import { pickNext, recordResult, roundAccuracy, startPool } from '../src/player/round'
 import { makeShellUi } from '../src/player/kit/strings'
+import { musicAreaOf } from '../src/player/kit/session'
 import { rngFor } from '../src/shared/edu'
 import { loadFixture } from './edu-fixtures'
 
@@ -125,5 +126,18 @@ describe('shell strings', () => {
     expect(makeShellUi(tables, 'hr')('x.key')).toBe('Key')
     expect(makeShellUi(tables, 'de-AT')('x.door', { n: 1 })).toBe('Door 1')
     expect(makeShellUi(tables, 'en', { strings: { 'ui.x.key': 'Ključ' } })('x.key')).toBe('Ključ')
+  })
+})
+
+describe('the music area of a shell screen (EGS-22)', () => {
+  it('menu on the title and the hubs, the unit wherever the world of a unit or run is open, boss in a boss run, end at the end; a review run is a hub', () => {
+    expect(musicAreaOf('title', {})).toBe('menu')
+    expect(musicAreaOf('title', { unitId: 'u1' })).toBe('menu')
+    expect(musicAreaOf('explore' as never, {})).toBe('menu')
+    expect(musicAreaOf('map' as never, { unitId: 'u2' })).toBe('unit-u2')
+    expect(musicAreaOf('item', { roundKind: 'unit', unitId: 'u1' })).toBe('unit-u1')
+    expect(musicAreaOf('item', { roundKind: 'boss' })).toBe('boss')
+    expect(musicAreaOf('feedback', { roundKind: 'review', unitId: 'u1' })).toBe('menu')
+    expect(musicAreaOf('end', { unitId: 'u1' })).toBe('end')
   })
 })

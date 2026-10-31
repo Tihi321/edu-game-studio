@@ -26,6 +26,7 @@ export const listeningRenderer: ItemRenderer = {
         audio.currentTime = 0
         audio.play().then(
           () => {
+            ctx.duck?.(true)
             if (!played) {
               played = true
               play.lastElementChild!.textContent = ctx.ui('play.again')
@@ -40,7 +41,10 @@ export const listeningRenderer: ItemRenderer = {
     )
     audio.addEventListener('error', () => {
       status.textContent = ctx.ui('audio.fail')
+      ctx.duck?.(false)
     })
+    // the music is quieter only while the clip sounds
+    for (const e of ['ended', 'pause']) audio.addEventListener(e, () => ctx.duck?.(false))
     const head = h('div', { class: 'audio-block' }, play, audio, status)
 
     if (item.mode === 'choose') {
@@ -55,7 +59,10 @@ export const listeningRenderer: ItemRenderer = {
           choice.reveal(r, a)
           el.appendChild(h('p', { class: 'transcript', testid: 'transcript' }, `${ctx.ui('transcript')} ${ctx.text.t(item.transcript)}`))
         },
-        destroy: () => audio.pause()
+        destroy: () => {
+          audio.pause()
+          ctx.duck?.(false)
+        }
       }
     }
     const box = typedBox(ctx, (text) => ctx.submit(text))
@@ -69,7 +76,10 @@ export const listeningRenderer: ItemRenderer = {
         mark(box.el.querySelector('.typed-row') as HTMLElement, result.correct, ctx)
         el.appendChild(h('p', { class: 'transcript', testid: 'transcript' }, `${ctx.ui('transcript')} ${ctx.text.t(item.transcript)}`))
       },
-      destroy: () => audio.pause()
+      destroy: () => {
+        audio.pause()
+        ctx.duck?.(false)
+      }
     }
   }
 }

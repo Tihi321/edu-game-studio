@@ -54,8 +54,11 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
       ? h('figure', { class: 'enc-figure', testid: 'article-figure' }, h('div', { class: 'enc-figure-frame' }, h('img', { src: url, alt: s.t(asset.alt) })), h('figcaption', {}, s.t(asset.alt)))
       : null
 
+  // the clip of the article: its own audio asset, else the narration the voice step made for its text (`pack.extensions.narration[<text key>]`, EGS-17)
+  const narration = (s.pack.extensions.narration ?? {}) as Record<string, string>
+  const clipUrl = asset && url && asset.kind === 'audio' ? url : s.data.assets[narration[`art.${id}.body`] ?? '']
   let audio: HTMLButtonElement | null = null
-  if (asset && url && asset.kind === 'audio') {
+  if (clipUrl) {
     const label = (playing: boolean): string => `${playing ? '■' : '▶'} ${s.s(playing ? 'enc.audio.stop' : 'enc.audio.play')}`
     audio = button(
       'article-audio',
@@ -67,13 +70,14 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
           return
         }
         try {
-          const el = new Audio(url)
+          const el = new Audio(clipUrl)
           app.audio = el
           el.onended = () => {
             if (app.audio === el) app.audio = null
             if (audio) audio.textContent = label(false)
+            s.audio.duck(false)
           }
-          void el.play().catch(() => undefined)
+          void el.play().then(() => s.audio.duck(true), () => undefined)
           if (audio) audio.textContent = label(true)
         } catch {
           app.audio = null

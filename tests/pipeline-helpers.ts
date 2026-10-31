@@ -115,7 +115,8 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     const n = Number(grab(t, /Write exactly (\d+) article/)) || 1
     const facts = objectives(t, unit).flatMap((x) => x.facts)
     const cite = (i: number) => `[${facts[i % facts.length]}]`
-    return { articles: Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i + 1}`, unit, title: `About ${unit} number ${i + 1}`, body: `The first thing to know is this one ${cite(0)}. Here is a second claim about the same topic ${cite(1)}.\n\nA third paragraph adds one more point for the reader ${cite(2)}.`, related: [] })) }
+    const others = lines(t).map((l) => /^- (a-u\d+-\d+): /.exec(l)?.[1]).filter((x): x is string => !!x && !x.startsWith(prefix)) // the other units' articles, written or planned
+    return { articles: Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i + 1}`, unit, title: `About ${unit} number ${i + 1}`, body: `The first thing to know is this one ${cite(0)}. Here is a second claim about the same topic ${cite(1)}.\n\nA third paragraph adds one more point for the reader ${cite(2)}.`, related: i === 0 ? others.slice(0, 1) : [] })) }
   })
 
   const makeItems = (t: string, unit: string, per: number, kinds: string[]): unknown[] => {

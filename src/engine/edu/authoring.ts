@@ -140,7 +140,20 @@ export interface CurriculumContext {
   units?: number
   /** Exactly this many objectives in each unit. */
   objectivesPerUnit?: number
+  /** The text of every fact by id (`Fact.fact`): with it an objective is also checked against what its facts say (see `OBJECTIVE_CUES`). */
+  factTexts?: Record<string, string>
 }
+
+/**
+ * What an objective can ask for only when its facts say it: a word in the objective (English) and the evidence it needs in the text of the facts it rests on.
+ * "Name its causes" with facts that state no cause cannot be answered from the fact base, and the item-writer would have to invent the answer (EGS-08 follow-up).
+ * A heuristic on purpose: it only flags the clear cases, and only for English objective texts.
+ */
+export const OBJECTIVE_CUES: readonly { ask: string; objective: RegExp; evidence: RegExp }[] = [
+  { ask: 'causes or reasons', objective: /\b(causes?|reasons?|why)\b/i, evidence: /\b(because|caused?|causes|due to|led to|leads? to|resulted? (?:in|from)|results? (?:in|from)|reasons?|as a result|owing to|thanks to|so that|therefore|since)\b/i },
+  { ask: 'consequences or effects', objective: /\b(consequences?|effects?|impacts?|outcomes?)\b/i, evidence: /\b(consequences?|effects?|impacts?|outcomes?|led to|leads? to|resulted? (?:in|from)|results? (?:in|from)|as a result|after which|afterwards?|meant that|ended)\b/i },
+  { ask: 'a date or a period', objective: /\b(dates?|years?|when|century|chronolog\w*|period)\b/i, evidence: /\b\d{3,4}\b|\b(century|centuries|BC|BCE|AD|CE|decade|era|period|ancient|medieval)\b/ }
+]
 
 /** Ids valid and unique, `requires` known and acyclic, every objective in a known unit with existing facts, every unit with at least one objective. */
 export function checkCurriculum(c: Curriculum, o: CurriculumContext): Problem[] {
@@ -166,6 +179,15 @@ export function checkCurriculum(c: Curriculum, o: CurriculumContext): Problem[] 
   for (const x of c.objectives) {
     if (!known.has(x.unit)) out.push(problem(x.id, `its unit "${x.unit}" does not exist`, `use one of: ${unitIds.join(', ')}`))
     for (const f of x.facts) if (!facts.has(f)) out.push(problem(x.id, `it rests on the fact "${f}", which is not in the fact base`, 'use only fact ids from the fact base'))
+    if (o.factTexts) {
+      const given = x.facts.filter((f) => facts.has(f))
+      const said = given.map((f) => o.factTexts![f] ?? '').join(' ')
+      if (given.length > 0 && said.trim()) {
+        for (const cue of OBJECTIVE_CUES) {
+          if (cue.objective.test(x.text) && !cue.evidence.test(said)) out.push(problem(x.id, `it asks for ${cue.ask}, but the facts it rests on (${given.join(', ')}) state none`, `rest it on a fact that says it, or ask for something the facts support`))
+        }
+      }
+    }
   }
   return out
 }
@@ -630,7 +652,12 @@ export function mergeRevision<T extends { id: string }>(previous: T[], revised: 
 
 // ---- game-designer: design ----
 
-export const KNOWN_SHELLS = ['quiz-arena'] as const
+/**
+ * The shells the pipeline switches on by itself: the quiz arena and the three that build an automatic layout from the units (EGS-10 to EGS-12).
+ * The language role-play and the detective need authored sections (dialogues, cases) that no role writes yet, so they are only recorded as
+ * requested (`extensions.pipeline.requestedShells`) and the course does not enable them.
+ */
+export const PIPELINE_SHELLS = ['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg'] as const
 
 export const designSchema = lenient(
   z.object({
@@ -645,7 +672,7 @@ export type Design = z.output<typeof designSchema>
 export interface DesignData {
   /** The shells that are switched on (known ones only; the quiz arena is always in). */
   enabled: string[]
-  /** Shells asked for that the player does not have yet: recorded in `shells.config[id].requested` for later tickets. */
+  /** Shells asked for that need an authored section (or do not exist): recorded in `extensions.pipeline.requestedShells`, not enabled. */
   requested: string[]
   quizArena: { roundLength: number; bossLength: number; timerSeconds?: number }
   difficulty: Record<string, number>
@@ -658,10 +685,10 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, M
 export function normalizeDesign(d: Design, itemIds: Iterable<string>): DesignData {
   const items = new Set(itemIds)
   const shells = [...new Set(d.shells.map((s) => s.trim()).filter(Boolean))]
-  const enabled = [...new Set(['quiz-arena', ...shells.filter((s) => (KNOWN_SHELLS as readonly string[]).includes(s))])]
+  const enabled = [...new Set(['quiz-arena', ...shells.filter((s) => (PIPELINE_SHELLS as readonly string[]).includes(s))])]
   return {
     enabled,
-    requested: shells.filter((s) => !(KNOWN_SHELLS as readonly string[]).includes(s)),
+    requested: shells.filter((s) => !(PIPELINE_SHELLS as readonly string[]).includes(s)),
     quizArena: {
       roundLength: clamp(d.quizArena.roundLength, 3, 12),
       bossLength: clamp(d.quizArena.bossLength, 4, 20),
