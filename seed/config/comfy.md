@@ -29,7 +29,7 @@ Edu Studio drives a local ComfyUI. The generated images and music are saved into
 
 - `lanes`: the ComfyUI endpoints (one per GPU). A lane that does not answer counts as busy.
 - `queuePolicy`: `refuse` fails when every lane is busy; `wait` queues behind the running job.
-- `files`: model file names (`qwen`, `zImage`, `krea2`, `audio` groups) when yours differ from the defaults.
+- `files`: model file names (`qwen`, `zImage`, `krea2`, `moss`, `audio` groups) when yours differ from the defaults.
 - `backgroundRemovalModel`: the BiRefNet file in `models/background_removal` (empty uses the first one ComfyUI lists).
 - `engineSettings`: steps, cfg, sampler or scheduler per engine id.
 - The TTS Audio Suite voice and sound-effect engines (OmniVoice, Higgs Audio v3, Chatterbox, VibeVoice, Qwen3-TTS, IndexTTS-2, F5-TTS and MOSS-SoundEffect v2) are offered to voice and SFX jobs as soon as ComfyUI lists their nodes; `edu_voice_status` or the Generators page shows which are ready and which nodes are missing. They have no model file paths here (the suite manages its own models).

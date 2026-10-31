@@ -84,6 +84,15 @@ describe('graphs', () => {
     expect(g[1]!.inputs.unet_name).toBe(DEFAULT_FILES.qwen.turboUnet)
   })
 
+  it('builds moss-image: moss_image encoder, FLUX.2 latent, a negative prompt, no enhancer', () => {
+    const g = ENGINES['moss-image']!.build(baseOpts({ files: { ...mergeFiles(undefined).moss }, negativePrompt: 'blurry' }))
+    expect(g[2]!.inputs.type).toBe('moss_image')
+    expect(g[6]!.class_type).toBe('EmptyFlux2LatentImage')
+    expect(g[5]!.inputs.text).toBe('blurry')
+    expect(ENGINES['moss-image']!.defaults).toMatchObject({ steps: 25, cfg: 2.5, sampler: 'er_sde' })
+    expect(Object.values(g).some((n) => n.class_type === 'TextGenerate')).toBe(false)
+  })
+
   it('builds krea2 and the music engines with seconds and format', () => {
     const krea = ENGINES['krea2-turbo']!.build(baseOpts({ files: { ...mergeFiles(undefined).krea2 } }))
     expect(krea[2]!.inputs.type).toBe('krea2')
@@ -105,7 +114,7 @@ describe('graphs', () => {
     expect(enginesOfKind('audio')).toHaveLength(12)
     expect(enginesOfKind('audio').filter((id) => ENGINES[id]!.task === 'tts')).toHaveLength(7)
     expect(enginesOfKind('audio').filter((id) => ENGINES[id]!.task === 'sfx')).toEqual(['moss-soundeffect-v2'])
-    expect(enginesOfKind('image')).toHaveLength(5)
+    expect(enginesOfKind('image')).toHaveLength(6)
   })
 
   it('saves an OmniVoice clip as mp3 through SaveAudioAdvanced and as wav through SaveAudio', () => {
