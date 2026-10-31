@@ -5,6 +5,7 @@ import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
 import { classTools } from './tools-class'
 import { clientTools } from './tools-client'
+import { androidTools } from './tools-android'
 import { courseTools } from './tools-course'
 import { liveTools } from './tools-live'
 import { mediaTools } from './tools-media'
@@ -119,6 +120,8 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
 
     // ---- the content pipeline ----
     ...pipelineTools(svc, def),
+
+    ...androidTools(svc, def),
 
     // ---- the images of a course (EGS-15) ----
     ...mediaTools(svc, def),

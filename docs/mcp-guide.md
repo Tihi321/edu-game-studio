@@ -26,6 +26,7 @@ All tool names start with `edu_`. Every call returns JSON, also as `structuredCo
 | Build and check | `edu_validate {slug}`, `edu_build {slug, force?}`, `edu_lint {slug, rebuild?}` |
 | Pipeline | `edu_run_pipeline {slug?, brief?, restart?, from?, retry?}` (make a course from a brief; `edu_status` and `edu_wait` carry a `pipeline` block), `edu_create_course {brief}` (create the course and its `course.md` only) |
 | Research | `edu_ask_researcher {slug, question, purpose?, wait?}` (the researcher answers with sourced facts; `wait` seconds returns the note's facts), `edu_factbase_get {slug, merge?}` (the course's facts with stable ids and numbered sources) |
+| Android | `edu_android_prepare {slug, appId?, sync?}` (wrap the built course into a Capacitor project in `courses/<slug>/android/`; see `android.md`) |
 | Queue | `edu_pause_all`, `edu_resume_all`, `edu_stop_now {drop?, slug?}`, `edu_clear_queue {slug?, confirm: true}` |
 | Client provider | `edu_client_tasks`, `edu_get_task {client?, role?, book?, task?}`, `edu_submit_task {taskId, text}`, `edu_release_task {taskId}` |
 | Pictures, music, sounds | `edu_asset_list {slug, kind?}`, `edu_asset_plan {slug, fallback?}`, `edu_music_plan {slug, fallback?}`, `edu_asset_generate {slug, ids?, force?, kind?}`, `edu_asset_set {slug, id, prompt?, negative?, provider?}`, `edu_asset_select {slug, id, version}`, `edu_asset_replace {slug, id, file}`, `edu_asset_lock {slug, id, locked}`, `edu_media_settings {slug, set?}` (see "Pictures" and "Music and sound effects") |

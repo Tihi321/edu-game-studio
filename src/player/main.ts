@@ -1,5 +1,6 @@
 // the design system: tokens, the chalkboard theme (Kalam + Atkinson, inlined by Vite) and motion; then the page, the widgets, the screens.
 // Each shell imports its own theme (src/design/themes/<id>.css) from its module, so player.css carries every look the bundle can play.
+import { installAndroidBack } from './android-back'
 import '../design/tokens.css'
 import '../design/themes/chalkboard.css'
 import '../design/motion.css'
@@ -41,6 +42,7 @@ engine.registerShell(rpgShell.id, rpgShell)
 engine.registerShell(roleplayShell.id, roleplayShell)
 engine.registerShell(detectiveShell.id, detectiveShell)
 window.EduEngine = engine
+installAndroidBack()
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => engine.start())
 else engine.start()

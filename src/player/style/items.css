@@ -1264,3 +1264,45 @@
 .edu-stage .student-label { display: grid; gap: 0.2rem; font-weight: 600; }
 .edu-stage .student-name-input { font: inherit; padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 2px solid currentColor; background: transparent; color: inherit; min-width: 14rem; }
 .edu-stage .unit-assigned { font-size: 0.875rem; font-weight: 700; }
+
+/* ---- touch screens and the Android WebView (EGS-19) ---- */
+
+.edu-stage button,
+.edu-stage input,
+.edu-stage select,
+.edu-stage [role='button'] {
+  touch-action: manipulation;
+}
+
+/* the stage keeps clear of the notch, the status bar and the gesture bar (the page is viewport-fit=cover) */
+.edu-stage .edu-app {
+  padding-top: max(clamp(6px, 2.2vw, 28px), env(safe-area-inset-top));
+  padding-right: max(clamp(6px, 2.2vw, 28px), env(safe-area-inset-right));
+  padding-bottom: max(clamp(6px, 2.2vw, 28px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(6px, 2.2vw, 28px), env(safe-area-inset-left));
+}
+
+/* a finger needs 44 px; the small buttons and the choices keep that on a phone and on any coarse pointer */
+@media (max-width: 560px), (pointer: coarse) {
+  .edu-stage .btn,
+  .edu-stage .btn-small,
+  .edu-stage .choice,
+  .edu-stage .pair-btn,
+  .edu-stage .pill,
+  .edu-stage button.unit-card {
+    min-height: var(--edu-tap);
+  }
+
+  .edu-stage .btn-small {
+    min-width: var(--edu-tap);
+  }
+}
+
+/* hover lifts are for a pointer that can hover; a touch screen would leave the lifted state behind after a tap */
+@media (hover: none) {
+  .edu-stage .btn:hover:not(:disabled),
+  .edu-stage .choice:hover:not(:disabled),
+  .edu-stage .unit-card:hover:not(:disabled) {
+    transform: none;
+  }
+}
