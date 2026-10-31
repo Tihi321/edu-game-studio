@@ -3,6 +3,7 @@ import { unitOrder } from '../../shared/course'
 import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
 import { sectionOf } from '../../shared/shells'
+import { PlayTimer } from '../classroom'
 import { clear, h, type Child } from '../dom'
 import { GameAudio, loopsOf } from '../audio'
 import { buildFeedback, type Feedback } from '../feedback'
@@ -137,6 +138,14 @@ export class ShellSession<K extends string = string> {
   /** Set by `ask()` while a question is open: the question gets the keys first. */
   questionKeys: ((e: KeyboardEvent) => boolean) | null = null
   private keyHandler: ((e: KeyboardEvent) => void) | null = null
+  /** Seconds of play, for the result file (EGS-20). */
+  private readonly playTimer = new PlayTimer(
+    () => this.progress,
+    (p) => {
+      this.progress = p
+    },
+    () => this.save()
+  )
   private gameAudio: GameAudio | null = null
   private extra: PublishExtra = {}
   private readonly strings: ShellStrings<K>
@@ -171,6 +180,7 @@ export class ShellSession<K extends string = string> {
     root.setAttribute('data-edu-theme', this.theme)
     root.setAttribute('data-shell', this.shellId)
     document.addEventListener('keydown', this.onKey)
+    this.playTimer.start()
   }
 
   /**
@@ -186,6 +196,7 @@ export class ShellSession<K extends string = string> {
 
   /** Stops listening, clears the bot helpers. Call from `Shell.unmount`. */
   unmount(): void {
+    this.playTimer.dispose()
     this.gameAudio?.dispose()
     this.gameAudio = null
     document.removeEventListener('keydown', this.onKey)

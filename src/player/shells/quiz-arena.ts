@@ -11,6 +11,7 @@ import { itemImage } from '../items/common'
 import { createSpeechService, type SpeechService } from '../speech'
 import { speakToggle } from '../speech/toggle'
 import { shellPicker } from '../kit/screens'
+import { classroomBlock, isAssignedUnit, PlayTimer, type ClassroomHost } from '../classroom'
 import {
   allMastered,
   browserStorage,
@@ -110,6 +111,14 @@ class QuizArena {
   /** The music of the area and the sound effects of the events (EGS-16). */
   private readonly audio: GameAudio
   private readonly onKey = (e: KeyboardEvent): void => this.handleKey(e)
+  /** Seconds of play, for the result file (EGS-20). */
+  private readonly playTimer = new PlayTimer(
+    () => this.progress,
+    (p) => {
+      this.progress = p
+    },
+    () => this.save()
+  )
 
   constructor(private readonly host: ShellHost) {
     this.data = host.data
@@ -137,11 +146,13 @@ class QuizArena {
     this.host.root.classList.add('edu-stage')
     this.host.root.setAttribute('data-edu-theme', THEME_ID)
     document.addEventListener('keydown', this.onKey)
+    this.playTimer.start()
     this.go('title')
   }
 
   unmount(): void {
     document.removeEventListener('keydown', this.onKey)
+    this.playTimer.dispose()
     this.audio.dispose()
     this.stopTimer()
     this.current?.view.destroy?.()
@@ -379,6 +390,7 @@ class QuizArena {
       this.heading('h1', this.courseTitle(), 'course-title'),
       this.courseTitle().toLocaleLowerCase() === this.pack.subject.toLocaleLowerCase() ? null : h('p', { class: 'subject', testid: 'course-subject' }, this.pack.subject.charAt(0).toLocaleUpperCase() + this.pack.subject.slice(1)),
       h('p', { class: 'audience' }, this.pack.audience),
+      classroomBlock(this.classroomHost()),
       picker,
       shellPicker(this.host, ui, SHELL_ID),
       h('div', { class: 'settings' }, timer, sound, reduceAudio, speak),
@@ -394,6 +406,23 @@ class QuizArena {
       this.message ? h('p', { class: `message message-${this.message.kind}`, role: 'status', testid: 'title-message' }, this.message.text) : null,
       !this.store.persistent ? h('p', { class: 'message message-bad', testid: 'storage-warning' }, ui('storage.off')) : null
     )
+  }
+
+  private classroomHost(): ClassroomHost {
+    return {
+      pack: this.pack,
+      ui: this.ui,
+      unitTitle: (id) => this.text.t(this.pack.units.find((u) => u.id === id)?.title ?? id),
+      getProgress: () => this.progress,
+      setProgress: (p) => {
+        this.progress = p
+      },
+      save: () => this.save(),
+      say: (text, kind) => {
+        this.message = { text, kind }
+        this.go('title')
+      }
+    }
   }
 
   private doExport(): void {
@@ -490,6 +519,7 @@ class QuizArena {
                     'data-stars': String(stars),
                     'data-locked': String(!open),
                     'data-requires': u.requires.join(' '),
+                    ...(isAssignedUnit(this.pack, u.id) ? { 'data-assigned': 'true' } : {}),
                     ...(open && count > 0 ? {} : { disabled: true }),
                     onclick: () => this.beginRound('unit', u.id)
                   },
@@ -497,6 +527,7 @@ class QuizArena {
                   u.summary ? h('span', { class: 'unit-summary' }, this.text.t(u.summary)) : null,
                   h('span', { class: 'unit-meta' }, open ? ui('map.items', { n: count }) : `🔒 ${ui('map.locked')}`),
                   u.requires.length ? h('span', { class: 'unit-req' }, ui('map.requires', { units: u.requires.map(unitName).join(', ') })) : null,
+                  isAssignedUnit(this.pack, u.id) ? h('span', { class: 'unit-assigned', testid: `assigned-${u.id}` }, ui('class.assigned')) : null,
                   this.starsEl(stars)
                 )
               )

@@ -501,3 +501,7 @@ Entity ids: murdle `s1..sN` (suspects), `w1..wN` (weapons), `p1..pN` (places); l
 ## Speaking practice (EGS-18)
 
 Text answers of a language course have a microphone button (`speak`) and the title screens a `setting-speak` switch; see `docs/speaking.md` (`ItemContext.speech`, `pack.extensions.speaking`, the local whisper endpoint, privacy).
+
+## Classroom mode (EGS-20)
+
+When the pack has `extensions.classroom.assignment`, every title screen shows the assignment banner, a "Your name" field (`settings.name`) and "Send to my teacher" (a result file, not the progress); `progress.playSeconds` counts the seconds of play. See `docs/classroom.md`.

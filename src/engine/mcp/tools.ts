@@ -3,6 +3,7 @@ import { languages } from '../../shared/languages'
 import { jsonSchemaOf } from '../pipeline/llm'
 import type { EduService } from '../edu/service'
 import type { ClientTaskQueue } from '../models/client'
+import { classTools } from './tools-class'
 import { clientTools } from './tools-client'
 import { courseTools } from './tools-course'
 import { mediaTools } from './tools-media'
@@ -108,6 +109,9 @@ export function buildTools(svc: EduService, opts: McpOptions = {}): Tool[] {
 
     // ---- the course files: create, edit, build, lint ----
     ...courseTools(svc, def),
+
+    // ---- classroom mode: assignments and the class report (EGS-20) ----
+    ...classTools(svc, def),
 
     // ---- research and the fact base ----
     ...researchTools(svc, def, { waitTimeoutMs: timeoutMs }),

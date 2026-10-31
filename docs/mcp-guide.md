@@ -183,6 +183,8 @@ media:
 | Tool | What it does |
 |---|---|
 | `edu_asset_list {slug, kind?}` | the assets (pictures, music, sound effects): id, kind, what each illustrates (`target`) or where it plays (`plays`), selected version, file, `placeholder` (and why), review, prompt, provider, warnings, the `loop` points of a Chiptune track; `summary`; the art and music settings |
+| `edu_class_assign {slug, assignment?, clear?, build?}` | classroom mode: give the course an assignment (units, targetStars, due, message), written to `pack.extensions.classroom.assignment`; build again to show it (`docs/classroom.md`) |
+| `edu_class_report {slug, files?, folder?, format?}` | the class report from the students' result files (default folder `courses/<slug>/class/results/`): writes `class/report.md` and `report.csv` |
 | `edu_asset_plan {slug, fallback?}` | plan the pictures of a course, also a hand-made one: queues the art-director (a model job); `fallback: true` plans from the course text at once, with no model |
 | `edu_asset_generate {slug, ids?, force?, kind?}` | queues one job that makes the pictures and the sounds that have no file yet (`kind`: an image kind, `music` or `sfx`; `force`: again; locked and hand-made ones are never touched); returns the job id |
 | `edu_asset_set {slug, id, prompt?, negative?, provider?}` | the prompt (kept by the art-director from then on), the negative prompt, or `comfy` / `flow` for this asset |

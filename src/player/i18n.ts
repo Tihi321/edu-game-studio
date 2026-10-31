@@ -151,7 +151,16 @@ const EN = {
   'shell.roleplay': 'Role-play',
   'shell.detective': 'Detective',
   'question.lead': 'Question',
-  'review.none': 'Nothing to review yet.'
+  'review.none': 'Nothing to review yet.',
+  'class.assignment': 'Assignment from your teacher',
+  'class.target': 'Reach {n} stars in: {units}',
+  'class.allUnits': 'all units',
+  'class.due': 'Due: {date}',
+  'class.yourName': 'Your name',
+  'class.send': 'Send to my teacher',
+  'class.sent': 'Result file saved. Send it to your teacher.',
+  'class.needName': 'Type your name first.',
+  'class.assigned': 'Assigned'
 } as const
 
 export type UiKey = keyof typeof EN
@@ -302,7 +311,16 @@ const HR: Partial<Record<UiKey, string>> = {
   'shell.roleplay': 'Igra uloga',
   'shell.detective': 'Detektiv',
   'question.lead': 'Pitanje',
-  'review.none': 'Još nema ničega za ponavljanje.'
+  'review.none': 'Još nema ničega za ponavljanje.',
+  'class.assignment': 'Zadatak od učitelja',
+  'class.target': 'Dosegni {n} zvjezdice u: {units}',
+  'class.allUnits': 'svim cjelinama',
+  'class.due': 'Rok: {date}',
+  'class.yourName': 'Tvoje ime',
+  'class.send': 'Pošalji učitelju',
+  'class.sent': 'Datoteka s rezultatom je spremljena. Pošalji je učitelju.',
+  'class.needName': 'Prvo upiši svoje ime.',
+  'class.assigned': 'Zadano'
 }
 
 const TABLES: Record<string, Partial<Record<UiKey, string>>> = { hr: HR }

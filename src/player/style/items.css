@@ -1253,3 +1253,14 @@
   color: var(--edu-text-dim);
   font-size: var(--edu-text-s);
 }
+
+/* ---- classroom mode (EGS-20): the assignment banner on the title, the name field and the assigned-unit tag ---- */
+
+.edu-stage .assignment-banner { max-width: 34rem; margin: 1rem auto; padding: 0.75rem 1rem; border: 2px dashed currentColor; border-radius: 0.75rem; text-align: left; }
+.edu-stage .assignment-banner .assignment-title { margin: 0.1rem 0 0.4rem; font-size: 1.25rem; }
+.edu-stage .assignment-banner p { margin: 0.25rem 0; }
+.edu-stage .assignment-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.edu-stage .student-box { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; margin-top: 0.6rem; }
+.edu-stage .student-label { display: grid; gap: 0.2rem; font-weight: 600; }
+.edu-stage .student-name-input { font: inherit; padding: 0.4rem 0.6rem; border-radius: 0.4rem; border: 2px solid currentColor; background: transparent; color: inherit; min-width: 14rem; }
+.edu-stage .unit-assigned { font-size: 0.875rem; font-weight: 700; }

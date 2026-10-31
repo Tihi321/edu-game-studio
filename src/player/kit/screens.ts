@@ -1,3 +1,4 @@
+import { classroomBlock } from '../classroom'
 import { button, h, type Child } from '../dom'
 import type { Ui, UiKey } from '../i18n'
 import { exportProgress, newProgress, parseProgress } from '../progress'
@@ -191,6 +192,17 @@ export function titleScreen<K extends string>(session: ShellSession<K>, opts: Ti
     title.toLocaleLowerCase() === pack.subject.toLocaleLowerCase() ? null : h('p', { class: 'subject', testid: 'course-subject' }, subject),
     h('p', { class: 'audience' }, pack.audience),
     opts.art ?? null,
+    classroomBlock({
+      pack,
+      ui,
+      unitTitle: (id) => session.unitTitle(id),
+      getProgress: () => session.progress,
+      setProgress: (p) => {
+        session.progress = p
+      },
+      save: () => session.save(),
+      say
+    }),
     picker,
     shellPicker(session.host, ui, session.shellId),
     opts.settings || sound || speak ? h('div', { class: 'settings' }, opts.settings ?? null, sound, reduceAudio, speak) : null,

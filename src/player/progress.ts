@@ -1,4 +1,5 @@
 import type { CoursePack } from '../shared/course'
+import { cleanName } from '../shared/classroom'
 import { newCard, type Card } from '../shared/edu'
 
 /**
@@ -11,6 +12,8 @@ export const PROGRESS_VERSION = 1
 export const EXPORT_FORMAT = 'edu-progress'
 /** A unit counts as mastered (and unlocks its dependants) from this many stars. */
 export const MASTERED_STARS = 2
+/** The play-time counter stops here (100 hours). */
+export const MAX_PLAY_SECONDS = 360_000
 
 export interface UnitProgress {
   stars: number
@@ -52,7 +55,9 @@ export interface Progress {
   answered: number
   right: number
   /** `sound`: sounds on (false: nothing plays). `reduceAudio` (EGS-16): no music and quieter sound effects; missing in an older save means false. `speak` (EGS-18): the mic button of text answers; missing in an older save means true. */
-  settings: { lang?: string; timer: boolean; sound: boolean; reduceAudio?: boolean; speak?: boolean }
+  settings: { lang?: string; timer: boolean; sound: boolean; reduceAudio?: boolean; speak?: boolean; name?: string; studentId?: string }
+  /** Seconds of play with activity (EGS-20, the time on task a result file reports); missing in an older save means 0. */
+  playSeconds?: number
   /** Epoch ms of the last save. */
   updatedAt: number
   /** Progress of the other game shells, by shell id (the quiz arena's stars are `units` and `boss` above). */
@@ -199,9 +204,12 @@ export function parseProgress(text: string, pack: Pick<CoursePack, 'id' | 'units
       sound: src.settings.sound !== false,
       reduceAudio: src.settings.reduceAudio === true,
       speak: src.settings.speak !== false,
-      ...(typeof src.settings.lang === 'string' ? { lang: src.settings.lang } : {})
+      ...(typeof src.settings.lang === 'string' ? { lang: src.settings.lang } : {}),
+      ...(cleanName(src.settings.name) ? { name: cleanName(src.settings.name) } : {}),
+      ...(typeof src.settings.studentId === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(src.settings.studentId) ? { studentId: src.settings.studentId } : {})
     }
   }
+  if (src.playSeconds !== undefined) p.playSeconds = int(src.playSeconds, 0, MAX_PLAY_SECONDS, 0)
   p.updatedAt = num(src.updatedAt, 0, 8.64e15, 0)
   if (isObj(src.shells)) {
     for (const [id, raw] of Object.entries(src.shells)) {
