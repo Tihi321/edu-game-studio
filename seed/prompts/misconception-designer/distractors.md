@@ -12,6 +12,9 @@ Language: {{language}}
 The fact base (what is true; a wrong choice must contradict it):
 {{factbase}}
 
+Language rules (a language course only; empty otherwise; use the part on misconceptions to choose the wrong options and write each why):
+{{language_rules}}
+
 The choice items of the unit (JSON). Each has its right answer(s) and the writer's first wrong options:
 {{items}}
 

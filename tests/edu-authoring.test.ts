@@ -42,6 +42,7 @@ import { validateCourse } from '../src/shared/edu'
 import { parseMd } from '../src/shared/md'
 import { AUTHORED_ITEM_KINDS, ROLES } from '../src/shared/schemas'
 import { render } from '../src/engine/pipeline/prompts'
+import { languageRulesText } from '../src/shared/lang'
 import { ARTICLES, CURRICULUM, DESIGN, draftItems, FACTS, FRAME, ITEMS } from './edu-authored-fixture'
 import { makeEduEnv } from './edu-helpers'
 import { runInJob } from './research-helpers'
@@ -448,6 +449,31 @@ describe('the seeded prompts and agents of the content team', () => {
     expect(body('language-coach/scope')).toMatch(/CEFR \{\{cefr\}\}/)
     expect(body('accessibility-reviewer/review')).toMatch(/Reading level/)
     expect(body('child-safety-reviewer/review')).toMatch(/Age fit/)
+  })
+
+  it('EGS-30: the writer prompts carry the German rules (and the item-writer the conjugation shape) for de only', () => {
+    const roleKeys = ['item-writer/items', 'item-writer/items_revise', 'language-coach/scope', 'language-coach/accepted', 'misconception-designer/distractors', 'explainer/explain', 'fact-checker/fact_check']
+    for (const key of roleKeys) {
+      const body = parseMd(fs.readFileSync(promptFile(key), 'utf8')).body
+      const base = Object.fromEntries([...body.matchAll(/\{\{\s*([\w.-]+)\s*\}\}/g)].map((m) => [m[1]!, `<${m[1]}>`]))
+      const writer = key.startsWith('item-writer')
+      const de = render(body, { ...base, language_rules: languageRulesText('de', writer) })
+      expect(de, key).toContain('German rules (the taught language is German)')
+      expect(de, key).toContain('CONJ_FORM_MISMATCH')
+      expect(de.includes('The conjugation kind'), key).toBe(writer)
+      if (writer) expect(de, key).toContain('"kind": "conjugation"')
+      for (const lang of ['hr', 'en', undefined]) {
+        const other = render(body, { ...base, language_rules: languageRulesText(lang, writer) })
+        expect(other, `${key} ${lang}`).not.toContain('German rules')
+        expect(other, `${key} ${lang}`).not.toContain('conjugation')
+      }
+    }
+  })
+
+  it('EGS-30: the conjugation example of the rules is a valid authored item', () => {
+    const shape = languageRulesText('de', true).split('- Example: ')[1]!
+    const parsed = authoredItemSchema.safeParse(JSON.parse(shape))
+    expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true)
   })
 
   it('every role of the team has a seeded agent, and a prompt unless it only reviews with the fact-checker\'s or the researcher\'s', () => {

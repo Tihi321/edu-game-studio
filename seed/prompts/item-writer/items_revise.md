@@ -16,6 +16,9 @@ The objectives of this unit:
 The fact base (the only source of what is right; the id in square brackets goes into `facts`):
 {{factbase}}
 
+Language rules (a language course only; empty otherwise; follow them when they are given):
+{{language_rules}}
+
 The items as they are now (JSON):
 {{items}}
 
