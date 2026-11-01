@@ -213,7 +213,7 @@ export const missedIds = (rs: Pick<RoundState, 'results'>): string[] => [...new 
 /** The grade an answer earns: a flashcard's own grade; else wrong = again, shaky (partial, typo, accents) = hard, clean = good. */
 export function gradeOf(item: Pick<CourseItem, 'kind'>, answer: unknown, result: CheckResult): Grade {
   if (item.kind === 'flashcard' && isGrade(answer)) return answer
-  if (!result.correct) return 'again'
+  if (!result.correct) return item.kind === 'conjugation' && result.partial && result.score >= 0.5 ? 'hard' : 'again'
   return result.partial || result.typo || result.diacritics ? 'hard' : 'good'
 }
 
@@ -223,7 +223,7 @@ export function gradeOf(item: Pick<CourseItem, 'kind'>, answer: unknown, result:
  * would punish the learner for looking for an accent.
  */
 export function timerApplies(item: CourseItem): boolean {
-  if (item.kind === 'flashcard' || item.kind === 'crossword' || item.kind === 'word-search' || item.kind === 'typed') return false
+  if (item.kind === 'flashcard' || item.kind === 'crossword' || item.kind === 'word-search' || item.kind === 'typed' || item.kind === 'conjugation') return false
   if (item.kind === 'listening') return (item as unknown as { mode?: string }).mode !== 'type'
   if (item.kind === 'cloze') return ((item as unknown as { gaps: { bank?: string[] }[] }).gaps ?? []).every((g) => g.bank !== undefined)
   return true

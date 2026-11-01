@@ -1,6 +1,7 @@
 import { CEFR_LEVELS } from '../../shared/course'
 import type { TextCatalog } from '../../shared/course'
 import { normalizeText } from '../../shared/edu'
+import { PRONOUN_LABELS } from '../../shared/lang'
 import { applyExplain, citationsOf, mergeAccepted, numberCitations } from './authoring'
 import type { AcceptedOutput, Article, AuthoredItem, Curriculum, DesignData, ExplainOutput, Frame } from './authoring'
 import type { FactPack } from './factbase'
@@ -13,7 +14,7 @@ import type { MediaMerge } from './media-link'
  * builds and lints clean (tests/edu-assemble.test.ts).
  *
  * Keys: `course.title`, `unit.<id>.title|summary`, `obj.<id>.text`, `item.<id>.prompt|expl|hint|dyk|why`, `item.<id>.opt.<optId>` (and `.why`),
- * `item.<id>.text` (cloze), `item.<id>.gap.<gapId>` (accepted answers) and `.b<n>` (bank words), `item.<id>.answer` (typed, accepted),
+ * `item.<id>.verb`, `item.<id>.form.<person>` (strings + accepted) and `.label` (conjugation), `item.<id>.text` (cloze), `item.<id>.gap.<gapId>` (accepted answers) and `.b<n>` (bank words), `item.<id>.answer` (typed, accepted),
  * `item.<id>.pair.<pid>.l|r`, `item.<id>.step.<sid>` (and `.when`), `item.<id>.group.<gid>`, `item.<id>.entry.<eid>` (and `.why`),
  * `item.<id>.back`, `art.<id>.title|body`, `fact.<id>.claim`, `story.*`.
  *
@@ -144,6 +145,17 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
           if (at > 0) bank.splice(at, 0, bank.shift()!)
           return { id: g.id, answer, bank }
         })
+        break
+      case 'conjugation':
+        out.verb = put(content, k('verb'), it.verb)
+        out.tense = it.tense
+        if (it.ask !== undefined) out.ask = it.ask
+        out.forms = it.forms.map((f) => ({
+          person: f.person,
+          label: put(content, k(`form.${f.person}.label`), f.label ?? PRONOUN_LABELS[input.targetLang ?? '']?.[f.person] ?? f.person),
+          answer: putAccepted(content, k(`form.${f.person}`), f.accepted),
+          given: it.given?.includes(f.person) ?? false
+        }))
         break
       case 'typed':
         out.answer = putAccepted(content, k('answer'), it.accepted)

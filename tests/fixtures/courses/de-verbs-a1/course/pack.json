@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "id": "de-verbs-a1",
+  "slug": "de-verbs-a1",
+  "sourceLang": "hr",
+  "languages": [
+    "hr",
+    "en"
+  ],
+  "targetLang": "de",
+  "subject": "Deutsch A1: Verben",
+  "audience": "Croatian and English speakers learning German verbs",
+  "cefr": "A1",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-sein",
+      "title": "unit.sein.title",
+      "summary": "unit.sein.summary",
+      "requires": []
+    },
+    {
+      "id": "u-gehen",
+      "title": "unit.gehen.title",
+      "summary": "unit.gehen.summary",
+      "requires": [
+        "u-sein"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-sein",
+      "unit": "u-sein",
+      "bloom": "remember",
+      "text": "obj.sein",
+      "facts": []
+    },
+    {
+      "id": "obj-gehen",
+      "unit": "u-gehen",
+      "bloom": "apply",
+      "text": "obj.gehen",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "c-sein",
+      "kind": "conjugation",
+      "objective": "obj-sein",
+      "prompt": "item.c-sein.prompt",
+      "explanation": "item.c-sein.expl",
+      "difficulty": 2,
+      "tags": [
+        "verbs"
+      ],
+      "verb": "item.c-sein.verb",
+      "tense": "praesens",
+      "forms": [
+        {
+          "person": "ich",
+          "label": "item.c-sein.form.ich.label",
+          "answer": "item.c-sein.form.ich",
+          "given": false
+        },
+        {
+          "person": "du",
+          "label": "item.c-sein.form.du.label",
+          "answer": "item.c-sein.form.du",
+          "given": false
+        },
+        {
+          "person": "er",
+          "label": "item.c-sein.form.er.label",
+          "answer": "item.c-sein.form.er",
+          "given": false
+        },
+        {
+          "person": "wir",
+          "label": "item.c-sein.form.wir.label",
+          "answer": "item.c-sein.form.wir",
+          "given": false
+        },
+        {
+          "person": "ihr",
+          "label": "item.c-sein.form.ihr.label",
+          "answer": "item.c-sein.form.ihr",
+          "given": false
+        }
+      ]
+    },
+    {
+      "id": "q-sein-mcq",
+      "kind": "mcq",
+      "objective": "obj-sein",
+      "prompt": "item.q-sein-mcq.prompt",
+      "explanation": "item.q-sein-mcq.expl",
+      "difficulty": 1,
+      "tags": [
+        "verbs"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "item.q-sein-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "item.q-sein-mcq.opt.b",
+          "why": "item.q-sein-mcq.opt.b.why"
+        },
+        {
+          "id": "c",
+          "text": "item.q-sein-mcq.opt.c",
+          "why": "item.q-sein-mcq.opt.c.why"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "c-gehen",
+      "kind": "conjugation",
+      "objective": "obj-gehen",
+      "prompt": "item.c-gehen.prompt",
+      "explanation": "item.c-gehen.expl",
+      "difficulty": 2,
+      "tags": [
+        "verbs"
+      ],
+      "verb": "item.c-gehen.verb",
+      "tense": "praesens",
+      "forms": [
+        {
+          "person": "ich",
+          "label": "item.c-gehen.form.ich.label",
+          "answer": "item.c-gehen.form.ich",
+          "given": false
+        },
+        {
+          "person": "du",
+          "label": "item.c-gehen.form.du.label",
+          "answer": "item.c-gehen.form.du",
+          "given": false
+        },
+        {
+          "person": "er",
+          "label": "item.c-gehen.form.er.label",
+          "answer": "item.c-gehen.form.er",
+          "given": false
+        },
+        {
+          "person": "wir",
+          "label": "item.c-gehen.form.wir.label",
+          "answer": "item.c-gehen.form.wir",
+          "given": false
+        },
+        {
+          "person": "ihr",
+          "label": "item.c-gehen.form.ihr.label",
+          "answer": "item.c-gehen.form.ihr",
+          "given": true
+        }
+      ],
+      "ask": 3
+    },
+    {
+      "id": "c-gehen-imp",
+      "kind": "conjugation",
+      "objective": "obj-gehen",
+      "prompt": "item.c-gehen-imp.prompt",
+      "explanation": "item.c-gehen-imp.expl",
+      "difficulty": 2,
+      "tags": [
+        "verbs"
+      ],
+      "verb": "item.c-gehen-imp.verb",
+      "tense": "imperativ",
+      "forms": [
+        {
+          "person": "du",
+          "label": "item.c-gehen-imp.form.du.label",
+          "answer": "item.c-gehen-imp.form.du",
+          "given": false
+        },
+        {
+          "person": "ihr",
+          "label": "item.c-gehen-imp.form.ihr.label",
+          "answer": "item.c-gehen-imp.form.ihr",
+          "given": false
+        },
+        {
+          "person": "Sie",
+          "label": "item.c-gehen-imp.form.Sie.label",
+          "answer": "item.c-gehen-imp.form.Sie",
+          "given": false
+        }
+      ]
+    },
+    {
+      "id": "q-gehen-typed",
+      "kind": "typed",
+      "objective": "obj-gehen",
+      "prompt": "item.q-gehen-typed.prompt",
+      "explanation": "item.q-gehen-typed.expl",
+      "difficulty": 2,
+      "tags": [
+        "verbs"
+      ],
+      "answer": "item.q-gehen-typed.answer"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena"
+    ],
+    "config": {}
+  }
+}

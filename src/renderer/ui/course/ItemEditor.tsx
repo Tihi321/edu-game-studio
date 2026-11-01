@@ -259,6 +259,42 @@ function KindControls({ item, onChange, resolve }: { item: CourseItem; onChange(
         </fieldset>
       )
     }
+    case 'conjugation': {
+      const forms = (j.forms as { person: string; label: string; given?: boolean }[]) ?? []
+      const open = forms.filter((f) => f.given !== true).length
+      return (
+        <fieldset className="choice-key" data-testid="key-answer">
+          <legend>Conjugation: tense and which forms are asked</legend>
+          <Field label="Tense (an id: praesens, perfekt, praeteritum, futur1, imperativ, konjunktiv2)">
+            {(id) => <input id={id} type="text" value={String(j.tense ?? '')} onChange={(e) => onChange(withField(item, 'tense', e.target.value))} data-testid="key-tense" />}
+          </Field>
+          <Field label="Forms asked per presentation (empty: all)">
+            {(id) => (
+              <input
+                id={id}
+                type="number"
+                min={1}
+                max={Math.max(1, open)}
+                value={j.ask === undefined ? '' : String(j.ask)}
+                onChange={(e) => onChange(withField(item, 'ask', e.target.value === '' ? undefined : Number(e.target.value)))}
+                data-testid="key-ask"
+              />
+            )}
+          </Field>
+          {forms.map((f) => (
+            <label key={f.person} className="inline">
+              <input
+                type="checkbox"
+                checked={f.given === true}
+                onChange={(e) => onChange(withField(item, 'forms', forms.map((x) => (x.person === f.person ? { ...x, given: e.target.checked } : x))))}
+                data-testid={`key-given-${f.person}`}
+              />
+              {resolve(f.label)}: shown filled in, not asked
+            </label>
+          ))}
+        </fieldset>
+      )
+    }
     case 'hotspot': {
       const regions = (j.regions as { id: string; label: string }[]) ?? []
       return (

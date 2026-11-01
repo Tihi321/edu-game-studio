@@ -110,6 +110,9 @@ export function renderItemForCheck(it: AuthoredItem): FactCheckItem {
     case 'sort-groups':
       lines.push(...it.groups.map((g) => `Group ${g.title}: ${it.items.filter((x) => x.group === g.id).map((x) => x.text).join(', ')}`))
       break
+    case 'conjugation':
+      lines.push(`Verb: ${it.verb} (${it.tense})`, ...it.forms.map((f) => `${f.person}: ${f.accepted.join(' | ')}${it.given?.includes(f.person) ? ' (given)' : ''}`))
+      break
     case 'flashcard':
       lines.push(`Back: ${it.back}`)
       break

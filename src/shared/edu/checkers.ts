@@ -1,5 +1,6 @@
 import type {
   ClozeItem,
+  ConjugationItem,
   CrosswordItem,
   FlashcardItem,
   HotspotItem,
@@ -32,6 +33,7 @@ import { generateWordSearch, readSelection, type Selection, type WordSearchGrid 
  *   hotspot         region id, or a point { x, y } in image pixels
  *   listening       option id (choose) or typed text (type)
  *   flashcard       a grade: again | hard | good | easy
+ *   conjugation     { [person]: typed form } for the asked persons
  *   crossword       { [wordId]: typed letters }            word-search  Selection[] ({ start: [row, col], end: [row, col] })
  */
 
@@ -110,6 +112,39 @@ export function checkCloze(item: ClozeItem, answer: unknown, ctx: CheckContext):
   }
   const res = fraction(Object.values(detail).filter(Boolean).length, item.gaps.length, expected, detail)
   return { ...res, ...(typo ? { typo: true } : {}), ...(diacritics ? { diacritics: true } : {}), ...(translit ? { translit: true } : {}), ...(caps ? { caps: true } : {}) }
+}
+
+/** The forms a conjugation item asks in one presentation when nothing else is said: the first `ask` forms that are not given. */
+export function askedForms(item: ConjugationItem): ConjugationItem['forms'] {
+  const open = item.forms.filter((f) => !f.given)
+  return item.ask === undefined ? open : open.slice(0, item.ask)
+}
+
+/**
+ * A conjugation answer holds one typed form per asked person (the persons the player showed; `ask` of them, or every form that is not given).
+ * Each form is matched on its own with the typo tolerance OFF (seid is not sein) and the language rules of the course; score = right / asked.
+ * `expected` holds the canonical form of every person, so the feedback can show the whole table.
+ */
+export function checkConjugation(item: ConjugationItem, answer: unknown, ctx: CheckContext): CheckResult {
+  const expected = Object.fromEntries(item.forms.map((f) => [f.person, ctx.text.canonical(f.answer) ?? null]))
+  if (!isObj(answer)) return bad(expected)
+  const open = item.forms.filter((f) => !f.given)
+  const asked = open.filter((f) => typeof answer[f.person] === 'string')
+  if (asked.length === 0 || asked.length !== Math.min(item.ask ?? open.length, open.length)) return bad(expected)
+  const strict = { ...ctx, typos: false }
+  const detail: Record<string, boolean> = {}
+  let diacritics = false
+  let translit = false
+  let caps = false
+  for (const f of asked) {
+    const r = textResult(answer[f.person] as string, f.answer, strict, item.strictDiacritics)
+    detail[f.person] = r.correct
+    if (r.correct && r.diacritics) diacritics = true
+    if (r.translit) translit = true
+    if (r.caps) caps = true
+  }
+  const res = fraction(Object.values(detail).filter(Boolean).length, asked.length, expected, detail)
+  return { ...res, ...(diacritics ? { diacritics: true } : {}), ...(translit ? { translit: true } : {}), ...(caps ? { caps: true } : {}) }
 }
 
 // ---- matching, ordering, sorting ----

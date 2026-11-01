@@ -44,6 +44,7 @@ export function labelForPath(path: string): string {
     answer: 'Accepted answers',
     transcript: 'Transcript of the clip',
     back: 'Back of the card',
+    verb: 'Verb (infinitive)',
     why: 'Why the wrong choice is wrong'
   }
   if (fixed[path]) return fixed[path]
@@ -51,6 +52,10 @@ export function labelForPath(path: string): string {
   if (m) return `Option ${ordinal(Number(m[1]))}`
   m = /^options\[(\d+)\]\.why$/.exec(path)
   if (m) return `Why option ${ordinal(Number(m[1]))} is wrong`
+  m = /^forms\[(\d+)\]\.label$/.exec(path)
+  if (m) return `Form ${ordinal(Number(m[1]))}: pronoun`
+  m = /^forms\[(\d+)\]\.answer$/.exec(path)
+  if (m) return `Form ${ordinal(Number(m[1]))}: accepted answers (without the pronoun)`
   m = /^gaps\[(\d+)\]\.answer$/.exec(path)
   if (m) return `Gap ${ordinal(Number(m[1]))}: accepted answers`
   m = /^gaps\[(\d+)\]\.bank\[(\d+)\]$/.exec(path)
@@ -120,7 +125,7 @@ export function draftCatalogs(catalogs: Readonly<Record<string, TextCatalog>>, p
 export const splitLines = (raw: string): string[] => raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
 
 /** The structural fields of an item the editor can change (the rest only changes through texts). */
-const STRUCTURAL = ['difficulty', 'answer', 'answers', 'items', 'timeline'] as const
+const STRUCTURAL = ['difficulty', 'answer', 'answers', 'items', 'timeline', 'tense', 'ask', 'forms'] as const
 
 export interface SavePlan {
   patch: Record<string, unknown>
@@ -132,7 +137,7 @@ export function buildSave(original: CourseItem, draft: CourseItem, edits: TextEd
   const a = asJson(original)
   const b = asJson(draft)
   const patch: Record<string, unknown> = {}
-  for (const f of STRUCTURAL) if (JSON.stringify(a[f]) !== JSON.stringify(b[f])) patch[f] = b[f]
+  for (const f of STRUCTURAL) if (JSON.stringify(a[f]) !== JSON.stringify(b[f])) patch[f] = b[f] === undefined ? null : b[f] // a removed field is null in a merge patch
   const text: TextPatchView = {}
   for (const [key, value] of Object.entries(edits.strings)) {
     const l = holderLang(key, lang, pack, catalogs)

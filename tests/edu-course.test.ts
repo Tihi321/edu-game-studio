@@ -51,7 +51,8 @@ describe('golden fixtures', () => {
     expect(f.pack.units.map((u) => u.requires)).toEqual([[], ['u-sun-planets'], ['u-rocky-giant']])
     expect(unitOrder(f.pack.units)).toEqual(f.pack.units.map((u) => u.id))
     expect(findUnitCycle(f.pack.units)).toBeNull()
-    expect(new Set(f.pack.items.map((i) => i.kind))).toEqual(new Set(itemKindsBuiltin))
+    // conjugation is a language-course kind: tests/fixtures/courses/de-verbs-a1 uses it
+    expect(new Set(f.pack.items.map((i) => i.kind))).toEqual(new Set(itemKindsBuiltin.filter((k) => k !== 'conjugation')))
   })
 
   it('solar-system: facts have sources and urls, articles cite them, items carry explanations and hooks', async () => {
@@ -415,13 +416,13 @@ describe('the item-kind registry is extendable without touching the consumers', 
     expect(validateCourse(raw, cats).problems.map((p) => p.code)).toEqual(['UNKNOWN_KIND'])
   })
 
-  it('all thirteen built-in kinds are registered with a form label', () => {
+  it('all fourteen built-in kinds are registered with a form label', () => {
     for (const k of itemKindsBuiltin) {
       const def = getItemKind(k)
       expect(def, k).toBeDefined()
       expect(def!.form.length).toBeGreaterThan(3)
     }
-    expect(itemKindsBuiltin).toHaveLength(13)
+    expect(itemKindsBuiltin).toHaveLength(14)
     expect(formOf({ kind: 'mystery' })).toBe('mystery')
   })
 })

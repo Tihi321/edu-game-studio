@@ -412,6 +412,10 @@ async function run(opts) {
         }
         await activate('submit')
         break
+      case 'conjugation':
+        for (const p of Object.keys(ans)) if (await exists(`conj-${p}`)) await typeInto(`conj-${p}`, String(ans[p] ?? ''))
+        await activate('check')
+        break
       case 'typed':
         await typeInto('answer-input', String(ans))
         await page.keyboard.press('Enter')
@@ -484,6 +488,10 @@ async function run(opts) {
           } else await page.locator(tid(`gap-${g.id}`)).fill(String(ans[g.id] ?? ''))
         }
         await click('submit')
+        break
+      case 'conjugation':
+        for (const p of Object.keys(ans)) if (await exists(`conj-${p}`)) await page.locator(tid(`conj-${p}`)).fill(String(ans[p] ?? ''))
+        await click('check')
         break
       case 'typed':
         await page.locator(tid('answer-input')).fill(String(ans))

@@ -1420,3 +1420,74 @@
 .edu-stage .gloss-close:hover {
   background: var(--edu-surface-2);
 }
+
+/* ---- conjugation (EGS-27) ---- */
+.edu-stage .conj-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--edu-space-3);
+  margin-bottom: var(--edu-space-3);
+}
+
+.edu-stage .conj-verb {
+  margin: 0;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-xl);
+  color: var(--edu-accent);
+}
+
+.edu-stage .conj-tense {
+  padding: 2px 10px;
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-m);
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .conj-table {
+  border-collapse: separate;
+  border-spacing: 0 var(--edu-space-2);
+  width: 100%;
+  max-width: 34rem;
+}
+
+.edu-stage .conj-label {
+  padding-right: var(--edu-space-3);
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.edu-stage .conj-cell {
+  width: 100%;
+}
+
+.edu-stage .conj-input {
+  width: 100%;
+}
+
+.edu-stage .conj-input.is-correct {
+  border-color: var(--edu-good);
+}
+
+.edu-stage .conj-input.is-wrong {
+  border-color: var(--edu-bad);
+}
+
+.edu-stage .conj-given {
+  color: var(--edu-text-dim);
+  font-family: var(--edu-font-display);
+}
+
+.edu-stage .conj-result {
+  padding-left: var(--edu-space-2);
+  white-space: nowrap;
+}
+
+.edu-stage .conj-answer {
+  margin-left: var(--edu-space-2);
+  color: var(--edu-good);
+  font-family: var(--edu-font-display);
+  font-weight: 700;
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "lang": "hr",
+  "strings": {
+    "item.c-sein.prompt": "Konjugiraj glagol sein u prezentu.",
+    "item.c-sein.expl": "Sein je nepravilan glagol: bin, bist, ist, sind, seid.",
+    "item.q-sein-mcq.prompt": "Koji je oblik glagola sein za \"du\"?",
+    "item.q-sein-mcq.expl": "Za \"du\" kaže se \"du bist\".",
+    "item.q-sein-mcq.opt.b.why": "\"ist\" ide uz er / sie / es.",
+    "item.q-sein-mcq.opt.c.why": "\"seid\" ide uz \"ihr\".",
+    "item.c-gehen.prompt": "Konjugiraj glagol gehen u prezentu.",
+    "item.c-gehen.expl": "Gehen je pravilan: stablu gehen- dodaješ nastavke -e, -st, -t, -en, -t.",
+    "item.c-gehen-imp.prompt": "Napiši imperativ glagola gehen.",
+    "item.c-gehen-imp.expl": "Imperativ za Sie uključuje zamjenicu: gehen Sie.",
+    "item.q-gehen-typed.prompt": "Wir ___ nach Hause. (gehen)",
+    "item.q-gehen-typed.expl": "Uz \"wir\" glagol je u infinitivnom obliku: wir gehen.",
+    "course.title": "Njemački A1: glagoli",
+    "unit.sein.title": "Sein",
+    "unit.sein.summary": "Glagol sein.",
+    "unit.gehen.title": "Gehen",
+    "unit.gehen.summary": "Glagol gehen.",
+    "obj.sein": "Konjugirati sein u prezentu.",
+    "obj.gehen": "Konjugirati gehen u prezentu i imperativu."
+  }
+}

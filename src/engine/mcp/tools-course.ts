@@ -64,7 +64,7 @@ export function courseTools(svc: EduService, def: ToolDef): Tool[] {
     ),
     def(
       'edu_item_add',
-      'Add an item (any kind: mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, hotspot, listening, flashcard, crossword, word-search; the guide has each shape). The item is parsed by its kind\'s schema (defaults filled) and refused when it does not fit or points to an unknown objective, asset or option. Every text is a key: pass `text` to write the strings (and accepted answers) in the same call. Ask each fact in two or more forms and give every wrong choice a `why`.',
+      'Add an item (any kind: mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, hotspot, listening, flashcard, crossword, word-search, conjugation; the guide has each shape). The item is parsed by its kind\'s schema (defaults filled) and refused when it does not fit or points to an unknown objective, asset or option. Every text is a key: pass `text` to write the strings (and accepted answers) in the same call. Ask each fact in two or more forms and give every wrong choice a `why`.',
       z.object({ slug, item: jsonObject.describe('The full item: id, kind, objective, prompt, explanation, and the kind\'s fields'), text: textPatch }),
       (a) => svc.courses.itemAdd(a.slug, a.item, a.text)
     ),

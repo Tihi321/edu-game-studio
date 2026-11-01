@@ -104,7 +104,7 @@ export function resolveBrief(input: BriefInput | Brief, formats: readonly Format
     itemsPerObjective: brief.itemsPerObjective ?? format.items_per_objective,
     articlesPerUnit: format.articles_per_unit,
     researchQuestionsPerUnit: format.research_questions_per_unit,
-    // TODO(EGS-27): "conjugation" is listed by the formats but is not an authored kind until EGS-27 adds it to AUTHORED_ITEM_KINDS; until then it is left out so the item-writer is not asked for a kind it cannot write. The filter then does nothing.
+    // item kinds the formats list but the item-writer cannot author (hotspot, listening ...) are left out
     itemKinds: format.item_kinds.filter((k) => (AUTHORED_ITEM_KINDS as readonly string[]).includes(k)),
     language: !!brief.targetLang,
     kids: brief.kids ?? (brief.age !== undefined && brief.age < 13),
