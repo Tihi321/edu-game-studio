@@ -8,13 +8,20 @@ import type { VoiceAllocationEntry, VoiceProviderUsed } from '../../shared/voice
  *   - Languages are allocated WHOLE (a language never mixes providers in one run), Croatian first, then English, then the rest by code:
  *       a language whose clips (the ones that need speaking) fit in what is left goes to Gemini and uses it up; else it goes local.
  *     So hr and en together over the quota: Croatian on Gemini, English local; both fit: both Gemini; neither fits: both local.
- *   - Local means VibeTTS when it reads the language (Kokoro: English; Supertonic or Higgs: Croatian), else ComfyUI TTS; when the first local provider is
+ *   - Local means VibeTTS when it reads the language (Kokoro: English and a few others, never Croatian or German; Supertonic or Higgs: Croatian, German; `reads` is a probe of the `list_voices` language codes, not a list in code), else ComfyUI TTS; when the first local provider is
  *     down the other one takes over; when nothing can speak, the clips become placeholders and warnings (never a failed run).
  *   - Gemini down (flow-music-mcp not running, signed out, no key) or a quota error in the middle of a run: the rest of that language falls back to
  *     local (the chain below says in which order; `run.ts` follows it); clips already made stay.
  *   - A course may force a provider (`media.voice.provider`): `vibetts` and `comfy` never use Gemini and try that provider first; `gemini` allocates
  *     like `auto` (the quota still applies, a language that does not fit goes local).
  */
+
+/** Language codes a VibeTTS engine never reads, whatever a listing claims (Kokoro has no German or Croatian voice). */
+const NEVER_READS: Record<string, readonly string[]> = { kokoro: ['de', 'hr'] }
+
+/** True when a VibeTTS voice (from `list_voices`) reads `lang`: the one place that decides it. */
+export const voiceReads = (v: { engine?: string; languages: readonly string[] }, lang: string): boolean =>
+  v.languages.includes(lang) && !(NEVER_READS[(v.engine ?? '').toLowerCase()] ?? []).includes(lang)
 
 /** What can speak what, as the run probed it. */
 export interface VoiceAvailability {

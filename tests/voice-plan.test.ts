@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { PROMPT_VARS } from '../src/engine/edu/authoring'
 import { applyMedia } from '../src/engine/edu/media-link'
 import { voiceMergeOf } from '../src/engine/edu/media'
-import { buildVoicePlan, buildVoiceSource, checkVoicePlan, deriveListening, fallbackVoiceLines, limitsOf, mergeVoicePlan, voicePlanSchema, voicePromptVars } from '../src/engine/edu/voice'
+import { buildVoicePlan, buildVoiceSource, checkVoicePlan, deriveListening, fallbackStyle, fallbackVoiceLines, limitsOf, mergeVoicePlan, voicePlanSchema, voicePromptVars } from '../src/engine/edu/voice'
 import type { VoiceSource } from '../src/engine/edu/voice'
 import { parseCourseMedia } from '../src/shared/media'
 import type { AssetManifest } from '../src/shared/media'
@@ -13,7 +13,7 @@ import { derivedListeningId, isDerivedItem, shortenForSpeech, voiceClipId } from
  * derived listening items, the manifest merge and the merge into the pack.
  */
 
-const media = (voice: Record<string, unknown> = {}) => parseCourseMedia({ voice })
+const media = (voice: Record<string, unknown> = {}) => parseCourseMedia({ voice: { narration: true, ...voice } })
 const names = (k: string): string => (k === 'hr' ? 'Croatian' : k === 'en' ? 'English' : k)
 
 type Json = Record<string, unknown>
@@ -267,5 +267,19 @@ describe('the merge into the pack', () => {
     const linked = new Set(['voice-hr-t-hvala'])
     const v = voiceMergeOf(plan, linked)
     expect(v).toEqual({ items: [], strings: {}, listening: { 'u2-l2': 'voice-hr-t-hvala' }, narration: {} })
+  })
+})
+
+describe('narration default (EGS-33)', () => {
+  it('is off for a language course and on for the others; an explicit setting wins', () => {
+    expect(limitsOf(parseCourseMedia({}), true).narration).toBe(false)
+    expect(limitsOf(parseCourseMedia({}), false).narration).toBe(true)
+    expect(limitsOf(media({ narration: true }), true).narration).toBe(true)
+    expect(limitsOf(media({ narration: false }), false).narration).toBe(false)
+  })
+
+  it('the taught German style says Hochdeutsch', () => {
+    expect(fallbackStyle({ kids: false }, 'de', true)).toMatch(/Hochdeutsch/)
+    expect(fallbackStyle({ kids: false }, 'hr', true)).not.toMatch(/Hochdeutsch/)
   })
 })

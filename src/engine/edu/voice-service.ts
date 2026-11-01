@@ -1,14 +1,14 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { languageInfo } from '../../shared/languages'
-import { VOICE_KIND, voiceEnabled } from '../../shared/media'
+import { VOICE_KIND, parseCourseMedia, voiceEnabled } from '../../shared/media'
 import type { CourseMedia } from '../../shared/media'
 import { shortenForSpeech, voiceClipId } from '../../shared/voice'
 import type { VoiceAllocationEntry, VoicePlanFile } from '../../shared/voice'
 import { getEntry, replaceEntry, resolveFile } from '../assets/manifest'
 import { importAssetFile } from '../assets/import'
 import { dropPlaceholder } from '../assets/placeholder'
-import { allocateVoice } from '../voice/allocate'
+import { allocateVoice, voiceReads } from '../voice/allocate'
 import { loadVoiceConfig } from '../voice/config'
 import type { VoiceConfig } from '../voice/config'
 import { DEFAULT_GEMINI_DAILY_LIMIT, DEFAULT_GEMINI_RESET_TZ, GeminiQuota } from '../voice/quota'
@@ -147,7 +147,7 @@ export class VoiceService {
   async plan(ctx: JobContext, slug: string): Promise<{ plan: VoicePlanFile; added: string[]; kept: string[] }> {
     const media = await this.media.settings(slug)
     const { src } = await this.source(slug)
-    const limits = limitsOf(media)
+    const limits = limitsOf(media, !!src.targetLang)
     let lines: VoiceLine
     let by: 'model' | 'fallback' = 'model'
     let note: string | undefined
@@ -169,7 +169,7 @@ export class VoiceService {
   async planFromText(slug: string): Promise<{ plan: VoicePlanFile; added: string[]; kept: string[] }> {
     const media = await this.media.settings(slug)
     const { src } = await this.source(slug)
-    return this.writePlan(slug, src, fallbackVoiceLines(src, limitsOf(media)), 'fallback', media, 'made from the course text, with no model')
+    return this.writePlan(slug, src, fallbackVoiceLines(src, limitsOf(media, !!src.targetLang)), 'fallback', media, 'made from the course text, with no model')
   }
 
   private async writePlan(slug: string, src: VoiceSource, lines: VoiceLine, by: 'model' | 'fallback', media: CourseMedia, note?: string): Promise<{ plan: VoicePlanFile; added: string[]; kept: string[] }> {
@@ -297,6 +297,7 @@ export class VoiceService {
         up: true,
         voices: v.voices.map((x) => ({ id: x.id, label: x.label, engine: x.engine, languages: x.languages })),
         languages: v.languages,
+        readsDe: v.voices.some((x) => voiceReads(x, 'de')),
         languageVoices: v.languageVoices,
         readLanguage: v.readLanguage,
         supertonicInstalled: v.supertonicInstalled,
@@ -305,7 +306,16 @@ export class VoiceService {
     } catch (e) {
       Object.assign(vibetts, { up: false, error: (e as Error).message })
     }
-    return { gemini, vibetts }
+    // German (EGS-33): who reads it. Gemini is never used for German by the rule in practice (10 requests a day), so only the local providers count here.
+    let comfyDe: boolean
+    try {
+      comfyDe = 'engine' in (await resolveTts(dataFolders(this.svc.dataDir).workflows, parseCourseMedia({}), 'de'))
+    } catch {
+      comfyDe = false
+    }
+    const readsDe = { vibetts: vibetts.readsDe === true, comfy: comfyDe }
+    const warnings = readsDe.vibetts || readsDe.comfy ? [] : ['no local provider reads German (de): German listening clips become silent placeholders; install the Supertonic or Higgs voices in VibeTTS']
+    return { gemini, vibetts, comfy: { readsDe: comfyDe }, readsDe, ...(warnings.length ? { warnings } : {}) }
   }
 
   /** The voice of one course: the plan, the clips (how many are made, placeholders, imported) and the allocation (the last run's, and what it would be now). */
@@ -370,7 +380,7 @@ export class VoiceService {
       need,
       provider: e.media.voice.provider,
       quota: { limit: q.limit, used: q.used },
-      avail: { gemini: { up: geminiUp }, vibetts: { up: !!vibe, reads: (l) => !!vibe?.voices.some((v) => v.languages.includes(l)) }, comfy: { up: true, reads: (l) => engines.has(l) } }
+      avail: { gemini: { up: geminiUp }, vibetts: { up: !!vibe, reads: (l) => !!vibe?.voices.some((v) => voiceReads(v, l)) }, comfy: { up: true, reads: (l) => engines.has(l) } }
     })
     return { allocation, need }
   }

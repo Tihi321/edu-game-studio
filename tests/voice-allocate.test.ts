@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { allocateVoice, localChain, orderLanguages } from '../src/engine/voice/allocate'
+import { allocateVoice, localChain, orderLanguages, voiceReads } from '../src/engine/voice/allocate'
 import type { AllocationInput, VoiceAvailability } from '../src/engine/voice/allocate'
 import { DEFAULT_GEMINI_RESET_TZ, GeminiQuota, dayIn, quotaFile, quotaView } from '../src/engine/voice/quota'
 
@@ -167,5 +167,30 @@ describe('the allocation rule', () => {
     expect(providers(r)).toEqual({ hr: 'none', en: 'none' })
     expect(r.hr).toMatchObject({ chain: [], need: 2 })
     expect(r.hr!.reason).toMatch(/nothing can speak hr.*VibeTTS is not available \(VibeTTS is not running\).*ComfyUI TTS does not read hr.*placeholders/)
+  })
+})
+
+describe('German (EGS-33)', () => {
+  it('Kokoro-only availability: German has nowhere to go -> no provider (placeholders + a reason)', () => {
+    const kokoroOnly = down({ vibetts: { up: true, reads: (l) => voiceReads({ engine: 'kokoro', languages: ['en', 'de'] }, l) }, comfy: { up: true, reads: () => false } })
+    const r = alloc({ need: { de: 4 }, avail: kokoroOnly, provider: 'vibetts' })
+    expect(r.de).toMatchObject({ provider: 'none', chain: [] })
+    expect(r.de!.reason).toMatch(/does not read de/)
+  })
+
+  it('a voice list is a probe: Kokoro never reads de or hr even if a listing claims it; Supertonic does when listed', () => {
+    expect(voiceReads({ engine: 'kokoro', languages: ['de', 'en'] }, 'de')).toBe(false)
+    expect(voiceReads({ engine: 'Kokoro', languages: ['en'] }, 'en')).toBe(true)
+    expect(voiceReads({ engine: 'supertonic', languages: ['de'] }, 'de')).toBe(true)
+    expect(voiceReads({ engine: 'supertonic', languages: ['hr'] }, 'de')).toBe(false)
+  })
+
+  it('Supertonic available: German goes to VibeTTS (and Gemini is not the first choice when it does not fit)', () => {
+    const r = alloc({ need: { de: 40 }, quota: { limit: 10, used: 0 } })
+    expect(r.de).toMatchObject({ provider: 'vibetts', chain: ['vibetts', 'comfy'] })
+  })
+
+  it('10 left, 4 hr and 40 de clips: hr on Gemini, de local', () => {
+    expect(providers(alloc({ need: { hr: 4, de: 40 }, quota: { limit: 10, used: 0 } }))).toEqual({ hr: 'gemini', de: 'vibetts' })
   })
 })
