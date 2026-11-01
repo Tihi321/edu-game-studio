@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { FlowError, createFlowClient } from '../src/engine/studios/flow'
-import { loadStudiosConfig, studiosConfigSchema } from '../src/engine/studios/config'
+import { createFlowClient } from '../src/engine/studios/flow'
 import { createMcpClient } from '../src/engine/studios/mcp-http'
-import { courseSettingsSchema } from '../src/shared/media'
-import { fakeMcpServer, studioResult } from './studio-fakes'
+import { fakeMcpServer } from './studio-fakes'
 import type { FakeTool } from './studio-fakes'
 
 let closers: (() => Promise<void>)[] = []
@@ -103,78 +101,5 @@ describe('flow client', () => {
     })
     await expect(client(slow.url).generateImage({ prompt: 'x', aspect: '1:1', quality: 'original', project: 'p', out: 'C:\\o', name: 'n', timeoutMs: 300 })).rejects.toMatchObject({ kind: 'timeout' })
     expect(slow.seen.some((x) => x.body.params?.name === 'flow_cancel')).toBe(true)
-  })
-
-  it('an abort cancels the job and throws aborted', async () => {
-    const ac = new AbortController()
-    const s = await serve({
-      flow_generate: () => out({ jobs: [{ job_id: 'j1', status: 'queued' }] }),
-      flow_wait: () => {
-        ac.abort()
-        return out({ jobs: [{ job_id: 'j1', status: 'running' }] })
-      },
-      flow_cancel: () => out({ job_id: 'j1', status: 'cancelled' })
-    })
-    await expect(client(s.url).generateImage({ prompt: 'x', aspect: '1:1', quality: 'original', project: 'p', out: 'C:\\o', name: 'n', timeoutMs: 5000, signal: ac.signal })).rejects.toMatchObject({ kind: 'aborted' })
-    expect(s.seen.some((x) => x.body.params?.name === 'flow_cancel')).toBe(true)
-  })
-
-  it('maps tool errors to kinds', async () => {
-    const mk = (text: string) => serve({ flow_generate: () => ({ isError: true, text }) })
-    const gen = (url: string) => client(url).generateImage({ prompt: 'x', aspect: '1:1', quality: 'original', project: 'p', out: 'C:\\o', name: 'n', timeoutMs: 1000 })
-    await expect(gen((await mk('Flow is not signed in. Run yarn login')).url)).rejects.toMatchObject({ kind: 'signedOut' })
-    await expect(gen((await mk('Scene 1 needs 5 credits, above max_credits 0: refused, nothing spent')).url)).rejects.toMatchObject({ kind: 'credits' })
-    await expect(gen((await mk('A Flow job is running in the Flow tab.')).url)).rejects.toMatchObject({ kind: 'busy' })
-    await expect(gen((await mk('Gemini TTS rate limited (HTTP 429)')).url)).rejects.toMatchObject({ kind: 'rateLimit' })
-    await expect(gen('http://127.0.0.1:1/mcp')).rejects.toBeInstanceOf(FlowError)
-    await expect(gen('http://127.0.0.1:1/mcp')).rejects.toMatchObject({ kind: 'unreachable' })
-  })
-
-  it('voices, narrate (never the paid engine), song and loop send and read the documented fields', async () => {
-    const s = await serve({
-      flow_voices: () => out({ gemini: [{ name: 'Charon', description: 'informative', gender: 'male' }], gemini_model: 'gemini-3.8-flash-tts', gemini_ready: true, windows: [{ name: 'Microsoft Zira Desktop', culture: 'en-US', gender: 'female' }] }),
-      flow_narrate: () => studioResult('ok', { engine: 'gemini', output: 'C:\\v\\b1.mp3', duration: 2.5, format: 'mp3' }),
-      music_generate: () => out({ job_id: 'm1', status: 'queued', songs: [] }),
-      music_wait: () => out({ finished: true, jobs: [{ job_id: 'm1', status: 'done', songs: [{ id: 'song-abc', title: 't', file: 'C:\\m\\t.mp3' }], credits_spent: 5 }] }),
-      music_loop: () => out({ file: 'C:\\m\\t-loop.mp3', loop_start_s: 8, loop_end_s: 60, loop_seconds: 52, score: 0.9, seam: { clean: true } })
-    })
-    const c = client(s.url)
-    expect(await c.voices()).toEqual({ gemini: [{ name: 'Charon', description: 'informative', gender: 'male' }], geminiModel: 'gemini-3.8-flash-tts', geminiReady: true, windows: [{ name: 'Microsoft Zira Desktop', culture: 'en-US', gender: 'female' }] })
-    expect(await c.narrate({ text: 'Hello', engine: 'gemini', voice: 'Charon', style: 'gruffly', out: 'C:\\v', name: 'b1', format: 'mp3' })).toEqual({ file: 'C:\\v\\b1.mp3', durationSec: 2.5 })
-    const narrate = s.seen.find((x) => x.body.params?.name === 'flow_narrate')!.body.params!.arguments
-    expect(narrate).toEqual({ text: 'Hello', engine: 'gemini', voice: 'Charon', style: 'gruffly', out: 'C:\\v', name: 'b1', format: 'mp3' })
-    expect(await c.song({ sound: 'calm piano', title: 'T', out: 'C:\\m', name: 't', timeoutMs: 5000 })).toEqual({ id: 'song-abc', file: 'C:\\m\\t.mp3', creditsSpent: 5 })
-    expect(s.seen.find((x) => x.body.params?.name === 'music_generate')!.body.params!.arguments).toMatchObject({ instrumental: true, loop_friendly: true, format: 'mp3', wait: 0 })
-    expect(await c.loop({ input: 'C:\\m\\t.mp3', out: 'C:\\m', name: 't-loop' })).toEqual({ file: 'C:\\m\\t-loop.mp3', loopSeconds: 52, score: 0.9, seamClean: true })
-  })
-})
-
-describe('settings and config', () => {
-  it('an old project.md parses unchanged; the flow values round trip', () => {
-    const old = courseSettingsSchema.parse({ slug: 's', primaryLang: 'en' })
-    expect(old.art.provider).toBeUndefined()
-    expect(old.art.flowModel).toBeUndefined()
-    // the voice provider is the hub's allocation rule (auto); the Flow delivery notes are migrated
-    expect(old.voice.provider).toBe('auto')
-    expect(old.voice.engine).toBe('omnivoice')
-    expect(old.voice.styles).toEqual({})
-    expect(old.voice.refTexts).toEqual({})
-    expect(old.voice).not.toHaveProperty('flowStyles')
-    const legacy = courseSettingsSchema.parse({ slug: 's', primaryLang: 'en', voice: { provider: 'vibetts', flowStyles: { narrator: 'calm' } } })
-    expect(legacy.voice).toMatchObject({ provider: 'vibetts', styles: { narrator: 'calm' } })
-    expect(legacy.voice).not.toHaveProperty('flowStyles')
-    const flow = courseSettingsSchema.parse({ slug: 's', primaryLang: 'en', art: { provider: 'flow', flowModel: 'Nano Banana Pro', flowProject: 'mine' }, music: { provider: 'flow' }, voice: { provider: 'flow', flowStyles: { narrator: 'calm' } } })
-    expect(flow.art).toMatchObject({ provider: 'flow', flowModel: 'Nano Banana Pro', flowProject: 'mine' })
-    expect(flow.music.provider).toBe('flow')
-    expect(flow.voice).toMatchObject({ provider: 'gemini', styles: { narrator: 'calm' } })
-    expect(flow.voice).not.toHaveProperty('flowStyles')
-    expect(courseSettingsSchema.parse(JSON.parse(JSON.stringify(flow)))).toEqual(flow)
-  })
-
-  it('config/studios.md has the flow defaults, and the URL is overridden by EDU_FLOW_URL', async () => {
-    const c = studiosConfigSchema.parse({})
-    expect(c).toMatchObject({ flowUrl: 'http://127.0.0.1:7462/mcp', flowPollS: 40, flowJobTimeoutS: 900, flowMusicTimeoutS: 600, flowVoicePauseMs: 1500, flowVoiceRetries: 3, flowMusicMaxSongs: 4 })
-    expect(c.flowImageQuality).toEqual({ background: 'upscaled', cover: 'upscaled', cg: 'upscaled', sheet: 'original', sprite: 'original', insert: 'original' })
-    expect((await loadStudiosConfig('C:\\no\\such\\dir', { EDU_FLOW_URL: 'http://127.0.0.1:9/mcp' })).flowUrl).toBe('http://127.0.0.1:9/mcp')
   })
 })

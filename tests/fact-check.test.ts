@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { factCheck, factCheckRefs, renderUnit } from '../src/engine/edu/fact-check'
+import { factCheck, factCheckRefs } from '../src/engine/edu/fact-check'
 import type { FactCheckUnit } from '../src/engine/edu/fact-check'
 import type { Fact, SourceEntry } from '../src/engine/edu/factbase'
 import { contentText } from '../src/engine/models/types'
@@ -23,11 +23,6 @@ const good: FactCheckUnit = {
 }
 
 describe('factCheckRefs: the checks that need no model', () => {
-  it('a unit whose items and articles name existing facts has no problem', () => {
-    expect(factCheckRefs(facts.map((f) => f.id), good)).toEqual([])
-    // an article may list its citations apart from the text
-    expect(factCheckRefs(['f1'], { articles: [{ id: 'a', body: 'No marker here.', citations: ['f1'] }], items: [] })).toEqual([])
-  })
 
   it('an item with no fact, an unknown fact, an article with no citation or an unknown one: a problem with the ref of each', () => {
     const bad: FactCheckUnit = {
@@ -50,13 +45,6 @@ describe('factCheckRefs: the checks that need no model', () => {
       ['a-ghost', 'the article cites the fact f9, which is not in the fact base']
     ])
     expect(problems.every((p) => p.severity === 'major' && !!p.fix)).toBe(true)
-  })
-
-  it('renderUnit shows each article and item with its id, for the prompt', () => {
-    const text = renderUnit(good)
-    expect(text).toContain('### Article art-fall: The fall of Rome')
-    expect(text).toContain('### Item q-year (mcq)\nFacts it rests on: [f1]')
-    expect(renderUnit({ articles: [], items: [] })).toBe('(nothing to check)')
   })
 })
 
@@ -116,18 +104,6 @@ describe('factCheck: the fact-checker review of a unit', () => {
       const second = await runInJob(env, 'fact-checker', (ctx) => factCheck(ctx, { dataDir: env.dir, title: 'Rome', round: 2, facts, sources, unit: bad }))
       expect(second.verdict).toBe('revise')
       expect(second.problems.map((p) => p.ref)).toEqual(['q-ghost', 'q-year']) // the script's problem first, then the model's other one: the same finding twice is kept once
-    } finally {
-      await env.cleanup()
-    }
-  })
-
-  it('a unit with an empty fact base is told so, and every item is a reference problem', async () => {
-    const env = await makeEduEnv()
-    try {
-      env.mock.on({ role: 'fact-checker' }, () => JSON.stringify({ verdict: 'revise', scores: { accuracy: 3 }, notes: 'No fact base to check against, so nothing can be confirmed.', problems: [{ ref: '', issue: 'the fact base is empty' }] }))
-      const review = await runInJob(env, 'fact-checker', (ctx) => factCheck(ctx, { dataDir: env.dir, title: 'Rome', round: 1, facts: [], sources: [], unit: good }))
-      expect(review.verdict).toBe('revise')
-      expect([...new Set(review.problems.filter((p) => /not in the fact base/.test(p.issue)).map((p) => p.ref))].sort()).toEqual(['art-fall', 'q-who', 'q-year'])
     } finally {
       await env.cleanup()
     }

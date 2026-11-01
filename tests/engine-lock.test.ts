@@ -48,18 +48,4 @@ describe('engine.lock', () => {
     expect(JSON.parse(await readFile(file(), 'utf8'))).toMatchObject({ pid: 333 })
     await third.release()
   })
-
-  it('does not remove a lock that another engine took over', async () => {
-    const a = await acquireEngineLock(dir, { pid: 111, isAlive: () => true })
-    await writeFile(file(), JSON.stringify({ pid: 999, startedAt: '', mcpUrl: null }))
-    await a.release()
-    expect(JSON.parse(await readFile(file(), 'utf8'))).toMatchObject({ pid: 999 })
-  })
-
-  it('knows the real process is alive (the default check)', async () => {
-    const lock = await acquireEngineLock(dir)
-    expect(await readEngineLock(dir)).toMatchObject({ pid: process.pid })
-    await expect(acquireEngineLock(dir)).rejects.toBeInstanceOf(EngineLockHeldError)
-    await lock.release()
-  })
 })

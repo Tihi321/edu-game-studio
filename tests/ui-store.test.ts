@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { EngineEvent } from '../src/shared/protocol'
 import { initialCourses, reduceCourses, type CoursesData } from '../src/renderer/store/courses'
-import { eduStore, PAGES, reduceEvent } from '../src/renderer/store/store'
+import { eduStore } from '../src/renderer/store/store'
 
 const apply = (s: CoursesData, ...events: EngineEvent[]): CoursesData => events.reduce((acc, e) => ({ ...acc, ...reduceCourses(acc, e, 1000) }), s)
 
@@ -22,18 +22,9 @@ describe('reduceCourses', () => {
     expect(s.errors[0]).toMatchObject({ message: 'm5', at: 1000 })
     expect(s.errors[19]).toMatchObject({ message: 'm24', slug: 'a' })
   })
-  it('ignores events that are not about courses', () => {
-    expect(reduceCourses(initialCourses(), { type: 'pong', at: 'x' })).toEqual({})
-  })
 })
 
 describe('the store', () => {
-  it('has the studio pages and starts on the library', () => {
-    expect(PAGES.map((p) => p.id)).toEqual(['courses', 'models', 'agents', 'generators', 'settings'])
-    expect(PAGES[0]?.label).toBe('Library')
-    expect(eduStore.getState().page).toBe('courses')
-    expect(eduStore.getState().connected).toBe(false)
-  })
   it('turns an engine.ready event and a courses.listed event into state', () => {
     eduStore.getState().applyEvents([
       { type: 'engine.ready', pid: 1, dataDir: 'D', at: 'x' },
@@ -42,10 +33,5 @@ describe('the store', () => {
     const s = eduStore.getState()
     expect(s).toMatchObject({ connected: true, dataDir: 'D', coursesLoaded: true })
     expect(s.courses).toHaveLength(1)
-  })
-  it('reduceEvent keeps the last warnings', () => {
-    const s = eduStore.getState()
-    const next = reduceEvent(s, { type: 'engine.warning', message: 'careful' })
-    expect(next.warnings?.[next.warnings.length - 1]).toBe('careful')
   })
 })

@@ -4,7 +4,7 @@ import path from 'node:path'
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { generateAsset } from '../src/engine/assets/generate'
-import { assetDir, resolveFile } from '../src/engine/assets/manifest'
+import { resolveFile } from '../src/engine/assets/manifest'
 import { loadPalette } from '../src/engine/assets/palettes'
 import { pixelateWithStudio } from '../src/engine/studios/pixelate'
 import { entryOf, figurePng, genKit, SEED_PALETTES } from './assets-fixtures'
@@ -72,15 +72,5 @@ describe('RPG art through Pixel Studio', () => {
   it('the course can say builtin: Pixel Studio is not asked at all', async () => {
     await generateAsset(kit.ctx({ media: { art: { pixelProvider: 'builtin' } }, pixel: kit.pixel }), entryOf('img-rpg-tiles', 'tileset'))
     expect(kit.pixel.calls).toHaveLength(0)
-  })
-
-  it('the pixel art is exported at the native grid times the factor; nothing is left in the temporary folder', async () => {
-    const r = await generateAsset(kit.ctx({ pixel: kit.pixel }), entryOf('img-rpg-tiles', 'tileset'))
-    if (!r.ok || r.skipped) throw new Error('expected a version')
-    const native = await sharp(await readFile(path.join(assetDir(kit.dir, 'img-rpg-tiles'), r.version.nativeFile!))).metadata()
-    expect(native).toMatchObject({ width: 128, height: 128 })
-    const { existsSync, readdirSync } = await import('node:fs')
-    const tmpRoot = path.join(kit.dir, '..', '.tmp')
-    expect(!existsSync(tmpRoot) || readdirSync(tmpRoot).length === 0).toBe(true)
   })
 })

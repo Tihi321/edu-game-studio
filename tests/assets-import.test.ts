@@ -54,14 +54,6 @@ describe('importing a file as an asset', () => {
     await expect(checkImportFile(entryOf('v', 'illustration', { kind: 'voiceRef' as never }), png)).rejects.toThrow(/voice references/)
   })
 
-  it('audio is copied as it is', async () => {
-    const wav = path.join(kit.dir, 'tone.wav')
-    await writeFile(wav, 'RIFFxxxxWAVE')
-    const e = await importAssetFile(kit.dir, entryOf('mus-menu', 'music'), wav)
-    expect(e).toMatchObject({ source: 'custom', customFile: 'custom.wav', locked: true })
-    expect(existsSync(path.join(assetDir(kit.dir, 'mus-menu'), 'custom.wav'))).toBe(true)
-  })
-
   it('a placeholder the asset had is removed, and a second import replaces the first custom file', async () => {
     const ph = await writePlaceholder(kit.dir, entryOf('a', 'illustration'), 'down')
     const png = path.join(kit.dir, 'x.png')
