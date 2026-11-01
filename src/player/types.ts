@@ -14,7 +14,7 @@ export type ScreenName = 'loading' | 'error' | 'title' | 'map' | 'item' | 'feedb
  */
 export type AnyScreen = ScreenName | (string & {})
 
-export type RoundKind = 'unit' | 'boss' | 'review'
+export type RoundKind = 'unit' | 'boss' | 'review' | 'verbs'
 
 /** The JSON-safe snapshot `window.EduEngine.getState()` returns. */
 export interface PlayerState {
