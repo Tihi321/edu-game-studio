@@ -129,3 +129,13 @@ describe('the de-b2-reading fixture', () => {
     }
   })
 })
+
+describe('listening passages (EGS-38)', () => {
+  it('passageUrls lists the clips of a paragraph in order and stops at the first gap', async () => {
+    const { passageUrls } = await import('../src/player/shells/encyclopedia/view-reader')
+    const assets = { 'art-a1-p1': 'u1', 'art-a1-p2': 'u2', 'art-a1-p2-2': 'u2b', 'art-a1-p2-4': 'x' }
+    expect(passageUrls(assets, 'a1', 1)).toEqual(['u1'])
+    expect(passageUrls(assets, 'a1', 2)).toEqual(['u2', 'u2b'])
+    expect(passageUrls(assets, 'a1', 3)).toEqual([])
+  })
+})

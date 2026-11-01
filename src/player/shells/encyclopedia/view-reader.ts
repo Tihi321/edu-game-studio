@@ -8,7 +8,21 @@ import type { EncApp } from './app'
  * Glossed words are buttons (`gloss-<id>`) that open a popover; the glossary of the text is listed under it with an "in my deck" switch;
  * the position (chapter and how far down) is kept; a chapter counts as read when its last paragraph has been on screen. The left and right
  * arrow keys change chapter. Testids: `reader`, `reader-chapter-<articleId>`, `reader-prev`, `reader-next`, `reader-progress`.
+ *
+ * Listening passages (EGS-38): when the voice step made clips for the text (assets `art-<articleId>-p<n>`, a long paragraph also `-p<n>-2` ...), each paragraph
+ * has a play button (`reader-play-<n>`) and the text a "listen to all" button (`reader-play-all`). A paragraph with no clip has no button.
  */
+
+/** The urls of the clips of paragraph `n` (1-based) of a chapter, in order: `art-<id>-p<n>`, then `-2`, `-3` ... of a split paragraph. */
+export function passageUrls(assets: Record<string, string>, article: string, n: number): string[] {
+  const urls: string[] = []
+  for (let part = 1; ; part++) {
+    const u = assets[`art-${article}-p${n}${part > 1 ? `-${part}` : ''}`]
+    if (!u) break
+    urls.push(u)
+  }
+  return urls
+}
 
 const scroller = (): HTMLElement => (document.scrollingElement ?? document.documentElement) as HTMLElement
 
@@ -120,12 +134,69 @@ export function readerBody(app: EncApp, id: string): HTMLElement {
     button('reader-next', `${ui('reader.next')} ›`, () => go(next?.id), { class: 'btn btn-primary', ...(next ? {} : { disabled: true }) })
   )
 
+  // the clips of the text, one list per paragraph (none when the voice step made no passages)
+  const clips = chapter.paragraphs.map((_, i) => passageUrls(s.data.assets, id, i + 1))
+  const playing = { from: -1 }
+  const buttons = new Map<number, HTMLButtonElement>()
+  const allBtn: { el: HTMLButtonElement | null } = { el: null }
+  const paint = (): void => {
+    for (const [i, b] of buttons) {
+      const on = app.audio !== null && playing.from >= 0 && i === playing.from
+      b.textContent = on ? '■' : '▶'
+      b.setAttribute('aria-label', s.s(on ? 'reader.listen.stop' : 'reader.listen', { n: i + 1 }))
+    }
+    if (allBtn.el) allBtn.el.textContent = `${app.audio ? '■' : '▶'} ${s.s(app.audio ? 'reader.listenAll.stop' : 'reader.listenAll')}`
+  }
+  /** Plays the clips of paragraphs `from` to `to` (inclusive) one after the other; a second press stops. */
+  const play = (from: number, to: number): void => {
+    if (app.audio) {
+      app.stopAudio()
+      playing.from = -1
+      paint()
+      return
+    }
+    const queue: { p: number; url: string }[] = []
+    for (let p = from; p <= to; p++) for (const url of clips[p] ?? []) queue.push({ p, url })
+    const next = (): void => {
+      const q = queue.shift()
+      if (!q) {
+        app.stopAudio()
+        playing.from = -1
+        paint()
+        return
+      }
+      try {
+        const el = new Audio(q.url)
+        app.audio = el
+        playing.from = q.p
+        el.onended = () => {
+          if (app.audio === el) app.audio = null
+          next()
+        }
+        void el.play().then(() => s.audio.duck(true), () => undefined)
+      } catch {
+        app.audio = null
+        playing.from = -1
+      }
+      paint()
+    }
+    next()
+  }
+  const hasClips = clips.some((c) => c.length > 0)
   const body = h(
     'div',
     { class: 'enc-reader-body enc-body gloss-scope', testid: 'reader-body', lang: s.pack.targetLang ?? undefined },
-    segs.map((sg) => glossParagraph(sg, pop, undefined, offIds)),
+    segs.map((sg, i) => {
+      const p = glossParagraph(sg, pop, undefined, offIds)
+      if (!clips[i]?.length) return p
+      const b = button(`reader-play-${i + 1}`, '▶', () => play(i, i), { class: 'btn btn-small enc-reader-play', 'aria-label': s.s('reader.listen', { n: i + 1 }) })
+      buttons.set(i, b)
+      return h('div', { class: 'enc-reader-para' }, b, p)
+    }),
     pop.el
   )
+  const listenAll = hasClips ? button('reader-play-all', `▶ ${s.s('reader.listenAll')}`, () => play(0, chapter.paragraphs.length - 1), { class: 'btn btn-small enc-reader-play-all' }) : null
+  allBtn.el = listenAll
   const practice =
     items.length > 0
       ? button('reader-practice', ui('reader.practice'), () => app.practice(id), { class: 'btn btn-small' })
@@ -142,6 +213,7 @@ export function readerBody(app: EncApp, id: string): HTMLElement {
       h('h1', { class: 'screen-title enc-reader-title', tabindex: '-1', testid: 'reader-title', 'data-autofocus': '' }, chapter.title),
       h('p', { class: 'enc-rule', 'aria-hidden': 'true' }),
       words.length > 0 ? h('p', { class: 'enc-reader-hint' }, ui('reader.hint')) : null,
+      listenAll,
       body,
       end,
       h('p', { class: 'enc-reader-done', testid: 'reader-done', hidden: !read }, next ? ui('reader.read') : `${ui('reader.read')} ${ui('reader.last')}`),

@@ -154,6 +154,8 @@ export const courseSettingsSchema = z.object({
         provider: z.enum(VOICE_PROVIDERS).default('auto'),
         /** Narration: the voice-director picks short texts of the course (unit intros, article bodies) and they are spoken in the source language. Missing: on, except for a language course (`targetLang` set), where it is off so the free Gemini quota is not spent on narration nobody asked for (EGS-33); `true` turns it on. */
         narration: z.boolean().optional(),
+        /** Listening passages (EGS-38, language courses): one clip per paragraph of each reading, spoken by the local voices only (never Gemini). Off unless `true`. */
+        passages: z.boolean().default(false),
         /** Listening practice (language courses): every listening item gets its clip, and listening items are derived from taught phrases. */
         listening: z.boolean().default(true),
         /** At most this many listening items are derived from each unit's taught phrases. */
@@ -172,7 +174,7 @@ export const courseSettingsSchema = z.object({
         voices: z.preprocess(legacyVoices, z.record(z.string(), z.record(langSchema, z.string()))).default({})
       })
     )
-    .default({ langs: [], provider: 'auto', listening: true, listeningPerUnit: 3, localVoices: {}, engine: DEFAULT_VOICE_ENGINE, engines: {}, styles: {}, refTexts: {}, voices: {} }),
+    .default({ langs: [], provider: 'auto', passages: false, listening: true, listeningPerUnit: 3, localVoices: {}, engine: DEFAULT_VOICE_ENGINE, engines: {}, styles: {}, refTexts: {}, voices: {} }),
   /**
    * Sound effects and ambiences. `ambienceEngine` is a ComfyUI music engine (the default) or `chiptune` (Chiptune Studio's `compose_sfx` ambience loops).
    * `sfxEngine` names the engine of a sound effect: an audio engine (MOSS-SoundEffect v2 included), `chiptune` (Chiptune Studio's `compose_sfx`) or a
@@ -347,7 +349,7 @@ export const assetEntrySchema = z.object({
       lang: langSchema,
       /** The catalog key whose text is spoken. */
       key: z.string(),
-      role: z.enum(['listening', 'narration']),
+      role: z.enum(['listening', 'narration', 'passage']),
       text: z.string(),
       hash: z.string(),
       /** What made the selected version: `gemini`, `vibetts`, `comfy` or `import` (made by hand). */

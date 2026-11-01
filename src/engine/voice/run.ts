@@ -71,6 +71,9 @@ export interface VoiceRunReport {
 export const clipHash = (parts: { text: string; lang: string; gemini: string; vibetts: string; style: string; speed: number; format: string }): string =>
   createHash('sha1').update([parts.text, parts.lang, parts.gemini, parts.vibetts, parts.style, String(parts.speed), parts.format].join('\u0000')).digest('hex')
 
+/** The languages with a passage clip to speak: they go to the local voices only (EGS-38). */
+export const passageLangs = (clips: readonly { lang: string; role: string }[]): string[] => [...new Set(clips.filter((c) => c.role === 'passage').map((c) => c.lang))]
+
 /** How a language is spoken: the course's own settings win over the voice-director's plan (the Gemini voice `voice.voices.narrator.<lang>`, the VibeTTS voice `voice.localVoices.<lang>`, the style `voice.styles.<lang>` or `.narrator`). */
 export function effectiveVoice(media: Pick<CourseMedia, 'voice'>, plan: Pick<VoicePlanFile, 'voices'>, lang: string): Required<Pick<VoiceLangPlan, 'style'>> & { gemini: string; vibetts: string } {
   const p = plan.voices[lang] ?? {}
@@ -175,7 +178,7 @@ export async function runVoice(inp: VoiceRunInput): Promise<VoiceRunReport> {
   await fs.mkdir(inp.tmpDir, { recursive: true })
   const { avail, vibe, engines, notes } = await probe(inp, Object.keys(need))
   const q = await inp.quota.read()
-  report.allocation = allocateVoice({ need, provider: inp.media.voice.provider, quota: { limit: q.limit, used: q.used }, avail })
+  report.allocation = allocateVoice({ need, provider: inp.media.voice.provider, quota: { limit: q.limit, used: q.used }, avail, localOnly: passageLangs(jobs) })
   for (const a of Object.values(report.allocation)) inp.log(`voice ${a.lang}: ${a.need} clip(s) -> ${a.provider} (${a.reason})`)
 
   const speakers: Record<VoiceProviderUsed, Speaker> = {

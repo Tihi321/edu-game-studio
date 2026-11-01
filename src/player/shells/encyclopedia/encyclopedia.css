@@ -1633,3 +1633,24 @@
     font-size: var(--edu-text-l);
   }
 }
+
+/* Listening passages (EGS-38): a play button beside each paragraph of the reader */
+.edu-stage .enc-reader-para {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.edu-stage .enc-reader-para > p {
+  flex: 1;
+  margin-top: 0;
+}
+
+.edu-stage .enc-reader-play {
+  flex: none;
+  min-width: 2.4rem;
+}
+
+.edu-stage .enc-reader-play-all {
+  margin: 0.4rem 0 0.8rem;
+}

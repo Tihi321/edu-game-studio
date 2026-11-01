@@ -3,7 +3,7 @@ import path from 'node:path'
 import { languageInfo } from '../../shared/languages'
 import { VOICE_KIND, parseCourseMedia, voiceEnabled } from '../../shared/media'
 import type { CourseMedia } from '../../shared/media'
-import { shortenForSpeech, voiceClipId } from '../../shared/voice'
+import { spokenText, voiceClipId } from '../../shared/voice'
 import type { VoiceAllocationEntry, VoicePlanFile } from '../../shared/voice'
 import { getEntry, replaceEntry, resolveFile } from '../assets/manifest'
 import { importAssetFile } from '../assets/import'
@@ -13,7 +13,7 @@ import { loadVoiceConfig } from '../voice/config'
 import type { VoiceConfig } from '../voice/config'
 import { DEFAULT_GEMINI_DAILY_LIMIT, DEFAULT_GEMINI_RESET_TZ, GeminiQuota } from '../voice/quota'
 import type { QuotaView } from '../voice/quota'
-import { baseEntry, clipHash, effectiveVoice, runVoice } from '../voice/run'
+import { baseEntry, clipHash, effectiveVoice, passageLangs, runVoice } from '../voice/run'
 import type { VoiceRunReport } from '../voice/run'
 import { resolveTts } from '../voice/speak'
 import type { JobContext } from '../queue/scheduler'
@@ -215,7 +215,7 @@ export class VoiceService {
       textOf: (clip) => {
         const t = textOfKey(catalogs, clip.lang, clip.key)
         if (t === undefined) return clip.text
-        return clip.role === 'narration' ? shortenForSpeech(t, config.narrationMaxChars) : t
+        return spokenText(clip, t, config.narrationMaxChars)
       },
       loadManifest: () => this.media.loadManifest(slug),
       mutate: (fn) => this.media.mutate(slug, fn),
@@ -333,7 +333,7 @@ export class VoiceService {
     return {
       enabled: e.enabled,
       provider: e.media.voice.provider,
-      ...(plan ? { plan: { source: plan.source, at: plan.at, clips: plan.clips.length, listening: plan.clips.filter((c) => c.role === 'listening').length, narration: plan.clips.filter((c) => c.role === 'narration').length, derivedItems: plan.derived.map((d) => d.id), voices: plan.voices, ...(plan.warnings?.length ? { warnings: plan.warnings } : {}) } } : { plan: null }),
+      ...(plan ? { plan: { source: plan.source, at: plan.at, clips: plan.clips.length, listening: plan.clips.filter((c) => c.role === 'listening').length, narration: plan.clips.filter((c) => c.role === 'narration').length, passages: plan.clips.filter((c) => c.role === 'passage').length, passageCharacters: plan.clips.filter((c) => c.role === 'passage').reduce((n, c) => n + c.text.length, 0), derivedItems: plan.derived.map((d) => d.id), voices: plan.voices, ...(plan.warnings?.length ? { warnings: plan.warnings } : {}) } } : { plan: null }),
       clips: { total: clips.length, made: count('made'), imported: count('imported'), placeholders: count('placeholder'), planned: count('planned') },
       ...(plan?.allocation ? { allocation: plan.allocation as Record<string, VoiceAllocationEntry> } : {}),
       detail: clips
@@ -354,7 +354,7 @@ export class VoiceService {
     for (const c of plan.clips) {
       const t = (() => {
         const x = textOfKey(catalogs, c.lang, c.key)
-        return x === undefined ? c.text : c.role === 'narration' ? shortenForSpeech(x, config.narrationMaxChars) : x
+        return x === undefined ? c.text : spokenText(c, x, config.narrationMaxChars)
       })()
       const eff = effectiveVoice(e.media, plan, c.lang)
       const hash = clipHash({ text: t.trim(), lang: c.lang, gemini: eff.gemini, vibetts: eff.vibetts, style: eff.style, speed: config.speed, format: config.format })
@@ -380,6 +380,7 @@ export class VoiceService {
       need,
       provider: e.media.voice.provider,
       quota: { limit: q.limit, used: q.used },
+      localOnly: passageLangs(plan.clips),
       avail: { gemini: { up: geminiUp }, vibetts: { up: !!vibe, reads: (l) => !!vibe?.voices.some((v) => voiceReads(v, l)) }, comfy: { up: true, reads: (l) => engines.has(l) } }
     })
     return { allocation, need }

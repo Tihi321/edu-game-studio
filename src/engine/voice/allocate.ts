@@ -40,6 +40,8 @@ export interface AllocationInput {
   /** The Gemini counter: `limit - used` requests are left today. */
   quota: { limit: number; used: number }
   avail: VoiceAvailability
+  /** Languages that never go to Gemini whatever the quota says (a language with listening passages, EGS-38). */
+  localOnly?: readonly string[]
 }
 
 /** Croatian first (the hub prefers the free Gemini voices for it), then English, then the others by code. */
@@ -72,7 +74,8 @@ export function allocateVoice(input: AllocationInput): Record<string, VoiceAlloc
       continue
     }
     let why = ''
-    if (useGemini) {
+    if (useGemini && input.localOnly?.includes(lang)) why = 'this language is spoken by the local voices only'
+    else if (useGemini) {
       if (!input.avail.gemini.up) why = `Gemini is not available${input.avail.gemini.reason ? ` (${input.avail.gemini.reason})` : ''}`
       else if (need > left) why = `${need} clip(s) do not fit in the ${left} Gemini request(s) left today`
       else {

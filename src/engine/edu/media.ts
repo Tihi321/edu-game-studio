@@ -681,7 +681,7 @@ export function voiceMergeOf(plan: Pick<VoicePlanFile, 'clips' | 'derived'>, lin
   for (const c of plan.clips) {
     if (!linked.has(c.id)) continue
     if (c.role === 'narration') out.narration[c.key] = c.id
-    else for (const item of c.items ?? []) out.listening[item] = c.id
+    else if (c.role === 'listening') for (const item of c.items ?? []) out.listening[item] = c.id
   }
   return out
 }

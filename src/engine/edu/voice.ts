@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { shortenForSpeech, derivedListeningId, voiceClipId, DERIVED_MARK, NARRATION_MAX_CHARS } from '../../shared/voice'
+import { shortenForSpeech, derivedListeningId, voiceClipId, passageChunks, passageClipId, DERIVED_MARK, NARRATION_MAX_CHARS } from '../../shared/voice'
 import type { DerivedListening, VoiceClipPlan, VoiceLangPlan, VoicePlanFile } from '../../shared/voice'
 import { VOICE_KIND } from '../../shared/media'
 import type { AssetManifest, CourseMedia } from '../../shared/media'
@@ -26,6 +26,16 @@ export interface NarrationCandidate {
   ref: string
   unit?: string
   title: string
+  text: string
+}
+
+/** A reading whose paragraphs can be spoken (EGS-38): an article whose body is in the taught language. */
+export interface PassageCandidate {
+  /** The article id and the catalog key of its body. */
+  article: string
+  key: string
+  title: string
+  /** The body in the target language. */
   text: string
 }
 
@@ -67,6 +77,8 @@ export interface VoiceSource {
   targetLanguage?: string
   units: { id: string; title: string }[]
   narration: NarrationCandidate[]
+  /** The readings (articles whose body is in the taught language), for listening passages. */
+  passages: PassageCandidate[]
   /** Items whose taught phrase can become a listening item (a language course only), in course order. */
   candidates: ListenCandidate[]
   listening: ListeningRow[]
@@ -115,6 +127,15 @@ export function buildVoiceSource(pack: Json, catalogs: VoiceSource['catalogs'], 
     if (key && text) narration.push({ key, kind: 'article', ref: String(a.id), ...(typeof a.unit === 'string' ? { unit: a.unit } : {}), title: t(a.title), text })
   }
 
+  const passages: PassageCandidate[] = []
+  if (targetLang) {
+    for (const a of articles) {
+      const key = asStr(a.body)
+      const text = key ? catalogs[targetLang]?.strings?.[key] : undefined
+      if (key && text && passageChunks(text).length) passages.push({ article: String(a.id), key, title: t(a.title, targetLang), text })
+    }
+  }
+
   const listening: ListeningRow[] = []
   const have = new Set<string>()
   for (const it of items) {
@@ -156,6 +177,7 @@ export function buildVoiceSource(pack: Json, catalogs: VoiceSource['catalogs'], 
     ...(targetLang ? { targetLang, targetLanguage: o.targetLanguageName ?? o.languageName(targetLang) } : {}),
     units,
     narration,
+    passages,
     candidates,
     listening,
     catalogs
@@ -199,11 +221,16 @@ export type VoiceLine = VoicePlanOutput
 export interface VoiceLimits {
   narration: boolean
   listening: boolean
+  /** Listening passages (EGS-38): a clip per paragraph of each reading. */
+  passages: boolean
   /** The most narration clips. */
   maxNarration: number
   /** The most derived listening items per unit. */
   perUnit: number
 }
+
+/** The local voice German listening passages use by default (EGS-38; a voice id from VibeTTS's `list_voices`). */
+export const DEFAULT_PASSAGE_VOICE_DE = 'supertonic:M2'
 
 /** The default most narration clips: a few per course (each is one Gemini request or one local call). */
 export const MAX_NARRATION = 12
@@ -212,7 +239,7 @@ export const MAX_NARRATION = 12
 export const narrationOn = (media: Pick<CourseMedia, 'voice'>, languageCourse: boolean): boolean => media.voice.narration ?? !languageCourse
 
 export function limitsOf(media: Pick<CourseMedia, 'voice'>, languageCourse = false): VoiceLimits {
-  return { narration: narrationOn(media, languageCourse), listening: media.voice.listening, maxNarration: MAX_NARRATION, perUnit: media.voice.listeningPerUnit }
+  return { narration: narrationOn(media, languageCourse), listening: media.voice.listening, passages: media.voice.passages && languageCourse, maxNarration: MAX_NARRATION, perUnit: media.voice.listeningPerUnit }
 }
 
 const problem = (ref: string, issue: string, fix?: string): Problem => ({ ref, issue, ...(fix ? { fix } : {}), severity: 'major' })
@@ -356,12 +383,23 @@ export function buildVoicePlan(lines: VoiceLine, src: VoiceSource, o: { media: P
     }
   }
 
+  // listening passages (EGS-38): one clip per paragraph (a long one split at a sentence) of each reading, in the taught language; deterministic, the model plans nothing
+  if (limits.passages && src.targetLang) {
+    for (const p of src.passages) {
+      for (const c of passageChunks(p.text)) {
+        addClip({ id: passageClipId(p.article, c.paragraph, c.part), lang: src.targetLang, key: p.key, role: 'passage', paragraph: c.paragraph, part: c.part, text: c.text, alt: narrationAlt(src.sourceLang, p.title) })
+      }
+    }
+  }
+
   const voices: Record<string, VoiceLangPlan> = {}
   const langs = new Set([...clips.values()].map((c) => c.lang))
   for (const lang of langs) {
     const v = lines.voices[lang]
     const style = v?.style?.trim() || fallbackStyle(src, lang, lang === src.targetLang)
-    voices[lang] = { style, ...(v?.gemini?.trim() ? { gemini: v.gemini.trim() } : {}) }
+    // taught German passages are read by the local Supertonic voice M2 unless the course or the plan names another (EGS-38; VibeTTS falls back to its own German voice when it is missing)
+    const vibetts = (lang === 'de' && lang === src.targetLang && limits.passages ? DEFAULT_PASSAGE_VOICE_DE : '')
+    voices[lang] = { style, ...(v?.gemini?.trim() ? { gemini: v.gemini.trim() } : {}), ...(vibetts ? { vibetts } : {}) }
   }
   return {
     version: 1,
