@@ -45,7 +45,9 @@ export const SEED_HISTORY: Record<string, string[]> = {
   'config/voice.md': ['49045c07ff69cd58496f3df27b070e6cfa62ca1d'],
   'config/languages.md': ['44401d2836ce03d3bbf98541079cae48eefd6712'],
   'prompts/voice-director/plan.md': ['b4ea7c2d1c9bcdd4a68a453ae66810130d363c19'],
-  'prompts/subject-expert/articles_revise.md': ['94b54c239ca90ffebee38097478c4e7fe46bc5be']
+  'prompts/subject-expert/articles_revise.md': ['94b54c239ca90ffebee38097478c4e7fe46bc5be'],
+  // EGS-53: the game-designer prompt before it named all four shells.
+  'prompts/game-designer/design.md': ['9189d38fa9aadb663678707dfa9804436428cd4c']
 }
 
 export interface SeedState {

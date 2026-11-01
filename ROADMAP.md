@@ -85,3 +85,4 @@ Not planned yet:
 - The game-designer prompt still says only the quiz arena is playable; update it to the shells that play now.
 - `edu_asset_generate {kind: "image"}` fails with an error that wrongly names `media.music.enabled`; it should name the image setting.
 - **EGS-51** reader markup: `## ` headings and `[n]` citations render as headings and superscripts in the reader, article page and passage panel. Plan `.claude/tickets/EGS-51-reader-markup/`.
+- **EGS-53** German verbs and lint: Konjunktiv II wärst, würde-rule in the writer prompt, fresh lint before the playtest report and publish, umlaut-strict option comparison for German, erheben/fördern/unterstützen/verkürzen, the design prompt names all four shells. Plan `.claude/tickets/EGS-53-german-verbs-lint/`.

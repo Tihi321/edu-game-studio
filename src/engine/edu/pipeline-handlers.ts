@@ -48,7 +48,7 @@ import {
   unitLines
 } from './authoring'
 import type { AcceptedOutput, Article, AuthoredItem, Curriculum, DesignData, ExplainOutput, Frame, Problem } from './authoring'
-import { factbaseText } from './authoring'
+import { factbaseText, PIPELINE_SHELLS } from './authoring'
 import { factCheck } from './fact-check'
 import type { FactCheckItem } from './fact-check'
 import { playtestDigest } from './playtest'
@@ -593,7 +593,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         age: vars.age,
         units: cur.units.map((u) => `- ${u.id}: ${u.title} (${kindsOf(u.id) || 'no items'})`).join('\n'),
         item_summary: items.map((i) => `${i.id} ${i.kind} ${i.difficulty ?? 3}`).join('\n'),
-        shells_available: 'quiz-arena',
+        shells_available: PIPELINE_SHELLS.join(', '),
         notes: `${h.R.brief.notes ?? 'none'}. Shells asked for: ${h.R.brief.shells.join(', ')}.`
       },
       schema: designSchema
@@ -951,11 +951,17 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     { noModel: true }
   )
 
+  /** Lints the course and stores the result as pipeline/lint.json. */
+  const writeLint = async (slug: string, rebuild: boolean) => {
+    const r = await svc.courses.lint(slug, { rebuild })
+    await P.writeJson(slug, 'lint.json', { ok: r.ok, errors: r.errors, warnings: r.warnings, problems: r.problems.slice(0, 40) })
+    return r
+  }
+
   step(
     'lint',
     async (h) => {
-      const r = await svc.courses.lint(h.slug, { rebuild: false })
-      await P.writeJson(h.slug, 'lint.json', { ok: r.ok, errors: r.errors, warnings: r.warnings, problems: r.problems.slice(0, 40) })
+      const r = await writeLint(h.slug, false)
       return { note: r.ok ? `clean (${r.warnings} warning(s))` : `${r.errors} error(s), ${r.warnings} warning(s): a hard gate of the publisher`, path: 'pipeline/lint.json' }
     },
     { noModel: true }
@@ -977,6 +983,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       const cur = await curriculumOf(h.slug)
       const { vars } = await common(h)
       const play = await P.readJson<PlaytestResult>(h.slug, 'playtest.json')
+      await writeLint(h.slug, true) // a repair after the lint step must not leave a stale result (EGS-53)
       const lint = await P.readJson<{ ok: boolean; errors: number; warnings: number; problems: { code: string; path: string; message: string }[] }>(h.slug, 'lint.json')
       const { value } = await askRole(h.ctx, {
         dataDir,
@@ -1003,6 +1010,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
   step(
     'publish',
     async (h) => {
+      await writeLint(h.slug, true) // the decision reads lint.json: lint again, a repair since the lint step would leave it stale (EGS-53)
       const { decision, reviews } = await P.decision(h.slug)
       const at = new Date().toISOString()
       if (!decision.publish) {
@@ -1021,7 +1029,12 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       await P.writeJson(h.slug, 'publish.json', { published: true, score: decision.score, byDimension: decision.byDimension, blurb: value.blurb, notes: value.notes, at })
       return { note: `published, score ${decision.score}`, path: 'pipeline/publish.json' }
     },
-    { skipModel: async (job) => !(await P.decision(job.data.book ?? '')).decision.publish }
+    {
+      skipModel: async (job) => {
+        if (job.data.book) await writeLint(job.data.book, true)
+        return !(await P.decision(job.data.book ?? '')).decision.publish
+      }
+    }
   )
 
   step('summarize', async (h) => {

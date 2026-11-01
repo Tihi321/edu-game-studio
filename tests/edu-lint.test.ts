@@ -149,6 +149,18 @@ describe('lint: each rule', () => {
     expect(codes(lint(d))).not.toContain('DISTRACTOR_DUPLICATE')
   })
 
+  it('DISTRACTOR_IS_KEY: German keeps umlauts, so warst is no duplicate of wärst (EGS-53)', async () => {
+    const d = await game('solar-system')
+    const [key, wrong] = options(item(d, 'q-sun-mcq'))
+    d.catalogs.de = structuredClone(d.catalogs.en!)
+    str(d, 'de', key!.text, 'wärst')
+    str(d, 'de', wrong!.text, 'warst')
+    expect(only(lint(d), 'DISTRACTOR_IS_KEY').filter((p) => p.message.includes('(in de)'))).toEqual([])
+    str(d, 'en', key!.text, 'wärst')
+    str(d, 'en', wrong!.text, 'warst')
+    expect(only(lint(d), 'DISTRACTOR_IS_KEY').filter((p) => p.message.includes('(in en)'))).toHaveLength(1)
+  })
+
   it('DISTRACTOR_IS_KEY and DISTRACTOR_DUPLICATE: a cloze word bank', async () => {
     const d = await game('hr-a1-greetings')
     const cloze = item(d, 'g-hello-cloze')

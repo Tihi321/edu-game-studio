@@ -98,7 +98,7 @@ const PLACEHOLDER_WORD = /placeholder/i
 // the markers are upper-case (an ordinary word like "todo-list" or "Todos" is not one); lower-case only with a colon ("todo: ...")
 const PLACEHOLDER_PATTERNS: RegExp[] = [/\b(?:TODO|TBD|FIXME)\b/, /\b(?:todo|fixme|tbd)\s*:/i, /lorem ipsum/i, /\bXXX+\b/, /\[\[/]
 
-const norm = (s: string): string => normalizeText(s, { fold: true })
+const normIn = (s: string, lang: string): string => normalizeText(s, { fold: lang !== 'de' })
 const blank = (s: string | undefined): boolean => s === undefined || s.trim() === ''
 
 interface ChoiceOption {
@@ -256,7 +256,7 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
       for (const c of choices) {
         const t = res.text(c.text)
         if (blank(t)) continue
-        const n = norm(t!)
+        const n = normIn(t!, lang)
         const first = seen.get(n)
         if (!first) {
           seen.set(n, c)
@@ -273,12 +273,12 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
       if (e.item.kind === 'cloze' && Array.isArray(p.gaps)) {
         ;(p.gaps as { id: string; answer: string; bank?: string[] }[]).forEach((g, gi) => {
           if (!g.bank) return
-          const accepted = res.accepted(g.answer).map(norm)
+          const accepted = res.accepted(g.answer).map((a) => normIn(a, lang))
           const texts = new Map<string, string>()
           g.bank.forEach((b, bi) => {
             const t = res.text(b)
             if (blank(t)) return
-            const n = norm(t!)
+            const n = normIn(t!, lang)
             const where = `${at}.gaps[${gi}].bank[${bi}]`
             if (b !== g.answer && accepted.includes(n)) out.add('DISTRACTOR_IS_KEY', where, `the bank word "${t}" is an accepted answer of gap "${g.id}"`, lang)
             else if (texts.has(n) && b !== g.answer) out.add('DISTRACTOR_DUPLICATE', where, `the bank word "${t}" appears twice in the word bank of gap "${g.id}"`, lang)
@@ -289,9 +289,9 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
       // typed answers: a near-miss list must not hold a right answer
       const misses = (p.extensions as { nearMisses?: unknown } | undefined)?.nearMisses
       if (Array.isArray(misses) && typeof p.answer === 'string' && (e.item.kind === 'typed' || e.item.kind === 'listening')) {
-        const accepted = res.accepted(p.answer).map(norm)
+        const accepted = res.accepted(p.answer).map((a) => normIn(a, lang))
         misses.forEach((m, mi) => {
-          if (typeof m === 'string' && accepted.includes(norm(m))) out.add('DISTRACTOR_IS_KEY', `${at}.extensions.nearMisses[${mi}]`, `the near-miss "${m}" is an accepted answer`, lang)
+          if (typeof m === 'string' && accepted.includes(normIn(m, lang))) out.add('DISTRACTOR_IS_KEY', `${at}.extensions.nearMisses[${mi}]`, `the near-miss "${m}" is an accepted answer`, lang)
         })
       }
     }

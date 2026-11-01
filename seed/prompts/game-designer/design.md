@@ -14,7 +14,7 @@ The units (each with its number of items by kind):
 All items with their kind and the first difficulty the writer gave (id, kind, difficulty):
 {{item_summary}}
 
-The shells the player has today: {{shells_available}}. A shell is a way to play the same questions. Name only shells from that list in `shells`; you may also name others you would want later (they are recorded, not played yet). The quiz arena is always on.
+The shells the player has today: {{shells_available}}. A shell is a way to play the same questions. Name only shells from that list in `shells`; you may also name others you would want later (they are recorded, not played yet). The quiz arena (timed rounds and a boss round) is always on. The others: `encyclopedia` (the articles as an explorable book), `mindmaze` (a castle of rooms, one question each) and `rpg` (a quest with a story). Switch on those that suit the course and the questions.
 
 Notes from the person who asked: {{notes}}
 
