@@ -29,6 +29,7 @@ const get = (f) => a[a.indexOf(f) + 1]
 const cfg = JSON.parse(process.env.FAKE_BOT || '{}')
 const r = cfg[get('--mode') + '-' + get('--seed')] || { code: 0, summary: { mode: get('--mode'), seed: Number(get('--seed')), steps: 10, correct: 10, wrong: 0, screens: ['end'], finished: true, consoleErrors: 0, maxSteps: 50, ok: true, failures: [] } }
 fs.appendFileSync(process.env.FAKE_BOT_LOG, JSON.stringify(a) + '\\n')
+if (r.hang) await new Promise((res) => setTimeout(res, 60000))
 if (r.stderr) console.error(r.stderr)
 if (r.summary !== null) console.log(JSON.stringify(r.summary))
 process.exit(r.code)
@@ -75,6 +76,14 @@ describe('the playtest runner (a fake bot script)', () => {
     expect(r.runs.find((x) => x.persona === 'strong')).toMatchObject({ ok: false, failures: ['2 console error(s) while playing'] })
     expect(r.runs.filter((x) => x.ok).map((x) => x.persona)).toEqual(['perfect', 'wrong', 'average'])
     expect(r.failures).toEqual(['strong: 2 console error(s) while playing', 'struggling: the game was not finished'])
+  })
+
+  it('a bot that runs past the timeout is reported as a timeout, not as "no result"', async () => {
+    const bot = await fakeBot()
+    const env = { ...process.env, FAKE_BOT_LOG: bot.log, FAKE_BOT: JSON.stringify({ 'perfect-1': { code: 0, summary: null, hang: true } }) }
+    const r = await runPlaytest(await tmp('edu-build-'), { playScript: bot.script, env, personas: ['perfect'], timeoutMs: 1500 })
+    expect(r.ok).toBe(false)
+    expect(r.runs[0]!.failures[0]).toMatch(/timed out after 2 s without finishing/)
   })
 
   it('exit code 3 (no Chromium) is a clear error that says how to install it, not a crash; no JSON is a failure of that persona', async () => {

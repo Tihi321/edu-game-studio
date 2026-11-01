@@ -77,7 +77,7 @@ export interface PlaytestOptions {
   playScript?: string
   /** The Node executable. Default `process.execPath`. */
   node?: string
-  /** Per persona. Default 5 minutes. */
+  /** Per persona. Default 15 minutes (the struggling learner asks ~500 questions, ~0.9 s each, slower when two bots share the machine). */
   timeoutMs?: number
   /** Personas running at the same time. Default 2 (each is a Chromium). */
   concurrency?: number
@@ -109,6 +109,8 @@ export function findPlayScript(env: NodeJS.ProcessEnv = process.env, start: stri
 
 const argsOf = (p: Persona): string[] => ['--mode', p.mode, '--seed', String(p.seed), ...(p.accuracy !== undefined ? ['--accuracy', String(p.accuracy)] : []), ...(p.rounds !== undefined ? ['--rounds', String(p.rounds)] : [])]
 
+export const DEFAULT_TIMEOUT_MS = 900_000
+
 function playOne(buildDir: string, p: Persona, o: Required<Pick<PlaytestOptions, 'playScript' | 'node' | 'timeoutMs'>> & { env: NodeJS.ProcessEnv; signal?: AbortSignal }): Promise<PersonaRun> {
   return new Promise((resolve) => {
     const run = (code: number, summary: BotSummary | null, extra: string[] = []): void => {
@@ -128,6 +130,8 @@ function playOne(buildDir: string, p: Persona, o: Required<Pick<PlaytestOptions,
         /* no JSON: the bot did not get that far */
       }
       if (code === 3) return resolve({ persona: p.id, mode: p.mode, code, ok: false, summary, failures: [`cannot launch Chromium: ${stderr.split('\n')[0] ?? ''}`.trim()] })
+      const timedOut = !!err && (err as { killed?: boolean }).killed === true && !o.signal?.aborted
+      if (!summary && timedOut) return run(code, null, [`the bot timed out after ${Math.round(o.timeoutMs / 1000)} s without finishing (it was killed; raise timeoutMs if the course is long)`])
       if (!summary) return run(code, null, [`the bot printed no result (exit ${code}): ${(stderr || stdout).slice(0, 300).trim()}`])
       run(code, summary)
     })
@@ -148,7 +152,7 @@ export async function runPlaytest(buildDir: string, opts: PlaytestOptions = {}):
   const personas = picked as Persona[]
   const playScript = opts.playScript ?? findPlayScript(env)
   if (!existsSync(playScript)) throw new Error(`the autoplay bot script is not there: ${playScript}`)
-  const shared = { playScript, node: opts.node ?? process.execPath, timeoutMs: opts.timeoutMs ?? 300_000, env, signal: opts.signal }
+  const shared = { playScript, node: opts.node ?? process.execPath, timeoutMs: opts.timeoutMs ?? DEFAULT_TIMEOUT_MS, env, signal: opts.signal }
   const runs: PersonaRun[] = new Array<PersonaRun>(personas.length)
   let next = 0
   const worker = async (): Promise<void> => {
