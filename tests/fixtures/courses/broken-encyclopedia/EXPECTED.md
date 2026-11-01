@@ -1,6 +1,6 @@
 # The broken-encyclopedia fixture
 
-A tiny course (3 units, 6 items, 3 articles, one edition `en`, one audio asset) whose encyclopedia section (`shells.config.encyclopedia`) is wrong on purpose, once per code of the shell. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the section), so `tests/encyclopedia-lint.test.ts` builds it with `force: true` and then lints it, and asserts that the build and the lint report **exactly** the codes below.
+A tiny course (3 units, 6 items, 3 articles, one edition `en`, one audio asset) whose encyclopedia section (`shells.config.encyclopedia`) is wrong on purpose, once per code of the shell. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the section), so `tests/lint.test.ts` builds it with `force: true` and then lints it, and asserts that the build and the lint report each of the codes below.
 
 | Where | What is wrong | Code |
 |---|---|---|

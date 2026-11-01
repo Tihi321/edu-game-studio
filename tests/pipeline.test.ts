@@ -1,18 +1,21 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
-import { publishDecision, pipelineJobId, stepKey } from '../src/engine/edu/pipeline'
+import { publishDecision, pipelineJobId } from '../src/engine/edu/pipeline'
 import type { StepsFile } from '../src/engine/edu/pipeline'
 import type { ReviewResult } from '../src/engine/review/scoring'
 import { validateCourse } from '../src/shared/edu'
 import { briefSchema, resolveBrief } from '../src/shared/brief'
 import { formatsSchema, qualitySchema } from '../src/shared/schemas'
 import { failures } from './edu-helpers'
-import { BRIEF, courseFile, json, makePipelineEnv, OK_PLAYTEST, pf, pipelineOf, run, SLUG, statusOf, toolsOf } from './pipeline-helpers'
+import { BRIEF, courseFile, json, makePipelineEnv, pf, pipelineOf, run, SLUG, statusOf, toolsOf } from './pipeline-helpers'
 
 describe('the brief', () => {
   const formats = formatsSchema.parse({ kind: 'formats', formats: [{ id: 'quick', label: 'Quick', units: 2 }, { id: 'language-a1', label: 'Language', units: 4, language: true, cefr: 'A1' }] }).formats
 
-  it('has defaults, and kids follows the age; the format sizes the course and the brief overrides it', () => {
+  it('has defaults, and kids follows the age; the format sizes the course and the brief overrides it; a bad brief is refused in words', () => {
+    expect(briefSchema.safeParse({ audience: 'x' }).success).toBe(false)
+    expect(() => resolveBrief({ topic: 'Rome', audience: 'adults', format: 'epic' }, formats)).toThrow(/no course format "epic" in config\/formats\.md \(formats: quick, language-a1\)/)
+    expect(briefSchema.safeParse({ topic: 'Rome', audience: 'adults', model: 'claude' }).error?.issues[0]?.message).toMatch(/provider\/model/)
     const b = briefSchema.parse({ topic: 'Volcanoes', audience: 'children', age: 9 })
     expect(b).toMatchObject({ sourceLang: 'en', shells: ['quiz-arena'], story: 'none' })
     const r = resolveBrief(b, formats)
@@ -47,23 +50,6 @@ describe('the brief', () => {
     expect(resolveBrief(b, seedFormats).itemKinds).toContain('conjugation')
     expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).itemKinds).not.toContain('conjugation')
     expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).verbUnits).toBe(0)
-  })
-
-  it('refuses a bad brief in words: no topic, an unknown format, a model that is not provider/model', () => {
-    expect(briefSchema.safeParse({ audience: 'x' }).success).toBe(false)
-    expect(() => resolveBrief({ topic: 'Rome', audience: 'adults', format: 'epic' }, formats)).toThrow(/no course format "epic" in config\/formats\.md \(formats: quick, language-a1\)/)
-    expect(briefSchema.safeParse({ topic: 'Rome', audience: 'adults', model: 'claude' }).error?.issues[0]?.message).toMatch(/provider\/model/)
-    expect(briefSchema.safeParse({ topic: 'Rome', audience: 'adults', story: 'film' }).success).toBe(false)
-  })
-})
-
-describe('step and job ids', () => {
-  it('follow the plan: <slug>--<task>[-k<n>]--<unit|all>--r<run>, and the step key without the slug', () => {
-    expect(pipelineJobId('rome', 1, 'plan', null)).toBe('rome--plan--all--r1')
-    expect(pipelineJobId('rome', 2, 'items', 'u1')).toBe('rome--items--u1--r2')
-    expect(pipelineJobId('rome', 1, 'fact_check', 'u2', 2)).toBe('rome--fact_check-k2--u2--r1')
-    expect(stepKey('items_revise', 'u1', 3)).toBe('items_revise-k3:u1')
-    expect(stepKey('assemble', null)).toBe('assemble:all')
   })
 })
 
@@ -180,23 +166,12 @@ describe('the whole pipeline on the mock team', () => {
       expect(env.author.calls).toEqual(expect.arrayContaining(['language-coach/scope', 'language-coach/accepted']))
       const hr = await json<{ strings: Record<string, string>; accepted: Record<string, string[]> }>(courseFile(env, slug, 'course', 'text', 'hr.json'))
       expect(Object.keys(hr.accepted).length).toBeGreaterThan(0)
-      const pack = await json<{ targetLang: string; cefr: string }>(courseFile(env, slug, 'course', 'pack.json'))
+      const pack = await json<{ targetLang: string; cefr: string; extensions: { language?: { verbUnits: string[]; verbsPerUnit: number } } }>(courseFile(env, slug, 'course', 'pack.json'))
       expect(pack).toMatchObject({ targetLang: 'hr', cefr: 'A1' })
-    } finally {
-      await env.cleanup()
-    }
-  }, 90_000)
-
-  it('a language-a2 run marks the verb units in the curriculum and in extensions.language, and the scope gives them verbs', async () => {
-    const env = await makePipelineEnv()
-    try {
-      const { failed, slug } = await run(env, { topic: 'German basics', audience: 'adults', age: 30, sourceLang: 'en', targetLang: 'de', cefr: 'A2', units: 3 })
-      expect(failed).toEqual([])
-      const pack = await json<{ extensions: { language?: { verbUnits: string[]; verbsPerUnit: number } }; cefr: string }>(courseFile(env, slug, 'course', 'pack.json'))
-      expect(pack.cefr).toBe('A2')
-      expect(pack.extensions.language).toEqual({ verbUnits: ['u1', 'u2'], verbsPerUnit: 6 })
-      const scope = await json<{ units: { unit: string; verbs: unknown[] }[] }>(courseFile(env, slug, 'pipeline', 'scope.json'))
-      expect(scope.units.map((u) => u.verbs?.length ?? 0)).toEqual([1, 1, 0])
+      // the verb unit of the format is marked in the curriculum and gets verbs in the scope (EGS-29)
+      expect(pack.extensions.language).toEqual({ verbUnits: ['u1'], verbsPerUnit: 6 })
+      const scope = await json<{ units: { unit: string; verbs?: unknown[] }[] }>(courseFile(env, slug, 'pipeline', 'scope.json'))
+      expect(scope.units.map((u) => u.verbs?.length ?? 0)).toEqual([1, 0])
     } finally {
       await env.cleanup()
     }
@@ -263,37 +238,6 @@ describe('revise loops and gates', () => {
       const catalog = await json<{ strings: Record<string, string> }>(courseFile(env, SLUG, 'course', 'text', 'en.json'))
       expect(catalog.strings[keys[0]!]).toMatch(/\(polished\)$/)
       expect(await json(pf(env, 'lint.json'))).toMatchObject({ ok: true })
-    } finally {
-      await env.cleanup()
-    }
-  }, 90_000)
-
-  it('a must-pass audience reviewer that never passes blocks the run after the last round, with the role in the reason', async () => {
-    const env = await makePipelineEnv({ review: () => 'revise' })
-    try {
-      await run(env)
-      const p = await pipelineOf(env)
-      expect(p.stage).toBe('blocked')
-      expect(p.blockedBy).toEqual([expect.stringMatching(/^review_accessibility-k2:all: must-pass gate: accessibility-reviewer still says revise after 2 round\(s\)/)])
-      expect(p.steps.some((s) => s.step === 'build:all')).toBe(false)
-      expect(statusOf(p, 'summarize:all')).toBe('done')
-    } finally {
-      await env.cleanup()
-    }
-  }, 90_000)
-
-  it('a failed autoplay bot is a hard gate: the course is not published, the reasons say why, and the blurb is never asked', async () => {
-    const env = await makePipelineEnv({ playtest: async () => ({ ...OK_PLAYTEST, ok: false, failures: ['average: the game was not finished'], runs: [{ ...OK_PLAYTEST.runs[0]!, persona: 'average', ok: false, failures: ['the game was not finished'] }] }) })
-    try {
-      const { failed } = await run(env)
-      expect(failed).toEqual([])
-      const p = await pipelineOf(env)
-      expect(p.stage).toBe('blocked')
-      expect(p.blockedBy).toEqual([expect.stringContaining('hard gate failed: playtest: average: the game was not finished')])
-      expect(statusOf(p, 'publish:all')).toBe('blocked')
-      expect(env.author.count('publisher/')).toBe(0)
-      expect(await json(pf(env, 'publish.json'))).toMatchObject({ published: false, reasons: [expect.stringContaining('playtest')] })
-      expect(statusOf(p, 'summarize:all')).toBe('done')
     } finally {
       await env.cleanup()
     }

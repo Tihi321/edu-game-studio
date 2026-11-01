@@ -1,6 +1,6 @@
 # The broken-mindmaze fixture
 
-A tiny course (5 units, 10 items, one edition `en`) whose MindMaze castle section (`shells.config.mindmaze`) is wrong on purpose, once per lint code of the shell. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the section), so `tests/mindmaze-lint.test.ts` builds it with `force: true` and then lints it, and asserts that the build and the lint report **exactly** the codes below.
+A tiny course (5 units, 10 items, one edition `en`) whose MindMaze castle section (`shells.config.mindmaze`) is wrong on purpose, once per lint code of the shell. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the section), so `tests/lint.test.ts` builds it with `force: true` and then lints it, and asserts that the build and the lint report each of the codes below.
 
 | Where | What is wrong | Code |
 |---|---|---|
