@@ -83,3 +83,4 @@ Not planned yet:
 - Starter agents in `seed/agents` are not copied when `~/EduGames/agents` already exists: copy the missing files without overwriting, and warn at startup.
 - The game-designer prompt still says only the quiz arena is playable; update it to the shells that play now.
 - `edu_asset_generate {kind: "image"}` fails with an error that wrongly names `media.music.enabled`; it should name the image setting.
+- **EGS-51** reader markup: `## ` headings and `[n]` citations render as headings and superscripts in the reader, article page and passage panel. Plan `.claude/tickets/EGS-51-reader-markup/`.

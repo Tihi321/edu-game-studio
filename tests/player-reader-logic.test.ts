@@ -4,7 +4,7 @@ import { loadCourseFolder } from '../src/engine/edu/course-io'
 import { makeTextResolver, validateCourse } from '../src/shared/edu'
 import { encArticles, encyclopediaSectionSchema, glossaryOf, passageOf, readerChapters, type EncyclopediaSection } from '../src/shared/shells/encyclopedia'
 import { emptyData, glossKey, readData, withChapterDone, withGlossDeck, withRead, withReaderAt } from '../src/player/shells/encyclopedia/data'
-import { glossify, type GlossWord } from '../src/player/gloss'
+import { glossify, readMarkup, type GlossWord } from '../src/player/gloss'
 import { linkify } from '../src/player/shells/encyclopedia/articles'
 import { FIXTURES } from './edu-fixtures'
 
@@ -137,5 +137,18 @@ describe('listening passages (EGS-38)', () => {
     expect(passageUrls(assets, 'a1', 1)).toEqual(['u1'])
     expect(passageUrls(assets, 'a1', 2)).toEqual(['u2', 'u2b'])
     expect(passageUrls(assets, 'a1', 3)).toEqual([])
+  })
+})
+
+describe('readMarkup (EGS-50): headings and citation markers', () => {
+  it('turns "## " into a heading and "[n]" into cite runs, and the words still match around them', () => {
+    const m = readMarkup([[{ text: '## Die Stadt' }], [{ text: 'Das Haus steht dort [1], und der Garten [2, 3] auch.' }]])
+    expect(m[0]).toEqual({ heading: true, runs: [{ text: 'Die Stadt' }] })
+    expect(m[1]?.heading).toBe(false)
+    expect(m[1]?.runs.filter((r) => r.cite).map((r) => r.text)).toEqual(['1', '2,3'])
+    expect(m.flatMap((p) => p.runs).some((r) => /##|\[\d/.test(r.text))).toBe(false)
+    const segs = glossify(m.map((p) => p.runs), [word('g', 'Garten')])
+    expect(segs[1]?.some((s) => s.gloss?.id === 'g')).toBe(true)
+    expect(segs[1]?.every((s) => !s.cite || !s.gloss)).toBe(true)
   })
 })

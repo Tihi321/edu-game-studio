@@ -22,7 +22,45 @@ export interface GlossWord {
 export interface GlossSeg {
   text: string
   link?: string
+  /** A citation marker such as `[2]`: `text` holds the number(s) without brackets. */
+  cite?: boolean
   gloss?: GlossWord
+}
+
+/** A run of a paragraph with its markup read: links stay, `[n]` citation markers become `cite` runs. */
+export interface MarkupRun {
+  text: string
+  link?: string
+  cite?: boolean
+}
+
+const CITE = /\s*\[(\d+(?:\s*[,–-]\s*\d+)*)\]/g
+const HEAD = /^#{1,6}\s+/
+
+/**
+ * Reads the light markup of article bodies (EGS-50): a paragraph starting with `## ` is a heading, and `[n]` is a citation marker. The marker
+ * text is removed from the words, so glossary terms still match the prose around it.
+ */
+export function readMarkup(paragraphs: readonly (readonly { text: string; link?: string }[])[]): { runs: MarkupRun[]; heading: boolean }[] {
+  return paragraphs.map((p) => {
+    const heading = HEAD.test(p[0]?.text ?? '')
+    const runs: MarkupRun[] = []
+    p.forEach((r, i) => {
+      if (r.link) {
+        runs.push({ ...r })
+        return
+      }
+      const text = i === 0 && heading ? r.text.replace(HEAD, '') : r.text
+      let at = 0
+      for (const m of text.matchAll(CITE)) {
+        if (m.index > at) runs.push({ text: text.slice(at, m.index) })
+        runs.push({ text: (m[1] as string).replace(/\s+/g, ''), cite: true })
+        at = m.index + m[0].length
+      }
+      if (at < text.length) runs.push({ text: text.slice(at) })
+    })
+    return { runs, heading }
+  })
 }
 
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -48,7 +86,7 @@ export function glossify(paragraphs: readonly (readonly { text: string; link?: s
       if (done) break
       for (let i = 0; i < segs.length; i++) {
         const seg = segs[i] as GlossSeg
-        if (seg.link || seg.gloss) continue
+        if (seg.link || seg.gloss || seg.cite) continue
         const hit = findTerm(seg.text, w.term)
         if (!hit) continue
         const parts: GlossSeg[] = []
@@ -151,11 +189,11 @@ export function glossButton(w: GlossWord, pop: GlossPopover, extra: { off?: bool
   return [btn, h('span', { class: 'sr-only', id: descId }, `: ${w.gloss}`)]
 }
 
-/** A paragraph of runs: plain text, links (through `link`) and glossed words. */
-export function glossParagraph(segs: readonly GlossSeg[], pop: GlossPopover, link?: (id: string, text: string) => Child, off?: ReadonlySet<string>): HTMLElement {
+/** A paragraph of runs (an `h3` for a heading): plain text, citation markers, links (through `link`) and glossed words. */
+export function glossParagraph(segs: readonly GlossSeg[], pop: GlossPopover, link?: (id: string, text: string) => Child, off?: ReadonlySet<string>, heading = false): HTMLElement {
   return h(
-    'p',
-    {},
-    segs.map((s): Child => (s.gloss ? glossButton(s.gloss, pop, { off: off?.has(s.gloss.id) === true }) : s.link && link ? link(s.link, s.text) : s.text))
+    heading ? 'h3' : 'p',
+    heading ? { class: 'enc-subhead' } : {},
+    segs.map((s): Child => (s.cite ? h('sup', { class: 'enc-cite' }, s.text) : s.gloss ? glossButton(s.gloss, pop, { off: off?.has(s.gloss.id) === true }) : s.link && link ? link(s.link, s.text) : s.text))
   )
 }

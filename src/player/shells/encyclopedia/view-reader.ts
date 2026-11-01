@@ -1,5 +1,5 @@
 import { button, h, isTyping } from '../../dom'
-import { glossify, glossParagraph, glossPopover, type GlossWord } from '../../gloss'
+import { glossify, readMarkup, glossParagraph, glossPopover, type GlossWord } from '../../gloss'
 import type { UiKey } from '../../i18n'
 import type { EncApp } from './app'
 
@@ -83,10 +83,8 @@ export function readerBody(app: EncApp, id: string): HTMLElement {
   const pop = glossPopover(ui)
   const off = app.glossOff()
   const offIds = new Set(words.filter((w) => off.has(`${id}/${w.id}`)).map((w) => w.id))
-  const segs = glossify(
-    chapter.paragraphs.map((p) => [{ text: p }]),
-    words
-  )
+  const marked = readMarkup(chapter.paragraphs.map((p) => [{ text: p }]))
+  const segs = glossify(marked.map((m) => m.runs), words)
   const read = app.chapterRead(id)
   const prev = chapters[index - 1]
   const next = chapters[index + 1]
@@ -187,7 +185,7 @@ export function readerBody(app: EncApp, id: string): HTMLElement {
     'div',
     { class: 'enc-reader-body enc-body gloss-scope', testid: 'reader-body', lang: s.pack.targetLang ?? undefined },
     segs.map((sg, i) => {
-      const p = glossParagraph(sg, pop, undefined, offIds)
+      const p = glossParagraph(sg, pop, undefined, offIds, marked[i]?.heading)
       if (!clips[i]?.length) return p
       const b = button(`reader-play-${i + 1}`, '▶', () => play(i, i), { class: 'btn btn-small enc-reader-play', 'aria-label': s.s('reader.listen', { n: i + 1 }) })
       buttons.set(i, b)

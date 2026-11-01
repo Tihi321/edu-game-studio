@@ -2,7 +2,7 @@ import type { CheckResult } from '../../shared/edu'
 import { shuffledCopy } from '../../shared/edu'
 import { encyclopediaSectionSchema, glossaryOf, paragraphsOf, passageOf } from '../../shared/shells/encyclopedia'
 import { button, h } from '../dom'
-import { glossify, glossParagraph, glossPopover, type GlossWord } from '../gloss'
+import { glossify, readMarkup, glossParagraph, glossPopover, type GlossWord } from '../gloss'
 import type { ItemContext, ItemRenderer } from '../types'
 
 /** The options in the order shown: shuffled with the seeded generator when the item allows (`shuffle` is not false). */
@@ -103,15 +103,13 @@ export function passagePanel(ctx: ItemContext, open: boolean): HTMLElement | nul
 
   const id = `passage-${++passageCount}`
   const pop = glossPopover(ctx.ui)
-  const segs = glossify(
-    paragraphs.map((p) => [{ text: p }]),
-    words
-  )
+  const marked = readMarkup(paragraphs.map((p) => [{ text: p }]))
+  const segs = glossify(marked.map((m) => m.runs), words)
   const panel = h(
     'div',
     { class: 'passage-panel gloss-scope', id, role: 'region', 'aria-label': `${ctx.ui('passage.title')}: ${ctx.text.t(article.title)}`, testid: 'passage-panel', hidden: !open },
     h('p', { class: 'passage-title' }, ctx.text.t(article.title)),
-    segs.map((s) => glossParagraph(s, pop)),
+    segs.map((s, i) => glossParagraph(s, pop, undefined, undefined, marked[i]?.heading)),
     pop.el
   )
   const toggle = button('passage-toggle', '', () => set(panel.hidden), { class: 'btn btn-small btn-ghost passage-toggle', 'aria-controls': id })
