@@ -16,7 +16,7 @@ export interface LoadedFixture {
 }
 
 /** Loads a golden fixture and validates it (throws when it is not valid, listing the problems). */
-export async function loadFixture(name: (typeof FIXTURE_NAMES)[number]): Promise<LoadedFixture> {
+export async function loadFixture(name: (typeof FIXTURE_NAMES)[number] | 'de-verbs-a1'): Promise<LoadedFixture> {
   const dir = path.join(FIXTURES, name)
   const loaded = await loadCourseFolder(dir)
   const res = validateCourse(loaded.pack, loaded.catalogs)

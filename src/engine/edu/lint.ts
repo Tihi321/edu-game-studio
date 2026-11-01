@@ -337,7 +337,7 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
     if (!reached.has(u.id)) out.add('UNIT_UNREACHABLE', `units[${i}]`, `no learner can reach the unit "${u.id}": it needs ${u.requires.filter((r) => !reached.has(r)).join(', ') || 'itself'}, which can never be mastered`)
   })
 
-  // ---- German verb table: `conjugation` items (EGS-28; a no-op until the kind exists and unless pack.targetLang is 'de') ----
+  // ---- German verb table: `conjugation` items (EGS-27 structure; EGS-28 table checks only when pack.targetLang is 'de') ----
   for (const e of entries) {
     if (e.raw.kind !== 'conjugation') continue
     for (const lang of editions) for (const p of lintConjugationItem(pack, e.raw, `items[${e.index}]`, resolvers[lang]!)) out.add(p.code, p.path, p.message, lang, p.severity)

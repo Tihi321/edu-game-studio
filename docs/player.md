@@ -12,7 +12,7 @@ An image or an audio element that fails to load is a `console.error` (`main.ts` 
 
 | File | What |
 |---|---|
-| `main.ts` | Entry: creates `window.EduEngine`, registers the 13 item renderers and the quiz-arena shell, starts the game when the page is ready |
+| `main.ts` | Entry: creates `window.EduEngine`, registers the 14 item renderers and the quiz-arena shell, starts the game when the page is ready |
 | `engine.ts` | `EduEngine`: registry of shells and item renderers, the published state |
 | `shells/quiz-arena.ts` | The chalkboard quiz arena (screens, HUD, feedback panel, timer, combo, keys) |
 | `round.ts` | Pure round logic: adaptive pick, in-session retry queue, due-card preference, interleaving, accuracy, grades, timer rule |
@@ -43,7 +43,7 @@ EduEngine.debug.wrong(itemId)           // an answer the checker rejects (a dist
 EduEngine.start()                       // mounts the shell named by GameData.shell (called by the bundle itself)
 ```
 
-`debug` is for the autoplay bot: it is read-only (it computes with the shared `solveItem` on the game data the page already holds, changes no state and draws nothing, so no answer appears in the UI). `solve` returns the answer shapes of the checkers (an option id, `true`/`false`, a list of ids, `{gapId: text}`, the typed text, `{leftId: rightId}`, an id order, `{itemId: groupId}`, a region id, a flashcard grade, `{wordId: text}` for a crossword, a list of `{start, end}` cell lines for a word search); `wrong` returns the same shape, wrong (an empty list for a word search = give up). An unknown item or kind gives `undefined`. A word bank in a cloze is answered by the bot through `bank-<gapId>-<wordKey>`.
+`debug` is for the autoplay bot: it is read-only (it computes with the shared `solveItem` on the game data the page already holds, changes no state and draws nothing, so no answer appears in the UI). `solve` returns the answer shapes of the checkers (an option id, `true`/`false`, a list of ids, `{gapId: text}`, the typed text, `{leftId: rightId}`, an id order, `{itemId: groupId}`, a region id, a flashcard grade, `{person: text}` for a conjugation (every open form; the page asks `ask` of them and the bot types the inputs it finds), `{wordId: text}` for a crossword, a list of `{start, end}` cell lines for a word search); `wrong` returns the same shape, wrong (an empty list for a word search = give up). An unknown item or kind gives `undefined`. A word bank in a cloze is answered by the bot through `bank-<gapId>-<wordKey>`.
 
 A later shell or item kind is one more `register...` call (before `start()`). `GameData.shell` picks the shell, falling back to `quiz-arena`. A question whose kind has no renderer is skipped with a `console.warn`, never a crash.
 
@@ -99,6 +99,7 @@ Item widgets, by kind (the answer shapes are the ones of `src/shared/edu/checker
 | `true-false` | `option-true`, `option-false` | click, or 1 / 2 |
 | `multi-select` | `option-<optionId>` (`aria-pressed`), `submit` | toggle options, then `submit` |
 | `cloze` | `gap-<gapId>` (a text input, or the slot of a word bank), `bank-<gapId>-<wordKey>` (a bank word; the key is the catalog key, e.g. the gap's `answer`), `letter-<char>`, `submit` | fill every gap, `submit` |
+| `conjugation` | `conj-<person>` (a text input per asked person), `conj-<person>-result` (mark and, if wrong, `conj-answer-<person>`), `conj-given-<person>` (a read-only row), `conj-verb`, `conj-tense`, `letter-<char>`, `check` | type every asked form without the pronoun, Enter moves to the next input and checks on the last, or `check` |
 | `typed` | `answer-input`, `letter-<char>`, `submit` | type, Enter or `submit` |
 | `match-pairs` | `pair-left-<pairId>`, `pair-right-<pairId>` (the right text that belongs to that pair), `submit` | click a left then a right; `submit` when all are paired |
 | `order` | `order-list`, `order-row-<itemId>`, `order-up-<itemId>`, `order-down-<itemId>`, `submit` | move rows with the buttons (or drag), `submit` |

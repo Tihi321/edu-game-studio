@@ -39,9 +39,10 @@ describe('the brief', () => {
     expect(() => resolveBrief({ ...b, cefr: 'C2' }, seedFormats)).toThrow(/out of scope \(HUB-22\)/)
     expect(resolveBrief({ ...b, cefr: 'C1', format: 'language-b1' }, seedFormats).format.id).toBe('language-b1') // a named format wins
     expect(resolveBrief({ topic: 'Rome', audience: 'adults', cefr: 'B2' }, seedFormats).format.id).toBe('quick') // not a language course
-    // conjugation is listed by the formats but left out of what the item-writer is asked for until EGS-27 makes it an authored kind
+    // conjugation is an authored kind since EGS-27: the language formats ask the item-writer for it, the other formats do not list it
     expect(seedFormats.find((x) => x.id === 'language-a1')!.item_kinds).toContain('conjugation')
-    expect(resolveBrief(b, seedFormats).itemKinds).not.toContain('conjugation')
+    expect(resolveBrief(b, seedFormats).itemKinds).toContain('conjugation')
+    expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).itemKinds).not.toContain('conjugation')
     expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).verbUnits).toBe(0)
   })
 

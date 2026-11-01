@@ -152,7 +152,7 @@ export const qualitySchema = configBase('quality').extend({
 })
 
 /** The item forms the item-writer may write (the pack's kinds that the pipeline authors; hotspot, listening and the puzzles come later). */
-export const AUTHORED_ITEM_KINDS = ['mcq', 'true-false', 'multi-select', 'cloze', 'typed', 'match-pairs', 'order', 'sort-groups', 'flashcard'] as const
+export const AUTHORED_ITEM_KINDS = ['mcq', 'true-false', 'multi-select', 'cloze', 'typed', 'match-pairs', 'order', 'sort-groups', 'flashcard', 'conjugation'] as const
 
 /** A course format: how big a course is. The brief names one (`format`); its numbers size the pipeline's jobs. */
 export const formatEntrySchema = z.looseObject({
@@ -170,7 +170,7 @@ export const formatEntrySchema = z.looseObject({
   /** Questions the researcher is asked for each unit. */
   research_questions_per_unit: z.number().int().min(0).max(8).default(2),
   /** The item kinds the item-writer may use. */
-  item_kinds: z.array(z.string()).min(1).default([...AUTHORED_ITEM_KINDS]),
+  item_kinds: z.array(z.string()).min(1).default(AUTHORED_ITEM_KINDS.filter((k) => k !== 'conjugation')),
   /** A language course: vocabulary and grammar scope by the language-coach, typed answers with accepted lists. */
   language: z.boolean().default(false),
   /** The CEFR level a language format teaches. */

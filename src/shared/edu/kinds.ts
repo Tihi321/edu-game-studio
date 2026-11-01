@@ -1,5 +1,6 @@
 import {
   clozeSchema,
+  conjugationSchema,
   crosswordSchema,
   flashcardSchema,
   hotspotSchema,
@@ -15,7 +16,9 @@ import {
   type CourseItem
 } from '../course'
 import {
+  askedForms,
   checkCloze,
+  checkConjugation,
   checkCrossword,
   checkFlashcard,
   checkHotspot,
@@ -272,6 +275,27 @@ def({
       if (grid.unplaced.length > 0) out.push({ code: 'PUZZLE_UNPLACED', path: 'words', message: `in "${lang}" the crossword cannot place: ${grid.unplaced.join(', ')}` })
       for (const p of verifyCrossword(grid, words)) out.push({ code: 'PUZZLE_INVALID', path: 'words', message: `in "${lang}": ${p}` })
     }
+    return out
+  }
+})
+
+def({
+  kind: 'conjugation',
+  form: 'Conjugate the verb',
+  recall: true,
+  schema: conjugationSchema,
+  check: (item, answer, ctx) => checkConjugation(item, answer, ctx),
+  keyOf: (item) => Object.fromEntries(item.forms.filter((f) => !f.given).map((f) => [f.person, f.answer])),
+  solve: (item, ctx) => Object.fromEntries(askedForms(item).map((f) => [f.person, ctx.text.canonical(f.answer) ?? ''])),
+  textRefs: (item) => [
+    ...base(item),
+    ...refs('verb', item.verb),
+    ...item.forms.flatMap((f, i) => [...refs(`forms[${i}].label`, f.label), ...refs(`forms[${i}].answer`, f.answer, 'accepted')])
+  ],
+  validate: (item) => {
+    const out: Problem[] = []
+    const open = item.forms.filter((f) => !f.given).length
+    if (open === 0) out.push({ code: 'CONJ_NOTHING_ASKED', path: 'forms', message: 'every form is given: the item asks nothing' })
     return out
   }
 })

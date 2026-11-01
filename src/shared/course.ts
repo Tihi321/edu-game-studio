@@ -64,7 +64,8 @@ export const itemKindsBuiltin = [
   'listening',
   'flashcard',
   'crossword',
-  'word-search'
+  'word-search',
+  'conjugation'
 ] as const
 export type BuiltinKind = (typeof itemKindsBuiltin)[number]
 
@@ -139,6 +140,34 @@ export const clozeSchema = z.strictObject({
     )
     .min(1),
   /** true: a missing accent is wrong; false: it is ignored; missing: the course default (`matching.diacritics`). */
+  strictDiacritics: z.boolean().optional()
+})
+
+/** A verb table drill (EGS-27): the infinitive and its forms per person in one tense, each form typed on its own. */
+export const conjugationSchema = z.strictObject({
+  ...itemBaseShape,
+  kind: z.literal('conjugation'),
+  /** The infinitive shown as the heading ("gehen"): a catalog key, in the target-language catalog when the item is taught. */
+  verb: keySchema,
+  /** Metadata: praesens, perfekt, praeteritum, futur1, imperativ, konjunktiv2 (a free id for other languages). */
+  tense: idSchema,
+  forms: z
+    .array(
+      z.strictObject({
+        /** ich, du, er, wir, ihr, sie, Sie for German; any id for other languages. */
+        person: idSchema,
+        /** The pronoun shown beside the input ("er / sie / es"). */
+        label: keySchema,
+        /** A catalog key with an accepted list per language, first = canonical, WITHOUT the pronoun. */
+        answer: keySchema,
+        /** Shown filled in, not asked. */
+        given: z.boolean().default(false)
+      })
+    )
+    .min(2)
+    .max(7),
+  /** How many of the asked forms one presentation asks (a drill); missing = all. */
+  ask: z.number().int().min(1).optional(),
   strictDiacritics: z.boolean().optional()
 })
 
@@ -258,7 +287,8 @@ export const builtinItemSchema = z.discriminatedUnion('kind', [
   listeningSchema,
   flashcardSchema,
   crosswordSchema,
-  wordSearchSchema
+  wordSearchSchema,
+  conjugationSchema
 ])
 
 export type McqItem = z.infer<typeof mcqSchema>
@@ -273,6 +303,7 @@ export type HotspotItem = z.infer<typeof hotspotSchema>
 export type ListeningItem = z.infer<typeof listeningSchema>
 export type FlashcardItem = z.infer<typeof flashcardSchema>
 export type CrosswordItem = z.infer<typeof crosswordSchema>
+export type ConjugationItem = z.infer<typeof conjugationSchema>
 export type WordSearchItem = z.infer<typeof wordSearchSchema>
 /** An item of one of the built-in kinds, narrowed by `kind`. */
 export type BuiltinItem = z.infer<typeof builtinItemSchema>

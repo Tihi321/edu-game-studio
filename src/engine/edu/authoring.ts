@@ -423,8 +423,30 @@ const sortGroupsItem = z
   })
 const flashcardItem = z.object({ ...itemCommon, kind: z.literal('flashcard'), back: text('the back of the card') })
 
-export const authoredItemSchema = z.discriminatedUnion('kind', [mcqItem, trueFalseItem, multiSelectItem, clozeItem, typedItem, matchPairsItem, orderItem, sortGroupsItem, flashcardItem], {
-  error: 'every item needs a kind: mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups or flashcard'
+/** A verb table drill (EGS-27): the infinitive, the tense, and the form of each person WITHOUT the pronoun; `given` lists persons shown filled in. */
+const conjugationItem = z
+  .object({
+    ...itemCommon,
+    kind: z.literal('conjugation'),
+    verb: text('the infinitive'),
+    tense: ident,
+    forms: z
+      .array(z.object({ person: ident, accepted: z.array(text('an accepted form')).min(1, 'a form needs its answer in accepted (the first is the canonical one)'), label: text('label').optional() }))
+      .min(2, 'a conjugation has at least 2 forms')
+      .max(7, 'a conjugation has at most 7 forms'),
+    given: z.array(ident).optional(),
+    ask: z.number({ error: 'ask is a whole number' }).int().min(1).optional()
+  })
+  .superRefine((v, ctx) => {
+    for (const d of dups(v.forms.map((f) => f.person))) ctx.addIssue({ code: 'custom', path: ['forms'], message: `the person "${d}" is used twice` })
+    for (const g of v.given ?? []) if (!v.forms.some((f) => f.person === g)) ctx.addIssue({ code: 'custom', path: ['given'], message: `given names "${g}", which is not one of the forms (${v.forms.map((f) => f.person).join(', ')})` })
+    const open = v.forms.length - new Set(v.given ?? []).size
+    if (open < 1) ctx.addIssue({ code: 'custom', path: ['given'], message: 'every form is given: at least one form must be asked' })
+    else if (v.ask !== undefined && v.ask > open) ctx.addIssue({ code: 'custom', path: ['ask'], message: `ask is ${v.ask} but only ${open} form(s) are asked` })
+  })
+
+export const authoredItemSchema = z.discriminatedUnion('kind', [mcqItem, trueFalseItem, multiSelectItem, clozeItem, typedItem, matchPairsItem, orderItem, sortGroupsItem, flashcardItem, conjugationItem], {
+  error: 'every item needs a kind: mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, flashcard or conjugation'
 })
 export type AuthoredItem = z.output<typeof authoredItemSchema>
 
