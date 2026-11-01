@@ -81,6 +81,17 @@ export async function play(bot) {
     }
     if (await page.locator(tid('boss')).isEnabled()) fail('the boss is open although no unit was mastered')
   } else {
+    // the verb drill (EGS-31): offered exactly when the course has verb units with conjugation items; played once, to its summary
+    const verbUnits = new Set(pack.extensions?.language?.verbUnits ?? [])
+    const objectiveUnit = new Map(pack.objectives.map((ob) => [ob.id, ob.unit]))
+    const hasVerbs = pack.items.some((i) => i.kind === 'conjugation' && verbUnits.has(objectiveUnit.get(i.objective)))
+    if (hasVerbs !== (await exists('verb-drill'))) fail(`the verb drill button is ${hasVerbs ? 'missing' : 'shown without verb units'}`)
+    if (hasVerbs) {
+      const s = await startRound('verb-drill', 'the verb drill')
+      if (s.roundKind !== 'verbs') fail(`the verb drill opened a "${s.roundKind}" round`)
+      await playRound('verb drill')
+      await leaveSummary('verb drill', 'verbs')
+    }
     // perfect and random: play units in prerequisite order, then the boss, until the end screen
     let bossTries = 0
     for (let guard = 0; guard < 400; guard++) {

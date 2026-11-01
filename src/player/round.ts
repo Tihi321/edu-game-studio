@@ -86,10 +86,41 @@ export const unitOfItemId = (pack: Pick<CoursePack, 'items' | 'objectives'>, ite
   return pack.objectives.find((o) => o.id === item?.objective)?.unit
 }
 
+/** The verb units of a course (`extensions.language.verbUnits`, written by the pipeline); empty for a course without them. */
+export function verbUnitsOf(pack: { extensions?: Record<string, unknown> }): string[] {
+  const raw = (pack.extensions?.language as { verbUnits?: unknown } | undefined)?.verbUnits
+  return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === 'string') : []
+}
+
+type VerbPack = Pick<CoursePack, 'items' | 'objectives'> & { extensions?: Record<string, unknown> }
+
+/** Every `conjugation` item of the verb units, in pack order. Empty when the course has no verb units. */
+export function verbItems(pack: VerbPack): CourseItem[] {
+  const units = new Set(verbUnitsOf(pack))
+  if (units.size === 0) return []
+  const objectives = new Set(pack.objectives.filter((o) => units.has(o.unit)).map((o) => o.id))
+  return pack.items.filter((i) => i.kind === 'conjugation' && objectives.has(i.objective))
+}
+
+/** How many verb cards are due now (seen before and past their due time): the number on the verb drill button. */
+export function verbDueCount(pack: VerbPack, cards: Readonly<Record<string, Card>>, now: number): number {
+  return verbItems(pack).filter((i) => isDueSeen(cards[i.id], now)).length
+}
+
+/** The verb drill pool: due cards first (most overdue first), then items never asked, then the rest by lowest ease; at most `length` ids. */
+export function verbPool(pack: VerbPack, cards: Readonly<Record<string, Card>>, now: number, length: number): string[] {
+  const items = verbItems(pack)
+  const due = items.filter((i) => isDueSeen(cards[i.id], now)).sort((a, b) => cards[a.id]!.due - cards[b.id]!.due)
+  const fresh = items.filter((i) => cards[i.id] === undefined || cards[i.id]!.last === null)
+  const taken = new Set([...due, ...fresh].map((i) => i.id))
+  const weakest = items.filter((i) => !taken.has(i.id)).sort((a, b) => cards[a.id]!.ease - cards[b.id]!.ease)
+  return [...due, ...fresh, ...weakest].slice(0, Math.max(0, length)).map((i) => i.id)
+}
+
 export function startRound(
-  pack: Pick<CoursePack, 'items' | 'objectives' | 'units' | 'shells'>,
+  pack: Pick<CoursePack, 'items' | 'objectives' | 'units' | 'shells'> & { extensions?: Record<string, unknown> },
   kind: RoundKind,
-  opts: { unitId?: string; queue?: readonly string[]; difficulty?: number } = {}
+  opts: { unitId?: string; queue?: readonly string[]; difficulty?: number; cards?: Readonly<Record<string, Card>>; now?: number } = {}
 ): RoundState {
   const cfg = quizConfig(pack)
   let pool: string[]
@@ -97,6 +128,9 @@ export function startRound(
   if (kind === 'unit') {
     pool = itemsOfUnit(pack, opts.unitId ?? '').map((i) => i.id)
     size = Math.min(cfg.roundLength, pool.length)
+  } else if (kind === 'verbs') {
+    pool = verbPool(pack, opts.cards ?? {}, opts.now ?? 0, cfg.roundLength)
+    size = pool.length
   } else if (kind === 'boss') {
     pool = pack.items.map((i) => i.id)
     size = Math.min(cfg.bossLength, pool.length)
@@ -169,12 +203,16 @@ export function pickNext(
           .filter((c) => c.id === lastItem.id || c.kind === lastItem.kind || (rs.kind === 'boss' && unitOfItemId(pack, c.id) === unitOfItemId(pack, lastItem.id)))
           .map((c) => c.id)
       : []
-    const picked = pickItem(
-      candidates.map((c) => ({ id: c.id, difficulty: c.difficulty })),
-      rs.adaptive,
-      rng,
-      avoid
-    )
+    // the verb drill keeps its order (due first, then new, then weakest) instead of the adaptive pick
+    const picked =
+      rs.kind === 'verbs'
+        ? candidates[0]
+        : pickItem(
+            candidates.map((c) => ({ id: c.id, difficulty: c.difficulty })),
+            rs.adaptive,
+            rng,
+            avoid
+          )
     if (picked) return { id: picked.id, retry: false }
   }
   // fresh questions are used up: the missed ones that are left come back now, earliest first
