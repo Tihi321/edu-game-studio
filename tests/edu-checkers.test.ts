@@ -123,8 +123,10 @@ describe('cloze', () => {
     expect(checkItem(cloze, { '1': '9' }, ctx)).toMatchObject({ correct: false, score: 0 })
     expect(checkItem(cloze, 'x', ctx).invalid).toBe(true)
   })
-  it('reports a typo in a gap', () => {
-    expect(checkItem(cloze, { '1': '8', '2': 'atmosphre' }, ctx)).toMatchObject({ correct: true, typo: true })
+  it('reports a typo in a typed gap, but a banked gap is a pick: a near word is wrong (macht is not machst)', () => {
+    const typedGap = parse({ kind: 'cloze', text: 't', gaps: [{ id: '1', answer: 'gap2' }] })
+    expect(checkItem(typedGap, { '1': 'atmosphre' }, ctx)).toMatchObject({ correct: true, typo: true })
+    expect(checkItem(cloze, { '1': '8', '2': 'atmosphre' }, ctx)).toMatchObject({ correct: false })
   })
   it('exposes the canonical text of every gap as expected', () => {
     expect(checkItem(cloze, {}, ctx).expected).toEqual({ '1': '8', '2': 'atmosphere' })

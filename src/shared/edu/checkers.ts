@@ -74,9 +74,10 @@ export function checkMultiSelect(item: MultiSelectItem, answer: unknown): CheckR
 
 // ---- text answers ----
 
-function textResult(input: string, key: string, ctx: CheckContext, strict: boolean | undefined): CheckResult {
+function textResult(input: string, key: string, ctx: CheckContext, strict: boolean | undefined, picked = false): CheckResult {
   const accepted = ctx.text.accepted(key)
-  const m: MatchResult = matchAnswer(input, accepted, { diacritics: resolveDiacritics(strict, ctx.diacritics, ctx.lang), typos: ctx.typos, lang: ctx.lang })
+  // A gap with a word bank is a pick between listed words, not typing: machst vs macht must stay different, so no typo tolerance.
+  const m: MatchResult = matchAnswer(input, accepted, { diacritics: resolveDiacritics(strict, ctx.diacritics, ctx.lang), typos: picked ? false : ctx.typos, lang: ctx.lang })
   return {
     correct: m.correct,
     score: m.correct ? 1 : 0,
@@ -103,7 +104,7 @@ export function checkCloze(item: ClozeItem, answer: unknown, ctx: CheckContext):
   let caps = false
   for (const g of item.gaps) {
     const v = answer[g.id]
-    const r = typeof v === 'string' ? textResult(v, g.answer, ctx, item.strictDiacritics) : { correct: false }
+    const r = typeof v === 'string' ? textResult(v, g.answer, ctx, item.strictDiacritics, !!g.bank?.length) : { correct: false }
     detail[g.id] = r.correct
     if ('typo' in r && r.typo) typo = true
     if ('diacritics' in r && r.diacritics) diacritics = true
