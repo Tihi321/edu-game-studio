@@ -219,5 +219,14 @@
       "quiz-arena"
     ],
     "config": {}
+  },
+  "extensions": {
+    "language": {
+      "verbUnits": [
+        "u-sein",
+        "u-gehen"
+      ],
+      "verbsPerUnit": 6
+    }
   }
 }

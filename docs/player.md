@@ -59,7 +59,7 @@ A later shell or item kind is one more `register...` call (before `start()`). `G
   seed: number
   unitId?: string              // the unit of the round (not for boss / review rounds)
   round?: number               // 1-based round number in this page session (a replay is a new round)
-  roundKind?: 'unit' | 'boss' | 'review'
+  roundKind?: 'unit' | 'boss' | 'review' | 'verbs'
   itemId?: string              // only on screens 'item' and 'feedback'
   itemKind?: string            //   "
   itemIndex?: number           //   0-based position of the question in the round; retries of misses count
@@ -84,7 +84,7 @@ Naming scheme: kebab-case, `<thing>` or `<thing>-<id>`, where `<id>` is the id f
 `course-title` (h1), `course-subject` (when it differs from the title), `lang-picker` and `lang-<code>` (one per edition, only when there are two or more; `aria-pressed` marks the current), `setting-timer` (checkbox, off by default), `setting-sound` (only when the pack has cues; off: nothing plays), `setting-reduce-audio` (next to it, same condition: no music, sound effects at 40 % of their volume; kept with the progress as `settings.reduceAudio`), **`start`** (labelled Continue when there is saved progress; opens the map), `export` (downloads `<slug>-progress.json`), `import` (opens the file chooser) and `import-file` (the `<input type="file">`: `setInputFiles` works on it), `reset` then `reset-confirm` / `reset-cancel` (inline, no browser dialog), `title-message` (result of import / export / reset, `role=status`), `storage-warning` (when localStorage is unusable).
 
 ### `map`
-`menu` (back to the title), `map-stars`, `map-title`, `unit-map`, `unit-<unitId>` (a button; `disabled` and `data-locked="true"` while a required unit has fewer than 2 stars; `data-stars` 0..3; `data-requires` lists the prerequisite ids), `boss` (disabled until every unit has 2 stars; `data-stars`), `review` (only when the review queue is not empty), `finish` (only after the boss was beaten once; shows the end screen).
+`menu` (back to the title), `map-stars`, `map-title`, `unit-map`, `unit-<unitId>` (a button; `disabled` and `data-locked="true"` while a required unit has fewer than 2 stars; `data-stars` 0..3; `data-requires` lists the prerequisite ids), `boss` (disabled until every unit has 2 stars; `data-stars`), `verb-drill` (EGS-31: only when `extensions.language.verbUnits` names units with `conjugation` items; label "Verb drill (n due)"; starts a `verbs` round: the due conjugation cards first, most overdue first, then items never asked, then the weakest by ease, at most the round length, in that fixed order; a miss comes back like in any round; it earns no stars and is not rated; every answer schedules the item's SM-2 card; which persons an `ask` item asks is the item renderer's seeded pick, with no bias to earlier misses because `progress` stores none), `review` (only when the review queue is not empty), `finish` (only after the boss was beaten once; shows the end screen).
 
 ### `item` and `feedback`
 HUD: `leave` (back to the map, the round is dropped), `hud-unit`, `hud-progress` (pips), `hud-score`, `hud-combo`, `hud-timer` (only visible when the timer runs on this question). Question: `question-number`, `retry-tag` (a missed question coming back), `prompt` (not for flashcards: the card shows it), `item-image`, `hint` (button) and `hint-text`, `item-body` (`data-kind` = the item kind), the item widgets below, `combo-burst` (appears at combos 3, 5, 7, 10, 15 ...).
@@ -113,7 +113,7 @@ Item widgets, by kind (the answer shapes are the ones of `src/shared/edu/checker
 Typed text goes through the tolerant matcher: case, spacing and punctuation never matter; missing accents are accepted under policy `ignore` / `warn` (a note under `warn`) and are a near-miss under `strict`; one letter off in an answer of 4+ letters is accepted with a spelling note. Courses whose typed answers are Croatian get the buttons `letter-č` `letter-ć` `letter-š` `letter-ž` `letter-đ` (other languages: `SPECIAL_LETTERS` in `i18n.ts`).
 
 ### `summary`
-`summary-title`, `summary-stars` (`data-stars`; not for a review round), `summary-accuracy` (first-try accuracy of the fresh questions), `summary-score`, `summary-unlocked`, `summary-boss-open`, `summary-need-stars`, `summary-boss-fail`, `summary-misses` and `miss-<itemId>`, **`to-map`**, `review` (when the queue is not empty), `replay` (not for a review round), `finish` (boss beaten with 1+ star).
+`summary-title`, `summary-stars` (`data-stars`; not for a review round), `summary-accuracy` (first-try accuracy of the fresh questions), `summary-score`, `summary-unlocked`, `summary-boss-open`, `summary-need-stars`, `summary-boss-fail`, `summary-misses` and `miss-<itemId>`, **`to-map`**, `review` (when the queue is not empty), `replay` (not for a review round; for a verb drill it starts a new drill), `finish` (boss beaten with 1+ star).
 
 ### `review`
 `review-title`, `review-list` / `review-empty`, `review-item-<itemId>` (prompt, answer, explanation), **`practice`** (a round of the queued items), `to-map`.

@@ -29,7 +29,7 @@ import {
   totalStars,
   type Progress
 } from '../progress'
-import { gradeOf, itemsOfUnit, missedIds, pickNext, quizConfig, recordResult, roundAccuracy, startRound, timerApplies, type NextQuestion, type RoundState } from '../round'
+import { gradeOf, itemsOfUnit, missedIds, pickNext, quizConfig, recordResult, roundAccuracy, startRound, timerApplies, verbDueCount, verbItems, type NextQuestion, type RoundState } from '../round'
 import { buildSnapshot } from '../state'
 import type { ItemContext, ItemRenderer, ItemView, ScreenName, Shell, ShellHost } from '../types'
 
@@ -231,7 +231,7 @@ class QuizArena {
       case 'item':
       case 'feedback': {
         const r = this.round
-        if (!r || r.kind === 'review') return 'menu'
+        if (!r || r.kind === 'review' || r.kind === 'verbs') return 'menu'
         return r.kind === 'boss' ? 'boss' : unitArea(r.unitId ?? '')
       }
       case 'end':
@@ -444,6 +444,7 @@ class QuizArena {
       ),
       this.heading('h1', ui('map.title'), 'map-title'),
       h('p', { class: 'subject' }, this.courseTitle()),
+      verbItems(this.pack).length > 0 ? h('div', { class: 'actions actions-center' }, button('verb-drill', `🔤 ${ui('map.verbs', { n: verbDueCount(this.pack, this.progress.cards, Date.now()) })}`, () => this.beginRound('verbs'), { class: 'btn' })) : null,
       queue.length > 0 ? h('div', { class: 'actions actions-center' }, button('review', `↻ ${ui('map.review', { n: queue.length })}`, () => this.go('review'), { class: 'btn' })) : null,
       h('ol', { class: 'map-levels', testid: 'unit-map' }, rows, boss),
       bossStars > 0 ? h('div', { class: 'actions actions-center' }, button('finish', ui('summary.finish'), () => this.finish(), { class: 'btn btn-primary' })) : null
@@ -452,8 +453,8 @@ class QuizArena {
 
   // ---- rounds ----
 
-  private beginRound(kind: 'unit' | 'boss' | 'review', unitId?: string): void {
-    const rs = startRound(this.pack, kind, { ...(unitId ? { unitId } : {}), queue: this.progress.queue, difficulty: kind === 'boss' ? 4 : this.difficulty })
+  private beginRound(kind: 'unit' | 'boss' | 'review' | 'verbs', unitId?: string): void {
+    const rs = startRound(this.pack, kind, { ...(unitId ? { unitId } : {}), queue: this.progress.queue, difficulty: kind === 'boss' ? 4 : this.difficulty, cards: this.progress.cards, now: Date.now() })
     if (rs.size === 0) return this.go('map')
     this.round = rs
     this.roundNumber += 1
@@ -687,6 +688,7 @@ class QuizArena {
     if (!rs) return ''
     if (rs.kind === 'boss') return `👑 ${this.ui('map.boss')}`
     if (rs.kind === 'review') return `↻ ${this.ui('review')}`
+    if (rs.kind === 'verbs') return `🔤 ${this.ui('map.verbs', { n: verbDueCount(this.pack, this.progress.cards, Date.now()) })}`
     return this.text.t(this.pack.units.find((u) => u.id === rs.unitId)?.title ?? '')
   }
 
@@ -753,7 +755,7 @@ class QuizArena {
       this.roundUnlocked = []
     }
     this.save()
-    if (rs.kind !== 'review') this.audio.sfx(rs.kind === 'boss' ? 'boss' : 'level-up')
+    if (rs.kind === 'unit' || rs.kind === 'boss') this.audio.sfx(rs.kind === 'boss' ? 'boss' : 'level-up')
     this.go('summary')
   }
 
@@ -763,7 +765,7 @@ class QuizArena {
     const ui = this.ui
     const accuracy = Math.round(roundAccuracy(rs) * 100)
     const missed = missedIds(rs)
-    const rated = rs.kind !== 'review'
+    const rated = rs.kind === 'unit' || rs.kind === 'boss'
     const bossPassed = rs.kind === 'boss' && this.roundStars >= 1
     const unitName = (id: string): string => this.text.t(this.pack.units.find((u) => u.id === id)?.title ?? id)
     const notes: HTMLElement[] = []
