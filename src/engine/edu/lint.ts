@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { findUnitCycle, objectivesOf, type CourseItem, type CoursePack } from '../../shared/course'
 import { GAME_DATA_FORMAT, type GameData } from '../../shared/game-data'
-import { ITEM_KINDS, formOf, makeTextResolver, normalizeText, validateCourse, type CheckContext, type ItemKindDef, type TextRef, type TextResolver } from '../../shared/edu'
+import { ITEM_KINDS, formOf, makeCheckContext, makeTextResolver, normalizeText, validateCourse, type CheckContext, type ItemKindDef, type TextRef, type TextResolver } from '../../shared/edu'
 import { SHELL_LINT_CODES, SHELL_WARNING_CODES, lintShells, shellTextRefs } from '../../shared/shells'
 import { GAME_DATA_FILE } from './build'
 
@@ -156,7 +156,7 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
   const editions = pack.languages
   const out = new Collector(editions)
   const resolvers: Record<string, TextResolver> = Object.fromEntries(editions.map((l) => [l, makeTextResolver(data.catalogs, l, pack.targetLang)]))
-  const ctxOf = (lang: string): CheckContext => ({ text: resolvers[lang]!, diacritics: pack.matching?.diacritics, typos: pack.matching?.typos })
+  const ctxOf = (lang: string): CheckContext => makeCheckContext({ pack, text: resolvers[lang]! })
 
   // everything validateCourse knows (its MISSING_TEXT is reported below as TEXT_MISSING / ACCEPTED_INCOMPLETE)
   for (const p of validateCourse(pack, data.catalogs).problems) if (p.code !== 'MISSING_TEXT') out.add(p.code, p.path, p.message)

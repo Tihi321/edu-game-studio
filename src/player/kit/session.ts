@@ -1,6 +1,6 @@
 import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
-import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
+import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
 import { sectionOf } from '../../shared/shells'
 import { PlayTimer } from '../classroom'
@@ -169,7 +169,7 @@ export class ShellSession<K extends string = string> {
     this.text = makeTextResolver(this.data.catalogs, this.lang, this.pack.targetLang)
     this.ui = makeUi(this.lang, this.data.catalogs[this.lang])
     this.s = makeShellUi(this.strings, this.lang, this.data.catalogs[this.lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.applyLang()
   }
 
@@ -229,7 +229,7 @@ export class ShellSession<K extends string = string> {
     this.text = makeTextResolver(this.data.catalogs, lang, this.pack.targetLang)
     this.ui = makeUi(lang, this.data.catalogs[lang])
     this.s = makeShellUi(this.strings, lang, this.data.catalogs[lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.progress = { ...this.progress, settings: { ...this.progress.settings, lang } }
     this.save()
     this.applyLang()

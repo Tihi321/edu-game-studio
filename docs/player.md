@@ -27,7 +27,9 @@ An image or an audio element that fails to load is a `console.error` (`main.ts` 
 | `style/arena.css` | The quiz-arena screens (frame, board, HUD, feedback, summary, burst), scoped under `.edu-stage` |
 | `style/embed.css` | What the studio imports to mount an item renderer in a live preview (tokens + chalkboard theme + motion + `items.css`; no global rules) |
 
-Every answer goes through the shared `checkItem` (`src/shared/edu`) with a `CheckContext` built from the course (`matching.diacritics`, `matching.typos`) and the edition's text resolver, so the player, the lint and the bot agree on what is right.
+Every answer goes through the shared `checkItem` (`src/shared/edu`) with a `CheckContext` built from the course (`matching.diacritics`, `matching.typos`) and the edition's text resolver, so the player, the lint and the bot agree on what is right. Build the context only with `makeCheckContext({ pack, text })` (`src/shared/edu/registry.ts`); it also sets `lang`, the language of the answer texts (`pack.targetLang`, else the edition).
+
+**Matching policy for German (`lang: 'de'`, EGS-26).** Exact (case ignored, umlauts kept) is right. `ae/oe/ue/ss` for `ä/ö/ü/ß` (all, only the sharp s, or only the umlauts) is right with `translit: true` (note, no grade lost; the accepted side is expanded, the input is never converted). A missing umlaut (`Madchen`) is wrong with `diacritics: true` because the default for German is `strict` unless the item says `strictDiacritics: false` or the course says `warn`. A lower-case noun (not the first word of a phrase) is right with `caps: true`. One-letter typos work as before and can be switched off per call (`typos: false`, for conjugation forms). Other languages are unchanged.
 
 ## `window.EduEngine`
 

@@ -33,7 +33,7 @@ import {
 } from './checkers'
 import { placementSelection, verifyWordSearch } from './wordsearch'
 import { verifyCrossword } from './crossword'
-import { registerItemKind, ITEM_KINDS, type CheckContext, type ItemKindDef, type Problem, type TextRef, type ValidationContext } from './registry'
+import { makeCheckContext, registerItemKind, ITEM_KINDS, type CheckContext, type ItemKindDef, type Problem, type TextRef, type ValidationContext } from './registry'
 import { makeTextResolver } from './text'
 
 /**
@@ -63,7 +63,7 @@ function dupIds(list: readonly { id: string }[], path: string): Problem[] {
 }
 
 const resolverFor = (v: ValidationContext, lang: string) => makeTextResolver(v.catalogs, lang, v.pack.targetLang)
-const ctxFor = (v: ValidationContext, lang: string): CheckContext => ({ text: resolverFor(v, lang) })
+const ctxFor = (v: ValidationContext, lang: string): CheckContext => makeCheckContext({ pack: v.pack, text: resolverFor(v, lang) })
 
 function assetKind(v: ValidationContext, id: string | undefined, kind: 'image' | 'audio', path: string): Problem[] {
   if (!id) return []

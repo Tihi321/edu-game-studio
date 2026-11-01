@@ -1,6 +1,6 @@
 import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
-import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type TextResolver } from '../../shared/edu'
+import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
 import { unitArea } from '../../shared/music'
 import { GameAudio, loopsOf } from '../audio'
@@ -128,7 +128,7 @@ class QuizArena {
     this.lang = pickLang(this.data, this.progress.settings.lang)
     this.ui = makeUi(this.lang)
     this.text = makeTextResolver(this.data.catalogs, this.lang, this.pack.targetLang)
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.rng = rngFor(host.seed, 'arena')
     this.audio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
     this.setLang(this.lang, false)
@@ -164,7 +164,7 @@ class QuizArena {
     this.lang = lang
     this.text = makeTextResolver(this.data.catalogs, lang, this.pack.targetLang)
     this.ui = makeUi(lang, this.data.catalogs[lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     document.documentElement.lang = lang
     document.title = this.courseTitle()
     if (render) {
