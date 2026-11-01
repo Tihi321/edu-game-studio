@@ -66,3 +66,6 @@ Not planned yet:
 - Run the autoplay bot from the studio's Playtest tab (`playtestCourse`): the packaged app does not carry Playwright, so it needs an engine-side runner; the tab shows the `yarn play` commands until then.
 - Save a course's theme from the Game tab once a second shell can play another look.
 - Rename the `book` field of a job file (the course slug) once a ticket touches the scheduler.
+- Starter agents in `seed/agents` are not copied when `~/EduGames/agents` already exists: copy the missing files without overwriting, and warn at startup.
+- The game-designer prompt still says only the quiz arena is playable; update it to the shells that play now.
+- `edu_asset_generate {kind: "image"}` fails with an error that wrongly names `media.music.enabled`; it should name the image setting.
