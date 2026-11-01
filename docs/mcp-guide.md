@@ -360,6 +360,8 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 
 `edu_languages` lists the 37 built-in course languages (code, English name, native name, right-to-left, script) and the ones added in `config/languages.md`. Player menu strings exist for Croatian so far; other languages keep the English menus until the player extends the table.
 
+**Language rules in the prompts (EGS-30).** When a course teaches a language that has rules (German today, `src/shared/lang`), the writer roles get them as the prompt variable `{{language_rules}}` (empty for other languages): item-writer (`items`, `items_revise`, plus the authored shape of the `conjugation` kind), language-coach (`scope`, `accepted`), misconception-designer, explainer and fact-checker. The German text is `src/shared/lang/de/rules.ts` (in code, so it is bundled with the engine and needs no seed refresh); the changed prompts reach an existing data folder through the seed refresh. The text is model-written German and has not been reviewed by a native speaker.
+
 ## Notes
 
 - Paths you pass are paths on the machine that runs Edu Studio.
