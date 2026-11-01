@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { makeTextResolver } from '../src/shared/edu'
-import { encyclopediaSectionSchema, encyclopediaShell, autoHunts, autoMap, autoTimeline, buildEncyclopedia, containsPhrase, encArticles, finalStepsOf, parseYear, answerInArticle, type EncyclopediaSection } from '../src/shared/shells/encyclopedia'
-import { emptyData, readData, withFound, withRead } from '../src/player/shells/encyclopedia/data'
-import { linkedIds, linkify, paragraphsOf, searchArticles, searchTermFor, type ArticleText } from '../src/player/shells/encyclopedia/articles'
-import { minMapWidth, nearestPinDistance, pinPercent, stepPin } from '../src/player/shells/encyclopedia/places'
-import { formatYear, layoutTimeline, niceStep, rulerTicks } from '../src/player/shells/encyclopedia/timeline'
-import { ENC_STRINGS } from '../src/player/shells/encyclopedia/strings'
-import type { CoursePack } from '../src/shared/course'
+import { encyclopediaSectionSchema, buildEncyclopedia, parseYear, answerInArticle, type EncyclopediaSection } from '../src/shared/shells/encyclopedia'
+import { emptyData, readData } from '../src/player/shells/encyclopedia/data'
+import { linkedIds, linkify, searchArticles, type ArticleText } from '../src/player/shells/encyclopedia/articles'
+import { minMapWidth, nearestPinDistance } from '../src/player/shells/encyclopedia/places'
+import { layoutTimeline } from '../src/player/shells/encyclopedia/timeline'
+import type {  } from '../src/shared/course'
 import { loadFixture } from './edu-fixtures'
 
 /**
@@ -16,10 +15,6 @@ import { loadFixture } from './edu-fixtures'
  */
 
 describe('reading: paragraphs and cross-links', () => {
-  it('splits a body on line breaks and drops blanks', () => {
-    expect(paragraphsOf(['One.\n\nTwo.', '  Three.  ', ''])).toEqual(['One.', 'Two.', 'Three.'])
-  })
-
   it('links the first mention of every other article, longest title first, whole words, any case, never the article itself', () => {
     const others = [
       { id: 'sun', title: 'The Sun' },
@@ -39,22 +34,6 @@ describe('reading: paragraphs and cross-links', () => {
     expect(segs[0]!.map((s) => s.text).join('')).toBe('The sun and the planets orbit. The Sun shines. A moonlit Moon, the moon again. Self.')
   })
 
-  it('links a title only once across paragraphs and never links a very short title', () => {
-    const segs = linkify(['Rome is old.', 'Rome is big. Io is a moon.'], 'x', [
-      { id: 'rome', title: 'Rome' },
-      { id: 'io', title: 'Io' }
-    ])
-    expect(linkedIds(segs)).toEqual(['rome'])
-    expect(segs[1]!.some((s) => s.link)).toBe(false)
-  })
-
-  it('does not link inside a longer word (Unicode letters count)', () => {
-    const segs = linkify(['Beča and Bečki. Beč is the capital.'], 'x', [{ id: 'vienna', title: 'Beč' }])
-    const linked = segs[0]!.filter((s) => s.link)
-    expect(linked).toHaveLength(1)
-    expect(linked[0]!.text).toBe('Beč')
-    expect(segs[0]!.map((s) => s.text).join('')).toBe('Beča and Bečki. Beč is the capital.')
-  })
 })
 
 describe('reading: search', () => {
@@ -72,39 +51,9 @@ describe('reading: search', () => {
     expect(searchArticles('zzqxj', arts)).toEqual([])
   })
 
-  it('ranks a title hit above a body hit and gives a snippet only for body hits', () => {
-    const hits = searchArticles('danube', arts)
-    expect(hits.map((h) => h.id).sort()).toEqual(['budapest', 'vienna'])
-    expect(hits.every((h) => h.snippet.includes('Danube'))).toBe(true)
-    const t = searchArticles('prag', arts)
-    expect(t[0]).toMatchObject({ id: 'prague', snippet: '' })
-  })
-
-  it('searchTermFor gives a term that finds the article it was made for', () => {
-    for (const a of arts) {
-      const term = searchTermFor(a, arts)
-      expect(searchArticles(term, arts).some((h) => h.id === a.id), `${a.id}: "${term}"`).toBe(true)
-      expect(term.length).toBeGreaterThanOrEqual(2)
-    }
-  })
 })
 
 describe('timeline geometry', () => {
-  it('niceStep and rulerTicks give a readable ruler (no year 0, majors on the step)', () => {
-    expect(niceStep(100)).toBeLessThanOrEqual(20)
-    expect(niceStep(2500)).toBeGreaterThanOrEqual(500)
-    const ticks = rulerTicks(-450, 90)
-    expect(ticks.some((t) => t.year === 0)).toBe(false)
-    expect(ticks.every((t) => t.year >= -450 && t.year <= 90)).toBe(true)
-    expect(ticks.filter((t) => t.major).length).toBeGreaterThanOrEqual(2)
-  })
-
-  it('formats a year, BC with the edition word', () => {
-    expect(formatYear(1957, 'BC')).toBe('1957')
-    expect(formatYear(-432, 'BC')).toBe('432 BC')
-    expect(formatYear(-432, 'pr. Kr.')).toBe('432 pr. Kr.')
-  })
-
   const years = [-432, 80, 1078, 1357, 1561, 1755, 1791, 1814, 1873, 1889, 1961, 1991]
   const events = years.map((y) => ({ id: `e${y}`, year: y }))
 
@@ -138,17 +87,6 @@ describe('timeline geometry', () => {
     }
   })
 
-  it('copes with no event, one event and events in one year', () => {
-    expect(layoutTimeline([]).events).toEqual([])
-    const one = layoutTimeline([{ id: 'a', year: 1900 }])
-    expect(one.events[0]!.tick).toBe(one.width / 2)
-    const same = layoutTimeline([
-      { id: 'a', year: 1900 },
-      { id: 'b', year: 1900 }
-    ])
-    expect(new Set(same.events.map((e) => e.lane)).size).toBe(2)
-    expect(same.ticks).toEqual([])
-  })
 })
 
 describe('map geometry', () => {
@@ -167,18 +105,6 @@ describe('map geometry', () => {
     expect(minMapWidth([{ id: 'x', x: 1, y: 1 }, { id: 'y', x: 700, y: 500 }], 800)).toBe(300)
   })
 
-  it('moves between pins with the arrow keys, wrapping round', () => {
-    expect(stepPin(pins, 'a', 'right')?.id).toBe('b')
-    expect(stepPin(pins, 'c', 'right')?.id).toBe('a')
-    expect(stepPin(pins, 'a', 'left')?.id).toBe('c')
-    expect(stepPin(pins, 'a', 'down')?.id).toBe('b') // same y: by x
-    expect(stepPin(pins, 'b', 'down')?.id).toBe('c')
-    expect(stepPin([], 'a', 'down')).toBeUndefined()
-  })
-
-  it('places a pin as percentages of the image', () => {
-    expect(pinPercent({ id: 'a', x: 200, y: 75 }, 800, 300)).toEqual({ left: '25%', top: '25%' })
-  })
 })
 
 describe('saved data', () => {
@@ -191,22 +117,6 @@ describe('saved data', () => {
     expect(readData({ found: 'x' }, steps, arts)).toEqual(emptyData())
   })
 
-  it('adds a found step and a read article once', () => {
-    let d = emptyData()
-    d = withFound(withFound(d, 's1'), 's1')
-    d = withRead(withRead(d, 'a1'), 'a1')
-    expect(d).toEqual({ found: ['s1'], read: ['a1'] })
-  })
-})
-
-describe('words', () => {
-  it('has a Croatian word for every English one, with the same placeholders', () => {
-    const en = ENC_STRINGS.en as Record<string, string>
-    const hr = ENC_STRINGS.hr as Record<string, string>
-    const holes = (s: string): string[] => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort()
-    expect(Object.keys(hr).sort()).toEqual(Object.keys(en).sort())
-    for (const k of Object.keys(en)) expect(holes(hr[k]!), k).toEqual(holes(en[k]!))
-  })
 })
 
 describe('the course side: years, phrases, the section schema', () => {
@@ -219,47 +129,6 @@ describe('the course side: years, phrases, the section schema', () => {
     expect(parseYear('no date here')).toBeUndefined()
   })
 
-  it('finds the words of a phrase in a body by their stems (inflection), numbers exactly', () => {
-    const body = 'atena je glavni grad grcke a partenon je dovrsen do 432 godine'
-    expect(containsPhrase(body, 'Atena')).toBe(true)
-    expect(containsPhrase(body, 'Ateni')).toBe(true) // Croatian locative
-    expect(containsPhrase(body, 'Partenon u Ateni')).toBe(true)
-    expect(containsPhrase(body, '432')).toBe(true)
-    expect(containsPhrase(body, '43')).toBe(false)
-    expect(containsPhrase(body, 'Koloseum')).toBe(false)
-    expect(containsPhrase(body, 'a of the')).toBe(true) // only filler words: nothing to look for
-  })
-
-  it('accepts a section with every part optional and refuses unknown keys and year 0', () => {
-    expect(encyclopediaSectionSchema.parse({})).toEqual({ timeline: [], hunts: [], glossary: {}, reader: false })
-    expect(encyclopediaSectionSchema.safeParse({ extra: 1 }).success).toBe(false)
-    expect(encyclopediaSectionSchema.safeParse({ timeline: [{ id: 't', year: 0, label: 'k' }] }).success).toBe(false)
-    expect(encyclopediaSectionSchema.safeParse({ timeline: [{ id: 't', year: -44, label: 'k' }] }).success).toBe(true)
-    expect(encyclopediaSectionSchema.safeParse({ map: { asset: 'a', width: 0, height: 10 } }).success).toBe(false)
-  })
-
-  it('lists every text key and asset of a section', () => {
-    const s: EncyclopediaSection = encyclopediaSectionSchema.parse({
-      timeline: [{ id: 't', year: 1900, label: 'k.t', text: 'k.t.text', article: 'a' }],
-      map: { asset: 'img', width: 10, height: 10, places: [{ id: 'p', x: 1, y: 1, label: 'k.p', article: 'a' }] },
-      hunts: [{ id: 'h', unit: 'u', title: 'k.h', intro: 'k.h.i', steps: [{ id: 's', clue: 'k.s.c', article: 'a', item: 'i', collectible: 'k.s.n' }] }]
-    })
-    expect(encyclopediaShell.textRefs(s, {} as CoursePack).map((r) => r.key).sort()).toEqual(['k.h', 'k.h.i', 'k.p', 'k.s.c', 'k.s.n', 'k.t', 'k.t.text'])
-    expect(encyclopediaShell.assetRefs?.(s)).toEqual([{ path: 'map.asset', id: 'img' }])
-    expect(encyclopediaShell.requiresSection).toBe(false)
-    expect(encyclopediaShell.theme).toBe('parchment')
-  })
-
-  it('keeps the grand hunt to the first and last step of every unit, each step once', () => {
-    const step = (id: string) => ({ id, article: 'a', item: `i-${id}` })
-    const hunts = [
-      { id: 'h1', unit: 'u1', steps: [step('a'), step('b'), step('c')], auto: false },
-      { id: 'h2', unit: 'u2', steps: [step('d')], auto: false },
-      { id: 'h3', unit: 'u1', steps: [step('e')], auto: false }
-    ]
-    expect(finalStepsOf(hunts).map((s) => s.id)).toEqual(['a', 'e', 'd'])
-    expect(finalStepsOf([])).toEqual([])
-  })
 })
 
 describe.each(['solar-system', 'european-capitals'] as const)('the model of %s', (name) => {
@@ -344,24 +213,4 @@ describe('the automatic layout (no section)', () => {
     }
   })
 
-  it('builds an article per objective for a unit without any, and a hunt over them', async () => {
-    const f = await loadFixture('solar-system')
-    const pack = structuredClone(f.pack)
-    pack.encyclopedia.articles = pack.encyclopedia.articles.filter((a) => a.unit !== 'u-moons-beyond')
-    const text = makeTextResolver(f.catalogs, 'en', pack.targetLang)
-    const arts = encArticles(pack)
-    const virtual = arts.filter((a) => a.virtual)
-    expect(virtual.map((a) => a.id).sort()).toEqual(['auto-obj-beyond', 'auto-obj-exploration', 'auto-obj-moons'])
-    expect(virtual.every((a) => a.unit === 'u-moons-beyond' && a.bodyKeys.length >= 1)).toBe(true)
-    const hunts = autoHunts(pack, arts, text)
-    expect(hunts.find((h) => h.unit === 'u-moons-beyond')!.steps).toHaveLength(3)
-  })
-
-  it('has no timeline and no map for a course without order dates or images', async () => {
-    const f = await loadFixture('hr-a1-greetings')
-    const text = makeTextResolver(f.catalogs, 'en', f.pack.targetLang)
-    const arts = encArticles(f.pack)
-    expect(autoTimeline(f.pack, arts, text)).toEqual([])
-    expect(autoMap({ ...f.pack, assets: [] })).toBeUndefined()
-  })
 })

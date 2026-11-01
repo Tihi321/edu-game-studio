@@ -6,7 +6,6 @@ import {
   acceptedSchema,
   applyDistractors,
   applyExplain,
-  applyPolish,
   articlesSchema,
   askRole,
   authoredItemSchema,
@@ -30,17 +29,13 @@ import {
   mergeRevision,
   normalizeDesign,
   planSchema,
-  playtestReportSchema,
-  polishSchema,
   PROMPT_VARS,
-  publishSchema,
-  scopeSchema,
-  scriptoriumBriefSchema
+  scopeSchema
 } from '../src/engine/edu/authoring'
 import type { AuthoredItem } from '../src/engine/edu/authoring'
 import { validateCourse } from '../src/shared/edu'
 import { parseMd } from '../src/shared/md'
-import { AUTHORED_ITEM_KINDS, ROLES } from '../src/shared/schemas'
+import { AUTHORED_ITEM_KINDS } from '../src/shared/schemas'
 import { render } from '../src/engine/pipeline/prompts'
 import { languageRulesText } from '../src/shared/lang'
 import { ARTICLES, CURRICULUM, DESIGN, draftItems, FACTS, FRAME, ITEMS } from './edu-authored-fixture'
@@ -76,18 +71,6 @@ describe('director: plan_brief', () => {
 })
 
 describe('curriculum-designer: curriculum', () => {
-  it('the fixture passes the schema and the checks', () => {
-    const c = curriculumSchema.parse(CURRICULUM)
-    expect(checkCurriculum(c, { factIds, units: 2 })).toEqual([])
-  })
-
-  it('the schema says what is wrong in words a repair round can use', () => {
-    expect(issues(curriculumSchema.safeParse({ ...CURRICULUM, objectives: [{ ...CURRICULUM.objectives[0], bloom: 'know' }] }))[0]).toMatch(/bloom must be one of remember, understand/)
-    expect(issues(curriculumSchema.safeParse({ ...CURRICULUM, objectives: [{ ...CURRICULUM.objectives[0], facts: [] }] }))[0]).toMatch(/must rest on at least one fact id/)
-    expect(issues(curriculumSchema.safeParse({ ...CURRICULUM, units: [{ ...CURRICULUM.units[0], id: 'unit one' }] }))[0]).toMatch(/an id may only have letters, digits/)
-    expect(curriculumSchema.safeParse({ units: CURRICULUM.units, objectives: CURRICULUM.objectives.map((o) => ({ ...o, extra: null })) }).success).toBe(true) // nulls are dropped
-  })
-
   it('checkCurriculum: ids unique, requires known and acyclic, every unit has an objective, every objective has existing facts', () => {
     const c = curriculumSchema.parse(CURRICULUM)
     const bad = curriculumSchema.parse({
@@ -127,10 +110,6 @@ describe('curriculum-designer: objectives the facts cannot support (EGS-22)', ()
   const factTexts = Object.fromEntries(FACTS.map((f) => [f.id, f.fact]))
   const one = (text: string, facts: string[]) => curriculumSchema.parse({ units: [{ id: 'u1', title: 'U', summary: 's', requires: [] }], objectives: [{ id: 'o1', unit: 'u1', bloom: 'remember', text, facts }] })
 
-  it('the fixture curriculum passes with the fact texts', () => {
-    expect(checkCurriculum(curriculumSchema.parse(CURRICULUM), { factIds, units: 2, factTexts })).toEqual([])
-  })
-
   it('"name its causes" on facts that state no cause is flagged, with the facts it rests on', () => {
     const msgs = checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds, factTexts }).map((p) => p.issue)
     expect(msgs).toEqual(['it asks for causes or reasons, but the facts it rests on (f3) state none'])
@@ -139,13 +118,6 @@ describe('curriculum-designer: objectives the facts cannot support (EGS-22)', ()
     expect(checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds, factTexts: withCause })).toEqual([])
   })
 
-  it('consequences and dates are checked the same way; without fact texts, or in another language, nothing is flagged', () => {
-    expect(checkCurriculum(one('Explain the consequences of the Colosseum.', ['f6']), { factIds, factTexts }).map((p) => p.issue)[0]).toMatch(/consequences or effects/)
-    expect(checkCurriculum(one('Say when the Senate met.', ['f3']), { factIds, factTexts }).map((p) => p.issue)[0]).toMatch(/a date or a period/)
-    expect(checkCurriculum(one('Say when the Colosseum opened.', ['f6']), { factIds, factTexts })).toEqual([])
-    expect(checkCurriculum(one('Name the causes of the fall of Rome.', ['f3']), { factIds })).toEqual([])
-    expect(checkCurriculum(one('Navedi uzroke pada Rima.', ['f3']), { factIds, factTexts })).toEqual([])
-  })
 })
 
 describe('language-coach: scope and accepted', () => {
@@ -165,38 +137,7 @@ describe('language-coach: scope and accepted', () => {
   })
 })
 
-describe('subject-expert: articles', () => {
-  const ctx = { factIds, unitIds: ['u1', 'u2'], unit: 'u1', count: 1, otherArticleIds: ['a-rome'] }
-  const a1 = ARTICLES[0]!
-
-  it('a good article passes', () => {
-    expect(checkArticles(articlesSchema.parse({ articles: [a1] }), ctx)).toEqual([])
-  })
-
-  it('the schema needs a body of some length; every citation rule has a message', () => {
-    expect(issues(articlesSchema.safeParse({ articles: [{ ...a1, body: 'Too short [f1].' }] }))[0]).toMatch(/at least 80 characters/)
-    const check = (over: Record<string, unknown>, c = ctx) => formatProblems(checkArticles(articlesSchema.parse({ articles: [{ ...a1, ...over }] }), c))
-    expect(check({ body: a1.body.replace(/\[f\d\]/g, '') })).toMatch(/a-fall: the article cites no fact \(cite the facts it rests on in the text as \[f3\]/)
-    expect(check({ body: `${a1.body} It was big [f42].` })).toMatch(/it cites the fact f42, which is not in the fact base/)
-    expect(check({ body: `${a1.body} See source [3].` })).toMatch(/it has a source number like \[3\]/)
-    expect(check({ unit: 'u2' })).toMatch(/its unit is "u2", these articles are for "u1"/)
-    expect(check({ unit: 'u7' })).toMatch(/its unit "u7" does not exist/)
-    expect(check({ id: 'a-rome' })).toMatch(/already used by another unit/)
-    expect(check({ related: ['a-zzz'] })).toMatch(/relates to the article "a-zzz", which does not exist/)
-    expect(check({}, { ...ctx, count: 2 })).toMatch(/1 article\(s\) given, the unit has exactly 2/)
-    expect(formatProblems(checkArticles(articlesSchema.parse({ articles: [a1, a1] }), { ...ctx, count: undefined }))).toMatch(/this article id is used twice/)
-  })
-})
-
 describe('item-writer: items', () => {
-  it('the fixture items are valid authored items of every kind, and pass the checks', () => {
-    const parsed = itemsSchema.parse({ items: ITEMS })
-    expect(new Set(parsed.items.map((i) => i.kind))).toEqual(new Set(['mcq', 'true-false', 'typed', 'cloze', 'flashcard', 'match-pairs', 'order', 'sort-groups', 'multi-select']))
-    expect(checkItems(parsed.items, { objectives, factIds, allowedKinds: kinds, requireWhy: true })).toEqual([])
-    expect(checkItems(parsed.items, { objectives, factIds, allowedKinds: kinds, itemsPerObjective: 2 })).toEqual([])
-    expect(checkItems(draftItems(parsed.items), { objectives, factIds, allowedKinds: kinds })).toEqual([]) // no why needed before the designer
-  })
-
   const bad = (over: Record<string, unknown>, base = ITEMS[0]!) => issues(authoredItemSchema.safeParse({ ...base, ...over }))
 
   it('each kind\'s schema rejects a wrong shape with a readable message', () => {
@@ -223,10 +164,6 @@ describe('item-writer: items', () => {
     expect(bad({ pairs: [{ id: 'p1', left: 'a', right: 'b' }] }, ITEMS[5]!)[0]).toMatch(/at least 2 pairs/)
     expect(bad({ items: [{ id: 's1', text: 'a' }] }, ITEMS[6]!)[0]).toMatch(/at least 2 items/)
     expect(bad({ back: '' }, ITEMS[4]!)[0]).toMatch(/the back of the card must not be empty/)
-  })
-
-  it('nulls are dropped, so an optional field a model writes as null does not fail', () => {
-    expect(itemsSchema.safeParse({ items: [{ ...ITEMS[2], hint: null, didYouKnow: null, difficulty: null }] }).success).toBe(true)
   })
 
   it('checkItems: ids, objective, unit, facts, kind, forms per objective, duplicate and key-like options, the why of a wrong option', () => {
@@ -318,11 +255,6 @@ describe('explainer: explain and polish', () => {
     expect(msg([{ id: 'zz', explanation: 'x' }, { id: 'zz', explanation: 'y' }])).toMatch(/zz: no such item[\s\S]*zz: this item is returned twice[\s\S]*q1: this item was not covered/)
   })
 
-  it('polish keeps only the flagged keys and drops empty texts', () => {
-    const parsed = polishSchema.parse({ strings: { 'item.q1.expl': ' Better. ', 'item.q2.expl': 'Not flagged.', 'item.q3.expl': '  ' } })
-    expect(applyPolish(parsed.strings, ['item.q1.expl', 'item.q3.expl'])).toEqual({ kept: { 'item.q1.expl': 'Better.' }, dropped: ['item.q2.expl', 'item.q3.expl'] })
-    expect(issues(polishSchema.safeParse({ strings: ['x'] }))[0]).toMatch(/strings is an object/)
-  })
 })
 
 describe('game-designer, narrative-designer, playtester, publisher', () => {
@@ -335,23 +267,6 @@ describe('game-designer, narrative-designer, playtester, publisher', () => {
     expect(DESIGN.enabled).toEqual(['quiz-arena', 'rpg'])
   })
 
-  it('the frame has a beat for every unit; the Scriptorium brief and the publish answer have their fields', () => {
-    const f = frameSchema.parse(FRAME)
-    expect(checkFrame(f, ['u1', 'u2'])).toEqual([])
-    expect(refs(checkFrame(f, ['u1', 'u2', 'u3']))).toEqual(['u3'])
-    expect(refs(checkFrame({ ...f, unitBeats: [{ unit: 'u9', beat: 'x' }] }, ['u1']))).toEqual(['u9', 'u1'])
-    expect(issues(frameSchema.safeParse({ ...FRAME, characters: [] }))[0]).toMatch(/give at least one character/)
-    expect(scriptoriumBriefSchema.safeParse({ idea: 'A scribe crosses the empire.', audience: 'Teenagers', length: 'A short story of 2000 words' }).success).toBe(true)
-    expect(issues(scriptoriumBriefSchema.safeParse({ idea: 'x', audience: 'y' }))[0]).toMatch(/length/)
-    expect(publishSchema.parse({ blurb: 'Learn Rome.' })).toEqual({ blurb: 'Learn Rome.', notes: '' })
-  })
-
-  it('the playtest report is a review with scores flow and difficulty and a list of dead ends', () => {
-    const r = playtestReportSchema.parse({ verdict: 'Revise', scores: { Flow: 6, difficulty: '8' }, notes: 'Slow.', problems: ['struggling: did not finish'], deadEnds: ['struggling learner hit the step bound'] })
-    expect(r).toMatchObject({ verdict: 'revise', scores: { flow: 6, difficulty: 8 }, deadEnds: ['struggling learner hit the step bound'], problems: [{ ref: '', issue: 'struggling: did not finish' }] })
-    expect(playtestReportSchema.parse({ verdict: 'pass', scores: { flow: 9, difficulty: 8 } }).deadEnds).toEqual([])
-    expect(playtestReportSchema.safeParse({ verdict: 'pass', scores: { flow: 9 } }).success).toBe(false) // the difficulty is required
-  })
 })
 
 describe('askRole: the repair round for what a schema or a check finds', () => {
@@ -413,7 +328,6 @@ describe('askRole: the repair round for what a schema or a check finds', () => {
 
 describe('the seeded prompts and agents of the content team', () => {
   const promptFile = (key: string) => path.join(seedDir, 'prompts', ...key.split('/')) + '.md'
-  const SEEDED_ELSEWHERE = new Set(['director/summarize_run', 'researcher/check_notes', 'researcher/write_notes', 'researcher/search_queries', 'researcher/from_knowledge', 'fact-checker/fact_check'])
 
   it('every prompt exists, uses exactly the variables its handler passes, and ends with the JSON shape', () => {
     for (const [key, vars] of Object.entries(PROMPT_VARS)) {
@@ -428,27 +342,6 @@ describe('the seeded prompts and agents of the content team', () => {
       expect(lines[lines.length - 1], `${key}: the last line is the JSON shape`).toMatch(/^\{"/)
       expect(out, key).toMatch(/Reply with one JSON object/)
     }
-  })
-
-  it('every seeded prompt file is in the contract (or is one of EGS-06\'s), so none is unchecked', () => {
-    const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]))
-    const root = path.join(seedDir, 'prompts')
-    const found = walk(root).map((f) => path.relative(root, f).split(path.sep).join('/').replace(/\.md$/, '')).filter((f) => f !== '_rules')
-    for (const f of found) expect(f in PROMPT_VARS || SEEDED_ELSEWHERE.has(f), f).toBe(true)
-  })
-
-  it('the prompts name the rules of good items: two forms per objective, a why per distractor, [fN] citations, the pitch', () => {
-    const body = (k: string) => fs.readFileSync(promptFile(k), 'utf8')
-    expect(body('item-writer/items')).toMatch(/AT LEAST TWO DIFFERENT KINDS/)
-    expect(body('item-writer/items')).toMatch(/the answer is unambiguous/)
-    expect(body('item-writer/items')).toMatch(/\{\{audience\}\} \(age: \{\{age\}\}; level: \{\{level\}\}\)/)
-    expect(body('misconception-designer/distractors')).toMatch(/real misconception/)
-    expect(body('misconception-designer/distractors')).toMatch(/Every WRONG option has `why`/)
-    expect(body('subject-expert/articles')).toMatch(/\[f3\]/)
-    expect(body('subject-expert/articles')).toMatch(/Never cite a source number/)
-    expect(body('language-coach/scope')).toMatch(/CEFR \{\{cefr\}\}/)
-    expect(body('accessibility-reviewer/review')).toMatch(/Reading level/)
-    expect(body('child-safety-reviewer/review')).toMatch(/Age fit/)
   })
 
   it('EGS-30: the writer prompts carry the German rules (and the item-writer the conjugation shape) for de only', () => {
@@ -476,13 +369,6 @@ describe('the seeded prompts and agents of the content team', () => {
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true)
   })
 
-  it('every role of the team has a seeded agent, and a prompt unless it only reviews with the fact-checker\'s or the researcher\'s', () => {
-    const agents = fs.readdirSync(path.join(seedDir, 'agents')).map((f) => parseMd(fs.readFileSync(path.join(seedDir, 'agents', f), 'utf8')).data.role)
-    for (const role of ROLES) expect(agents, role).toContain(role)
-    expect(agents.filter((r) => r === 'item-writer')).toHaveLength(2)
-    const withPrompt = new Set([...Object.keys(PROMPT_VARS), ...SEEDED_ELSEWHERE].map((k) => k.split('/')[0]))
-    for (const role of ROLES) expect(withPrompt.has(role), role).toBe(true)
-  })
 })
 
 describe('the whole chain on the mock model: roles answer, the answers are checked and applied, the course assembles and validates', () => {

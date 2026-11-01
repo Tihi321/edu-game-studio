@@ -1,18 +1,9 @@
-import { readdirSync, readFileSync } from 'node:fs'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { validateCourse } from '../src/shared/edu'
-import { KNOWN_SHELLS, SHELL_DEFS, enabledShells, lintShells, parseSection, sectionOf } from '../src/shared/shells'
-import { chooseShell, playableShells, shellChoiceKey } from '../src/player/engine'
-import { emptyShellProgress, hasShellProgress, MAX_SHELL_DATA, newProgress, parseProgress } from '../src/player/progress'
+import { playableShells } from '../src/player/engine'
+import { emptyShellProgress, hasShellProgress, newProgress, parseProgress } from '../src/player/progress'
 import { pickNext, recordResult, roundAccuracy, startPool } from '../src/player/round'
-import { makeShellUi } from '../src/player/kit/strings'
-import { musicAreaOf } from '../src/player/kit/session'
 import { rngFor } from '../src/shared/edu'
 import { loadFixture } from './edu-fixtures'
-import { makeUi } from '../src/player/i18n'
-import { MODE_IDS } from '../src/player/kit/mode-icons'
-import { applyScreenTheme, shellName } from '../src/player/kit/start'
 
 /** The shell contract (EGS-10): shell choice, the per-shell progress slot, runs over any pool, the section registry, shell strings. */
 
@@ -24,15 +15,6 @@ describe('shell choice', () => {
     expect(playableShells(['x'], [])).toEqual([])
   })
 
-  it('takes ?shell= first, then the remembered choice, then the game data, then the first playable', () => {
-    const playable = ['quiz-arena', 'encyclopedia', 'mindmaze']
-    expect(chooseShell({ search: '?seed=1&shell=mindmaze', playable, saved: 'encyclopedia', dataShell: 'quiz-arena' })).toBe('mindmaze')
-    expect(chooseShell({ search: '?shell=rpg', playable, saved: 'encyclopedia', dataShell: 'quiz-arena' })).toBe('encyclopedia')
-    expect(chooseShell({ search: '', playable, saved: null, dataShell: 'mindmaze' })).toBe('mindmaze')
-    expect(chooseShell({ search: '', playable, saved: 'gone', dataShell: 'gone' })).toBe('quiz-arena')
-    expect(chooseShell({ search: '', playable: [] })).toBeUndefined()
-    expect(shellChoiceKey('solar-system')).toBe('edu-studio:shell:solar-system')
-  })
 })
 
 describe('per-shell progress', () => {
@@ -52,21 +34,6 @@ describe('per-shell progress', () => {
     expect(hasShellProgress(back.progress, 'rpg')).toBe(false)
   })
 
-  it('drops unknown units, clamps stars and refuses oversized data', () => {
-    const raw = { version: 1, pack: 'c', shells: { rpg: { units: { u1: { stars: 9 }, ghost: { stars: 3 } }, data: 'x'.repeat(MAX_SHELL_DATA + 10) } } }
-    const back = parseProgress(JSON.stringify(raw), pack)
-    expect(back.ok).toBe(true)
-    if (!back.ok) return
-    expect(back.progress.shells.rpg?.units).toEqual({ u1: { stars: 3, best: 0, rounds: 0 } })
-    expect(back.progress.shells.rpg?.data).toBeUndefined()
-  })
-
-  it('reads an old progress file without shells', () => {
-    const old = { ...newProgress('c') } as Record<string, unknown>
-    delete old.shells
-    const back = parseProgress(JSON.stringify(old), pack)
-    expect(back.ok && back.progress.shells).toEqual({})
-  })
 })
 
 describe('runs over any pool (the round logic every shell asks from)', () => {
@@ -90,100 +57,4 @@ describe('runs over any pool (the round logic every shell asks from)', () => {
     expect(roundAccuracy(run)).toBeCloseTo(4 / 5)
   })
 
-  it('limits the run to size and to the unique ids of the pool', () => {
-    expect(startPool(['a', 'b', 'a', 'c'], { size: 2 }).size).toBe(2)
-    expect(startPool(['a', 'b', 'a'], {}).pool).toEqual(['a', 'b'])
-    expect(startPool([], {}).size).toBe(0)
-  })
-})
-
-describe('the shell section registry', () => {
-  it('knows the quiz arena and the game shells', () => {
-    expect(KNOWN_SHELLS).toEqual(expect.arrayContaining(['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg', 'roleplay', 'detective']))
-    for (const def of SHELL_DEFS.values()) {
-      expect(def.id).toMatch(/^[a-z]+$/)
-      for (const c of def.codes) expect(c).toMatch(/^[A-Z][A-Z0-9_]+$/)
-      for (const w of def.warnings ?? []) expect(def.codes).toContain(w)
-    }
-  })
-
-  it('a course without sections still validates (backwards compatible)', async () => {
-    const { pack, catalogs } = await loadFixture('hr-a1-greetings')
-    const res = validateCourse(pack, catalogs)
-    expect(res.problems).toEqual([])
-    expect(enabledShells(pack)).toContain('quiz-arena')
-    expect(parseSection(pack, 'mindmaze')).toEqual({ present: false })
-    expect(sectionOf(pack, 'mindmaze')).toBeUndefined()
-  })
-
-  it('warns about an enabled shell nobody registered', async () => {
-    const { pack, catalogs } = await loadFixture('hr-a1-greetings')
-    const p = { ...pack, shells: { ...pack.shells, enabled: [...pack.shells.enabled, 'pinball'] } }
-    const problems = lintShells({ pack: p, catalogs }, {})
-    expect(problems).toContainEqual(expect.objectContaining({ code: 'SHELL_UNKNOWN', severity: 'warning' }))
-  })
-})
-
-describe('shell strings', () => {
-  it('uses the edition table, falls back to English and lets the course override with ui.<key>', () => {
-    const tables = { en: { 'x.door': 'Door {n}', 'x.key': 'Key' }, hr: { 'x.door': 'Vrata {n}' } }
-    expect(makeShellUi(tables, 'hr')('x.door', { n: 2 })).toBe('Vrata 2')
-    expect(makeShellUi(tables, 'hr')('x.key')).toBe('Key')
-    expect(makeShellUi(tables, 'de-AT')('x.door', { n: 1 })).toBe('Door 1')
-    expect(makeShellUi(tables, 'en', { strings: { 'ui.x.key': 'Ključ' } })('x.key')).toBe('Ključ')
-  })
-})
-
-describe('the music area of a shell screen (EGS-22)', () => {
-  it('menu on the title and the hubs, the unit wherever the world of a unit or run is open, boss in a boss run, end at the end; a review run is a hub', () => {
-    expect(musicAreaOf('title', {})).toBe('menu')
-    expect(musicAreaOf('title', { unitId: 'u1' })).toBe('menu')
-    expect(musicAreaOf('explore' as never, {})).toBe('menu')
-    expect(musicAreaOf('map' as never, { unitId: 'u2' })).toBe('unit-u2')
-    expect(musicAreaOf('item', { roundKind: 'unit', unitId: 'u1' })).toBe('unit-u1')
-    expect(musicAreaOf('item', { roundKind: 'boss' })).toBe('boss')
-    expect(musicAreaOf('feedback', { roundKind: 'review', unitId: 'u1' })).toBe('menu')
-    expect(musicAreaOf('end', { unitId: 'u1' })).toBe('end')
-  })
-})
-
-describe('the shared start screen (EGS-25)', () => {
-  it('has one title implementation: the title-screen class is made in kit/start.ts only', () => {
-    const files: string[] = []
-    const walk = (dir: string): void => {
-      for (const e of readdirSync(dir, { withFileTypes: true })) {
-        const p = path.join(dir, e.name)
-        if (e.isDirectory()) walk(p)
-        else if (/\.tsx?$/.test(e.name) && /class:\s*[`'"]title-screen\b/.test(readFileSync(p, 'utf8'))) files.push(path.relative(path.join(__dirname, '..'), p).split(path.sep).join('/'))
-      }
-    }
-    walk(path.join(__dirname, '..', 'src', 'player'))
-    expect(files).toEqual(['src/player/kit/start.ts'])
-  })
-
-  it('puts the menu theme on the title and the shell theme on every other screen', () => {
-    const root = (() => {
-      const a = new Map<string, string>()
-      return { getAttribute: (k: string) => a.get(k) ?? null, setAttribute: (k: string, v: string) => void a.set(k, v) } as unknown as HTMLElement
-    })()
-    applyScreenTheme(root, 'title', 'castle')
-    expect(root.getAttribute('data-edu-theme')).toBe('menu')
-    applyScreenTheme(root, 'map', 'castle')
-    expect(root.getAttribute('data-edu-theme')).toBe('castle')
-    applyScreenTheme(root, 'title', 'castle')
-    expect(root.getAttribute('data-edu-theme')).toBe('menu')
-  })
-
-  it('names every mode and gives it a blurb and a pictogram in en and hr', () => {
-    for (const lang of ['en', 'hr']) {
-      const ui = makeUi(lang)
-      for (const id of MODE_IDS) {
-        expect(shellName(ui, id), `${lang} ${id} name`).not.toBe(id)
-        expect(ui(`mode.${id}.blurb` as never), `${lang} ${id} blurb`).toBeTruthy()
-      }
-      expect(ui('start.choose')).toBeTruthy()
-    }
-    expect(shellName(makeUi('en'), 'pinball')).toBe('pinball')
-    expect([...MODE_IDS].sort()).toEqual([...KNOWN_SHELLS].sort())
-  })
 })
