@@ -1,6 +1,6 @@
 import type { CoursePack } from '../../shared/course'
 import type { TextResolver } from '../../shared/edu'
-import { conjugate, findVerb, levelRank, tenseForCefr, type DeTense } from '../../shared/lang/de/verbs'
+import { DE_TENSES, conjugate, findVerb, levelRank, tenseForCefr, type DeTense } from '../../shared/lang/de/verbs'
 
 /**
  * Lint of `conjugation` items (EGS-27 structure, EGS-28 verb table).
@@ -20,7 +20,7 @@ export interface ConjProblem {
   lang?: string
 }
 
-const TENSES = new Set<string>(['praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2'])
+const TENSES: ReadonlySet<string> = new Set<string>(DE_TENSES)
 const clean = (s: string): string => s.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase()
 
 const DE_IMPERATIVE_PERSONS = new Set(['du', 'ihr', 'Sie'])
