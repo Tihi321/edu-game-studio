@@ -120,23 +120,24 @@ export function verbPool(pack: VerbPack, cards: Readonly<Record<string, Card>>, 
 export function startRound(
   pack: Pick<CoursePack, 'items' | 'objectives' | 'units' | 'shells'> & { extensions?: Record<string, unknown> },
   kind: RoundKind,
-  opts: { unitId?: string; queue?: readonly string[]; difficulty?: number; cards?: Readonly<Record<string, Card>>; now?: number } = {}
+  opts: { unitId?: string; queue?: readonly string[]; difficulty?: number; cards?: Readonly<Record<string, Card>>; now?: number; exclude?: ReadonlySet<string> } = {}
 ): RoundState {
   const cfg = quizConfig(pack)
+  const out = opts.exclude ?? new Set<string>() // items that are not asked (a vocabulary card the learner took out of the deck)
   let pool: string[]
   let size: number
   if (kind === 'unit') {
-    pool = itemsOfUnit(pack, opts.unitId ?? '').map((i) => i.id)
+    pool = itemsOfUnit(pack, opts.unitId ?? '').map((i) => i.id).filter((id) => !out.has(id))
     size = Math.min(cfg.roundLength, pool.length)
   } else if (kind === 'verbs') {
     pool = verbPool(pack, opts.cards ?? {}, opts.now ?? 0, cfg.roundLength)
     size = pool.length
   } else if (kind === 'boss') {
-    pool = pack.items.map((i) => i.id)
+    pool = pack.items.map((i) => i.id).filter((id) => !out.has(id))
     size = Math.min(cfg.bossLength, pool.length)
   } else {
     const have = new Set(pack.items.map((i) => i.id))
-    pool = (opts.queue ?? []).filter((id) => have.has(id))
+    pool = (opts.queue ?? []).filter((id) => have.has(id) && !out.has(id))
     size = Math.min(cfg.roundLength, pool.length)
   }
   return {

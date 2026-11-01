@@ -34,6 +34,8 @@ export interface AssembleInput {
   cefr?: string
   /** Verbs per verb unit of the format (recorded in `extensions.language`). */
   verbsPerUnit?: number
+  /** The readings the format asks for (recorded in `extensions.language.reading`, for the lint's length band). */
+  reading?: { words: [number, number]; glossary: [number, number] }
   /** The run number and the brief, recorded in `extensions.pipeline`. */
   run: number
   brief?: unknown
@@ -109,8 +111,8 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
       ...(it.didYouKnow ? { didYouKnow: put(src, k('dyk'), it.didYouKnow) } : {}),
       ...(it.hint ? { hint: put(src, k('hint'), it.hint) } : {}),
       difficulty: input.design?.difficulty[it.id] ?? it.difficulty ?? 3,
-      tags: [`unit:${unit}`],
-      extensions: { facts: [...new Set(it.facts)], ...(it.didYouKnowFact ? { didYouKnowFact: it.didYouKnowFact } : {}) }
+      tags: [`unit:${unit}`, ...(it.tags ?? []).filter((t) => !t.startsWith('unit:'))],
+      extensions: { facts: [...new Set(it.facts)], ...(it.didYouKnowFact ? { didYouKnowFact: it.didYouKnowFact } : {}), ...(it.grammar ? { grammar: it.grammar } : {}), ...(it.passage ? { passage: { article: it.passage.article, ...(it.passage.paragraphs ? { paragraphs: it.passage.paragraphs } : {}) } } : {}) }
     }
     switch (it.kind) {
       case 'mcq':
@@ -123,6 +125,7 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
         }))
         if (it.kind === 'mcq') out.answer = it.answer
         else out.answers = it.answers
+        if (it.kind === 'mcq' && it.tags?.includes('tfng')) out.shuffle = false // True / False / Not given keep their order
         break
       }
       case 'true-false':
@@ -181,12 +184,29 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
 
   // ---- articles ----
   const articleIds = new Set(input.articles.map((a) => a.id)) // a link to a planned article that was never written is dropped
+  // a reading of a language course (an article with a glossary) is written in the taught language: its title, body and glossary terms go to the target catalog
+  const glossary: Record<string, Record<string, unknown>[]> = {}
   const articles = input.articles.map((a) => {
     const citations = citationsOf(a)
+    const reading = a.glossary !== undefined && a.glossary.length > 0
+    const into = reading && tgt ? tgt : src
+    if (reading) {
+      glossary[a.id] = a.glossary!.map((g, n) => {
+        const key = (part: string): string => `art.${a.id}.gl.g${n + 1}.${part}`
+        return {
+          id: `g${n + 1}`,
+          term: put(into, key('term'), g.term),
+          ...(g.lemma ? { lemma: put(into, key('lemma'), g.lemma) } : {}),
+          gloss: put(src, key('gloss'), g.gloss),
+          ...(g.pos ? { pos: g.pos } : {}),
+          ...(g.note ? { note: put(src, key('note'), g.note) } : {})
+        }
+      })
+    }
     return {
       id: a.id,
-      title: put(src, `art.${a.id}.title`, a.title),
-      body: put(src, `art.${a.id}.body`, numberCitations(a.body, citations)),
+      title: put(into, `art.${a.id}.title`, a.title),
+      body: put(into, `art.${a.id}.body`, numberCitations(a.body, citations)),
       citations,
       related: a.related.filter((r) => articleIds.has(r)),
       unit: a.unit
@@ -207,11 +227,17 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
     }
   }
   const verbUnits = input.curriculum.units.filter((u) => u.verb).map((u) => u.id)
-  if (tgt && verbUnits.length) extensions.language = { verbUnits, verbsPerUnit: input.verbsPerUnit ?? 6 }
+  const readings = Object.keys(glossary).length > 0
+  if (tgt && (verbUnits.length || (readings && input.reading))) extensions.language = { ...(verbUnits.length ? { verbUnits, verbsPerUnit: input.verbsPerUnit ?? 6 } : {}), ...(readings && input.reading ? { reading: input.reading } : {}) }
   const d = input.design
-  const shells = d
-    ? { enabled: d.enabled, config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }
+  const shells: { enabled: string[]; config: Record<string, unknown> } = d
+    ? { enabled: [...d.enabled], config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }
     : { enabled: ['quiz-arena'], config: {} }
+  if (readings) {
+    // the readings are read in the reader view of the encyclopedia shell (EGS-35): the glossary is its data, and the reader is its first screen
+    if (!shells.enabled.includes('encyclopedia')) shells.enabled.push('encyclopedia')
+    shells.config.encyclopedia = { glossary, reader: true }
+  }
 
   for (const [key, value] of Object.entries(input.polish ?? {})) {
     if (key in src.strings) src.strings[key] = value

@@ -178,7 +178,13 @@ export const formatEntrySchema = z.looseObject({
   /** A language course: how many units are verb units (every objective about one verb group; EGS-29). 0 for none. */
   verb_units: z.number().int().min(0).max(12).default(0),
   /** A language course: verbs the language-coach picks for each verb unit. */
-  verbs_per_unit: z.number().int().min(1).max(20).default(6)
+  verbs_per_unit: z.number().int().min(1).max(20).default(6),
+  /** A language course: the articles are graded readings in the taught language, with a glossary per text (EGS-36); the reader view is the first screen of the encyclopedia. */
+  reading: z.boolean().default(false),
+  /** Words per reading, [min, max] (the writer's target; the lint warns outside 300 to 800). */
+  reading_words: z.tuple([z.number().int().min(50).max(3000), z.number().int().min(50).max(3000)]).default([350, 700]),
+  /** Glossary entries per reading, [min, max]. */
+  glossary_per_text: z.tuple([z.number().int().min(1).max(60), z.number().int().min(1).max(60)]).default([10, 20])
 })
 
 export const formatsSchema = configBase('formats').extend({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DE_CONNECTORS, RELATIVE_PRONOUNS, conjugate, connectorClass, findConnector, findVerb, relativePronoun, rulesFor, tenseForCefr, type DeTense } from '../src/shared/lang'
+import { DE_CONNECTORS, RELATIVE_PRONOUNS, conjugate, connectorClass, findConnector, findVerb, relativePronoun, rulesFor, tenseForCefr, type DeTense, languageRulesText } from '../src/shared/lang'
 
 // The tables are model-written and not natively reviewed. Every golden below follows from a rule of German grammar:
 // Passiv = werden / wurde / ist ... worden + Partizip II; Konjunktiv II past = hätte / wäre + Partizip II (wäre with sein-verbs);
@@ -156,11 +156,13 @@ describe('connectors', () => {
   })
 })
 
-describe('rulesFor(de) carries the B2 rules', () => {
-  it('mentions the B2 grammar and keeps the base rules', () => {
-    const r = rulesFor('de')!.promptRules
-    expect(r).toContain('German B2 grammar')
-    expect(r).toContain('GRAMMAR_CONNECTOR_CLASS')
-    expect(r).toContain('German rules')
+describe('the B2 rules are level-gated (EGS-36)', () => {
+  it('B2 has the grammar rules and the reading rules, A1 and B1 do not; the base rules stay', () => {
+    const b2 = languageRulesText('de', false, 'B2')
+    expect(b2).toContain('German B2 grammar')
+    expect(b2).toContain('GRAMMAR_CONNECTOR_CLASS')
+    expect(b2).toContain('German rules')
+    for (const level of ['A1', 'A2', 'B1', undefined]) expect(languageRulesText('de', true, level)).not.toContain('German B2 grammar')
+    expect(rulesFor('de')!.promptRules).not.toContain('German B2 grammar')
   })
 })

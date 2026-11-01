@@ -5,6 +5,7 @@ import { ITEM_KINDS, validateCourse, type Problem } from '../../shared/edu'
 import { atomicWrite } from '../store/atomic'
 import { buildCourse, buildDirOf, GAME_DATA_FILE, type BuildResult } from './build'
 import { loadCourseFolder, validateCourseFolder } from './course-io'
+import { harvestGlossary, type HarvestOptions, type HarvestResult } from './harvest'
 import { lintGame, summarize, type LintResult } from './lint'
 import { applyMedia } from './media-link'
 import type { MediaApplied, MediaMerge } from './media-link'
@@ -233,6 +234,23 @@ export class CourseStore {
       if (problems.length > 0) throw new Error(`the editions are not complete, nothing was written: ${fmt(problems)}`)
       await this.save(slug, next, all, { catalogs: langs })
       return { slug, languages: next.languages as string[] }
+    })
+  }
+
+  /**
+   * The vocabulary harvest (EGS-36, `harvest.ts`): adds one flashcard for each glossary entry of each reading, in one atomic write. Idempotent: run
+   * again, it makes nothing new (the cards that exist are kept). Refused (nothing written) when it would make the pack invalid.
+   */
+  harvest(slug: string, opts: HarvestOptions = {}): Promise<HarvestResult & { slug: string }> {
+    return this.exclusive(slug, async () => {
+      const { pack, catalogs } = await this.load(slug)
+      const before = this.check(pack, catalogs).blocking
+      const result = harvestGlossary(pack, catalogs, opts)
+      if (result.added.length === 0) return { slug, ...result }
+      this.refuse('the harvest', before, this.check(pack, catalogs).blocking)
+      const langs = [String(pack.sourceLang), ...(typeof pack.targetLang === 'string' ? [pack.targetLang] : [])]
+      await this.save(slug, pack, catalogs, { catalogs: langs })
+      return { slug, ...result }
     })
   }
 

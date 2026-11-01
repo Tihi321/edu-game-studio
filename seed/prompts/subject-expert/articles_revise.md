@@ -22,6 +22,7 @@ Fix every problem listed:
 - A claim that no fact supports: remove it, or rewrite it so it says only what a fact says, and cite that fact as [f3].
 - A citation to a fact that does not say it: cite the fact that does, or drop the claim.
 - An article that cites no fact: add the citations it needs, or rewrite it from the facts.
+- A reading has a `glossary`: keep it, and keep each entry's `term` exactly as it stands in the body (change or drop an entry whose word you rewrote).
 - Keep what was right: do not rewrite sentences that were not flagged, and keep the ids, `unit` and `related` unchanged.
 Cite only fact ids from the fact base above, and never a source number such as [3].
 
