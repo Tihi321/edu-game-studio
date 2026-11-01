@@ -29,6 +29,7 @@ The phase numbers are the ones of the hub plan.
 
 - **EGS-32** editions step (HUB-22): the pipeline's `editions` step is real. After the voice and before the build, the `translator` role (the course model, `client/claude-code` included) translates the source-language text catalog into every other language of the brief (the taught phrases of a language course are not translated), the output is validated, a missing key is asked again once, and `pack.languages` lists the editions. Book Translator stays a manual alternative. This replaces the old placeholder row that used the number EGS-18 (the speaking practice row below is the real EGS-18). Plan `.claude/tickets/EGS-32-editions-step/`.
 - **EGS-47** seed history: the pre-HUB-22 hashes of roles.md, voice.md, languages.md, voice-director/plan.md and articles_revise.md, so an older data folder gets the HUB-22 seed files. Plan `.claude/tickets/EGS-47-seed-history/`.
+- **EGS-52** playtest bot timeout: the pipeline playtest killed the struggling bot (random, 55 %, ~490 answers, ~7 min) after 5 min and reported "the bot printed no result (exit 1)". Default timeout 15 min, a killed bot is reported as a timeout. Plan `.claude/tickets/EGS-52-bot-random-hang/plan.md`.
 - **EGS-19** hub wiring support: whatever the hub's registration needs from this repo (a `hub.ps1 check` handshake, the tool count, a skill that makes a course from one sentence).
 - **EGS-20** packaging: the Windows installer and portable exe (electron-builder, icons, a package check), CI.
 - **EGS-21** Android through Capacitor, later.
