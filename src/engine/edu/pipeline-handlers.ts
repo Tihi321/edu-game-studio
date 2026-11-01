@@ -196,10 +196,18 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
   }
   const factsOf = async (slug: string) => (await svc.factbase.get(slug))
   const unitScope = async (slug: string, unit: string): Promise<string> => {
-    const scope = await P.readJson<{ units: { unit: string; vocabulary: { term: string; gloss: string }[]; grammar: string[] }[] }>(slug, 'scope.json')
+    const scope = await P.readJson<{ units: { unit: string; vocabulary: { term: string; gloss: string }[]; verbs?: { inf: string; tense: string; level: string }[]; grammar: string[] }[] }>(slug, 'scope.json')
     const u = scope?.units.find((x) => x.unit === unit)
     if (!u) return '(none)'
-    return `Vocabulary: ${u.vocabulary.map((v) => `${v.term} = ${v.gloss}`).join('; ')}\nGrammar: ${u.grammar.join('; ') || '(none)'}`
+    const verbs = u.verbs?.length ? `Verbs (a verb unit; write conjugation or verb items on these): ${u.verbs.map((v) => `${v.inf} (${v.tense}, ${v.level})`).join('; ')}\n` : ''
+    return `${verbs}Vocabulary: ${u.vocabulary.map((v) => `${v.term} = ${v.gloss}`).join('; ') || '(none)'}\nGrammar: ${u.grammar.join('; ') || '(none)'}`
+  }
+  /** The sentence the curriculum and scope prompts get about verb units (empty when the format has none). */
+  const verbUnitsNote = (R: { verbUnits: number; verbsPerUnit: number; language: boolean }, task: 'curriculum' | 'scope'): string => {
+    if (!R.language || R.verbUnits === 0) return ''
+    return task === 'curriculum'
+      ? `Verb units: mark exactly ${R.verbUnits} unit(s) with "verb": true. A verb unit has objectives that are all about one verb group (for example sein, haben and the regular present; the modal verbs; the perfect tense; separable or reflexive verbs; the past tense; the subjunctive; the future), and its title names the group. Put the verb units where the learner is ready for them.`
+      : `Units marked [VERB UNIT] are verb units. For each of them give "verbs": exactly ${R.verbsPerUnit} entries {"inf": the infinitive, "tense": the tense drilled, "level": the CEFR level the verb belongs to} that belong to the verb group of the unit, besides "vocabulary" (which may be shorter there, 4 to 8 entries).`
   }
   const objectivesFor = (c: Curriculum) => c.objectives.map((o) => ({ id: o.id, unit: o.unit }))
   const otherItemIds = async (slug: string, c: Curriculum, unit: string): Promise<string[]> => {
@@ -251,9 +259,9 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       dataDir,
       role: 'curriculum-designer',
       task: 'curriculum',
-      vars: { ...vars, summary: plan.summary, units: R.units, objectives_per_unit: R.objectivesPerUnit, unit_plan: plan.units.map((u, i) => `${i + 1}. ${u.title}: ${u.focus}`).join('\n'), factbase: factbaseText(fb.facts), notes: R.brief.notes ?? 'none' },
+      vars: { ...vars, summary: plan.summary, units: R.units, objectives_per_unit: R.objectivesPerUnit, unit_plan: plan.units.map((u, i) => `${i + 1}. ${u.title}: ${u.focus}`).join('\n'), factbase: factbaseText(fb.facts), notes: R.brief.notes ?? 'none', verb_units_note: verbUnitsNote(R, 'curriculum') },
       schema: curriculumSchema,
-      check: (c) => checkCurriculum(c, { factIds: fb.facts.map((f) => f.id), units: R.units, objectivesPerUnit: R.objectivesPerUnit, factTexts: Object.fromEntries(fb.facts.map((f) => [f.id, f.fact])) })
+      check: (c) => checkCurriculum(c, { factIds: fb.facts.map((f) => f.id), units: R.units, objectivesPerUnit: R.objectivesPerUnit, factTexts: Object.fromEntries(fb.facts.map((f) => [f.id, f.fact])), ...(R.language ? { verbUnits: R.verbUnits } : {}) })
     })
     await P.writeJson(h.slug, 'curriculum.json', value)
     return { note: `${value.units.length} unit(s), ${value.objectives.length} objective(s)`, path: 'pipeline/curriculum.json' }
@@ -268,9 +276,9 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       dataDir,
       role: 'language-coach',
       task: 'scope',
-      vars: { title: vars.title, audience: vars.audience, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), units: unitLines(cur.units), objectives: objectiveLines(cur.objectives), factbase: factbaseText(fb.facts) },
+      vars: { title: vars.title, audience: vars.audience, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), units: unitLines(cur.units), objectives: objectiveLines(cur.objectives), factbase: factbaseText(fb.facts), verb_units_note: verbUnitsNote(R, 'scope') },
       schema: scopeSchema,
-      check: (s) => checkScope(s, cur.units.map((u) => u.id))
+      check: (s) => checkScope(s, cur.units.map((u) => u.id), cur.units.filter((u) => u.verb).map((u) => u.id))
     })
     await P.writeJson(h.slug, 'scope.json', value)
     return { note: `${value.units.length} unit(s) of vocabulary`, path: 'pipeline/scope.json' }
@@ -757,6 +765,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         sourceLang: R.brief.sourceLang,
         ...(R.brief.targetLang ? { targetLang: R.brief.targetLang } : {}),
         ...(R.cefr ? { cefr: R.cefr } : {}),
+        verbsPerUnit: R.verbsPerUnit,
         run: h.st.run,
         brief: R.brief,
         factbase: await svc.factbase.toPack(h.slug),

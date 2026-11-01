@@ -174,7 +174,11 @@ export const formatEntrySchema = z.looseObject({
   /** A language course: vocabulary and grammar scope by the language-coach, typed answers with accepted lists. */
   language: z.boolean().default(false),
   /** The CEFR level a language format teaches. */
-  cefr: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional()
+  cefr: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional(),
+  /** A language course: how many units are verb units (every objective about one verb group; EGS-29). 0 for none. */
+  verb_units: z.number().int().min(0).max(12).default(0),
+  /** A language course: verbs the language-coach picks for each verb unit. */
+  verbs_per_unit: z.number().int().min(1).max(20).default(6)
 })
 
 export const formatsSchema = configBase('formats').extend({

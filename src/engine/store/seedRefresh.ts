@@ -22,12 +22,17 @@ export const seedHash = (content: string | Buffer): string => createHash('sha1')
 /**
  * The hashes of earlier seed versions, per file, for data folders made before the hashes were recorded (a file whose hash is in here was never
  * edited, so a newer seed version may replace it). A release that changes a seed file adds the hash of the old version here.
+ * EGS-29: the formats and the two verb-unit prompts.
  * EGS-06: the skeleton's roles.md (the director only) and providers.md (no search providers). EGS-07: the skeleton's studios.md (no Scriptorium).
  */
 export const SEED_HISTORY: Record<string, string[]> = {
   'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88'],
   'config/providers.md': ['5aecc02009ddbba887510a274691d7b79d068af0'],
-  'config/studios.md': ['37a657caf935ec861a816ac7a3809bf0abf100c2']
+  'config/studios.md': ['37a657caf935ec861a816ac7a3809bf0abf100c2'],
+  // EGS-29: language-a1 only (no A2 / B1, no verb units); the curriculum and scope prompts before the verb-unit note.
+  'config/formats.md': ['3633c790d5a018cfe77907fa3bdab9424c3a6e02'],
+  'prompts/curriculum-designer/curriculum.md': ['efabbebdfa66580082fa27a7a35871803f3592b7'],
+  'prompts/language-coach/scope.md': ['dbb3818a2d982a14d7393b146160e9e291f9b0ec']
 }
 
 export interface SeedState {

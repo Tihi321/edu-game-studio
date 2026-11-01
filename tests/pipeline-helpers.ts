@@ -84,10 +84,11 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     log('curriculum-designer/curriculum')
     const units = lines(t).filter((l) => /^\d+\. .+: /.test(l))
     const per = Number(grab(t, /(\d+) objective\(s\) in each/)) || 2
+    const verbN = Number(grab(t, /mark exactly (\d+) unit/)) || 0
     const facts = lines(t).map((l) => /^\[(f\d+)\]/.exec(l)?.[1]).filter((f): f is string => !!f)
     let k = 0
     return {
-      units: units.map((l, i) => ({ id: `u${i + 1}`, title: l.replace(/^\d+\. /, '').split(': ')[0], summary: `What part ${i + 1} covers.`, requires: i === 0 ? [] : [`u${i}`] })),
+      units: units.map((l, i) => ({ id: `u${i + 1}`, title: l.replace(/^\d+\. /, '').split(': ')[0], summary: `What part ${i + 1} covers.`, requires: i === 0 ? [] : [`u${i}`], ...(i < verbN ? { verb: true } : {}) })),
       objectives: units.flatMap((_, i) =>
         Array.from({ length: per }, (_, j) => ({ id: `u${i + 1}-o${j + 1}`, unit: `u${i + 1}`, bloom: j === 0 ? 'remember' : 'understand', text: `Explain point ${j + 1} of part ${i + 1}.`, facts: [facts[k++ % facts.length]!, facts[k % facts.length]!] }))
       )
@@ -100,7 +101,8 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
       return { answers: lines(t).map((l) => /^(\S+): .* -> (.+)$/.exec(l)).filter((m): m is RegExpExecArray => !!m).map((m) => ({ ref: m[1]!, accepted: [m[2]!, `${m[2]}!`] })) }
     }
     log('language-coach/scope')
-    return { units: lines(t).map((l) => /^- (u\d+): /.exec(l)?.[1]).filter((u): u is string => !!u).map((u) => ({ unit: u, vocabulary: [{ term: 'bok', gloss: 'hello' }], grammar: [] })) }
+    const isVerb = (u: string) => lines(t).some((l) => l.startsWith(`- ${u}: `) && l.includes('[VERB UNIT]'))
+    return { units: lines(t).map((l) => /^- (u\d+): /.exec(l)?.[1]).filter((u): u is string => !!u).map((u) => ({ unit: u, vocabulary: [{ term: 'bok', gloss: 'hello' }], ...(isVerb(u) ? { verbs: [{ inf: 'sein', tense: 'Praesens', level: 'A1' }] } : {}), grammar: [] })) }
   })
 
   on('subject-expert', (t) => {

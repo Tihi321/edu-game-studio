@@ -56,6 +56,7 @@ The phase numbers are the ones of the hub plan.
 - **EGS-21** live multiplayer quiz on the local network: a room state machine, an HTTP and Server-Sent Events server (127.0.0.1 unless `lan: true`), a phone-friendly client and a host page, `edu_live_start`, `edu_live_status`, `edu_live_stop`. Plan `.claude/tickets/EGS-21-live-quiz/`.
 - **EGS-19** an Android app project from a built course, as `lang-combat` does it (Capacitor): `edu_android_prepare` makes `courses/<slug>/android/`; a debug APK was built from a fixture; the player has safe-area, 44 px touch targets and the back button. Plan `.claude/tickets/EGS-19-android/`.
 - **EGS-23** the MOSS-Image engine (`moss-image`, ComfyUI template `image_moss_image_t2i`; hub ticket HUB-20): 1024x1024, 25 steps, CFG 2.5, er_sde, a negative prompt; files group `moss` in `config/comfy.md`. Plan in the hub, `.claude/tickets/HUB-20-moss-image/`.
+- **EGS-29** language formats `language-a1` (edited), `language-a2`, `language-b1` with verb units (`verb_units`, `verbs_per_unit`), `resolveBrief` picks `language-<cefr>` (B2 and C1/C2 fail in words until EGS-36), curriculum and scope prompts carry the verb units into `extensions.language`, and the seed refresh knows the old formats and prompts (HUB-22). Plan `.claude/tickets/EGS-29-language-formats/`.
 
 ## Later
 
