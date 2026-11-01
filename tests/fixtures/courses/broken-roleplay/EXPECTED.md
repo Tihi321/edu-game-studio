@@ -1,6 +1,6 @@
 # The broken-roleplay fixture
 
-The course of `hr-a1-greetings` (3 units, 30 items, editions `en`, target language `hr`) whose role-play section (`shells.config.roleplay`) is wrong on purpose, once per lint code of the shell. Nothing else is wrong with the course (the two placeholder clips of the original are still warned about). It cannot be built the normal way (the validator refuses the doubled speaker id), so `tests/roleplay-lint.test.ts` builds it with `force: true`, lints it, and asserts that the build and the lint report **exactly** the codes below. The scenes `sc-*` exist only to be wrong; the first scene (`cafe`) is the golden one.
+The course of `hr-a1-greetings` (3 units, 30 items, editions `en`, target language `hr`) whose role-play section (`shells.config.roleplay`) is wrong on purpose, once per lint code of the shell. Nothing else is wrong with the course (the two placeholder clips of the original are still warned about). It cannot be built the normal way (the validator refuses the doubled speaker id), so `tests/lint.test.ts` builds it with `force: true`, lints it, and asserts that the build and the lint report each of the codes below. The scenes `sc-*` exist only to be wrong; the first scene (`cafe`) is the golden one.
 
 | Where | What is wrong | Code |
 |---|---|---|
