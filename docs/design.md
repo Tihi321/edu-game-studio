@@ -42,6 +42,7 @@ Shared by every shell:
 
 - multiple choice, true/false and multi-select;
 - cloze (fill the gap), typed answer with tolerant matching (accents, typos, synonyms), and match pairs;
+  (German is stricter: a missing umlaut is wrong, ae/oe/ue/ss and a lower-case noun are accepted with a note; see `docs/player.md`)
 - order and timeline, sort into groups, and a map hotspot or a labelled image;
 - listening (a text-to-speech clip: pick or type what you heard) and a flashcard with spaced repetition;
 - crossword and word search, built by code.

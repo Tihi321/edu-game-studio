@@ -1,5 +1,6 @@
 import type { CoursePack, McqItem, MultiSelectItem, TextCatalog, TrueFalseItem, TypedItem } from '../course'
 import { checkMcq, checkMultiSelect, checkTrueFalse, checkTyped } from '../edu/checkers'
+import { makeCheckContext } from '../edu/registry'
 import { makeTextResolver, type TextResolver } from '../edu/text'
 import { rngFor, shuffledCopy } from '../edu/prng'
 import { liveText } from './strings'
@@ -72,7 +73,7 @@ type LiveItem = McqItem | TrueFalseItem | MultiSelectItem | TypedItem
 
 function makeQuestion(item: LiveItem, unitId: string, pack: CoursePack, text: TextResolver, seed: string): LiveQuestion | null {
   if (!text.hasText(item.prompt)) return null
-  const ctx = { text, diacritics: pack.matching.diacritics, typos: pack.matching.typos }
+  const ctx = makeCheckContext({ pack, text })
   const t = liveText(text.lang)
   const base = { itemId: item.id, unitId, prompt: text.t(item.prompt), explanation: text.text(item.explanation) ?? '' }
   const rng = rngFor(seed, item.id)

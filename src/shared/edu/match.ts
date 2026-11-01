@@ -16,7 +16,13 @@
  *     distance 2 and is not accepted) is a typo, correct with `typo: true` ("accepted, mind the spelling"), but ONLY when the accepted
  *     answer has at least 4 letters (spaces not counted): "dan" must not become "tan". Compared on folded text, so accents never cost
  *     an edit; under `strict` the typo is measured on unfolded text, so a missing accent is a near-miss (rule 3), never a "typo".
- *  5. Synonyms are simply further entries in the accepted list (`TextCatalog.accepted`); every entry is tried, the first is the
+ *  5. German (`MatchOptions.lang === 'de'`, the language of the ANSWER text), checked per accepted entry before rules 3 and 4:
+ *       - transliteration: the input equals the entry with a/o/u-umlauts and sharp s written ae/oe/ue/ss (all, only the sharp s, or only the
+ *         umlauts): correct, `translit: true`, never costs a grade. The input is never converted back, the ACCEPTED side is expanded;
+ *       - a missing umlaut (Madchen for Maedchen) is NOT a spelling variant: with the default policy for German (`strict`, see
+ *         `resolveDiacritics`) it is wrong with `diacritics: true`, because Bruder / Bruder, schon / schon differ in meaning;
+ *       - capitals: a noun typed in lower case (not the first word of a phrase) is correct with `caps: true`.
+ *  6. Synonyms are simply further entries in the accepted list (`TextCatalog.accepted`); every entry is tried, the first is the
  *     canonical answer. Distance 2 or more is wrong.
  */
 
@@ -28,6 +34,8 @@ export interface MatchOptions {
   typos?: boolean
   /** The accepted answer needs at least this many letters for typo tolerance (default 4). */
   minTypoLength?: number
+  /** Language of the answer text; `de` switches on the German rules (policy rule 5). Other languages behave as before. */
+  lang?: string
 }
 
 export interface MatchResult {
@@ -44,6 +52,10 @@ export interface MatchResult {
   canonical: string | null
   /** Edit distance of the best candidate on folded text (a wrong answer: how far off). */
   distance: number
+  /** German: accepted because ae / oe / ue / ss stand for the umlauts / sharp s. Never costs a grade. */
+  translit?: boolean
+  /** German: accepted although a noun was typed in lower case. Never costs a grade. */
+  caps?: boolean
 }
 
 /** Removes accents: c/c/s/z with carons or acutes, d with a stroke, and every other combining mark; ligatures and special letters are spelt out. */
@@ -101,12 +113,33 @@ export function levenshtein(a: string, b: string, max = Infinity): number {
   return prev[y.length]!
 }
 
+/** Alternate keyboard spellings of an accepted German answer: all umlauts + sharp s, only the sharp s, only the umlauts. */
+export function germanVariants(a: string): string[] {
+  const umlauts = (t: string): string => t.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+  const sharp = (t: string): string => t.replace(/ß/g, 'ss').replace(/ẞ/g, 'SS')
+  const out = new Set([umlauts(sharp(a)), sharp(a), umlauts(a)])
+  out.delete(a)
+  return [...out]
+}
+
+const wordsOf = (s: string): string[] => s.normalize('NFKC').replace(/['’‘`´]/g, '').split(/[^\p{L}\p{N}\p{M}]+/u).filter(Boolean)
+const isUpper = (w: string): boolean => w[0] !== undefined && w[0] !== w[0].toLowerCase()
+
+/** German nouns: true when the accepted text has a capitalised word (not the first word of a phrase, unless it is the only one) that the input wrote in lower case. */
+function lowerCasedNoun(input: string, accepted: string): boolean {
+  const i = wordsOf(input)
+  const a = wordsOf(accepted)
+  if (i.length !== a.length) return false
+  return a.some((w, k) => (k > 0 || a.length === 1) && isUpper(w) && !isUpper(i[k]!))
+}
+
 /** Matches `input` against the accepted answers (see the policy above). An empty input never matches. */
 export function matchAnswer(input: string, accepted: readonly string[], opts: MatchOptions = {}): MatchResult {
   const policy = opts.diacritics ?? 'ignore'
   const typos = opts.typos !== false
   const minLen = opts.minTypoLength ?? 4
   const canonical = accepted[0] ?? null
+  const de = opts.lang === 'de'
   const miss = (distance: number, matched: string | null): MatchResult => ({ correct: false, exact: false, typo: false, diacritics: false, matched, canonical, distance })
 
   const inExact = normalizeText(input)
@@ -117,11 +150,13 @@ export function matchAnswer(input: string, accepted: readonly string[], opts: Ma
   let nearestDist = Infinity
   let foldedHit: string | null = null
   let typoHit: { a: string; d: number } | null = null
+  let translitHit: string | null = null
 
   for (const a of accepted) {
     const aExact = normalizeText(a)
     if (!aExact) continue
-    if (aExact === inExact) return { correct: true, exact: true, typo: false, diacritics: false, matched: a, canonical, distance: 0 }
+    if (aExact === inExact) return { correct: true, exact: true, typo: false, diacritics: false, matched: a, canonical, distance: 0, ...(de && lowerCasedNoun(input, a) ? { caps: true } : {}) }
+    if (de && translitHit === null && germanVariants(a).some((v) => normalizeText(v) === inExact)) translitHit = a
     const aFold = normalizeText(a, { fold: true })
     if (aFold === inFold) {
       foldedHit ??= a
@@ -139,6 +174,9 @@ export function matchAnswer(input: string, accepted: readonly string[], opts: Ma
     }
   }
 
+  if (translitHit !== null) {
+    return { correct: true, exact: false, typo: false, diacritics: false, matched: translitHit, canonical, distance: 0, translit: true, ...(lowerCasedNoun(input, translitHit) ? { caps: true } : {}) }
+  }
   if (foldedHit !== null) {
     if (policy === 'strict') return { correct: false, exact: false, typo: false, diacritics: true, matched: foldedHit, canonical, distance: 0 }
     return { correct: true, exact: false, typo: false, diacritics: policy === 'warn', matched: foldedHit, canonical, distance: 0 }
@@ -147,9 +185,11 @@ export function matchAnswer(input: string, accepted: readonly string[], opts: Ma
   return miss(nearestDist, nearest)
 }
 
-/** The policy of an item: its own `strictDiacritics` wins (true = strict, false = ignore), else the course default. */
-export function resolveDiacritics(itemStrict: boolean | undefined, courseDefault: DiacriticsPolicy | undefined): DiacriticsPolicy {
+/** The policy of an item: its own `strictDiacritics` wins (true = strict, false = ignore), else the course default (German: `strict` instead of `ignore`). */
+export function resolveDiacritics(itemStrict: boolean | undefined, courseDefault: DiacriticsPolicy | undefined, lang?: string): DiacriticsPolicy {
   if (itemStrict === true) return 'strict'
   if (itemStrict === false) return 'ignore'
-  return courseDefault ?? 'ignore'
+  const d = courseDefault ?? 'ignore'
+  // German: a missing umlaut changes the word (Bruder / Bruder, schon / schon), so it is strict unless the course asks for more
+  return lang === 'de' && d === 'ignore' ? 'strict' : d
 }

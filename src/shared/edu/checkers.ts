@@ -74,13 +74,15 @@ export function checkMultiSelect(item: MultiSelectItem, answer: unknown): CheckR
 
 function textResult(input: string, key: string, ctx: CheckContext, strict: boolean | undefined): CheckResult {
   const accepted = ctx.text.accepted(key)
-  const m: MatchResult = matchAnswer(input, accepted, { diacritics: resolveDiacritics(strict, ctx.diacritics), typos: ctx.typos })
+  const m: MatchResult = matchAnswer(input, accepted, { diacritics: resolveDiacritics(strict, ctx.diacritics, ctx.lang), typos: ctx.typos, lang: ctx.lang })
   return {
     correct: m.correct,
     score: m.correct ? 1 : 0,
     expected: m.canonical,
     ...(m.typo ? { typo: true } : {}),
-    ...(m.diacritics ? { diacritics: true } : {})
+    ...(m.diacritics ? { diacritics: true } : {}),
+    ...(m.translit ? { translit: true } : {}),
+    ...(m.caps ? { caps: true } : {})
   }
 }
 
@@ -95,15 +97,19 @@ export function checkCloze(item: ClozeItem, answer: unknown, ctx: CheckContext):
   const detail: Record<string, boolean> = {}
   let typo = false
   let diacritics = false
+  let translit = false
+  let caps = false
   for (const g of item.gaps) {
     const v = answer[g.id]
     const r = typeof v === 'string' ? textResult(v, g.answer, ctx, item.strictDiacritics) : { correct: false }
     detail[g.id] = r.correct
     if ('typo' in r && r.typo) typo = true
     if ('diacritics' in r && r.diacritics) diacritics = true
+    if ('translit' in r && r.translit) translit = true
+    if ('caps' in r && r.caps) caps = true
   }
   const res = fraction(Object.values(detail).filter(Boolean).length, item.gaps.length, expected, detail)
-  return { ...res, ...(typo ? { typo: true } : {}), ...(diacritics ? { diacritics: true } : {}) }
+  return { ...res, ...(typo ? { typo: true } : {}), ...(diacritics ? { diacritics: true } : {}), ...(translit ? { translit: true } : {}), ...(caps ? { caps: true } : {}) }
 }
 
 // ---- matching, ordering, sorting ----
