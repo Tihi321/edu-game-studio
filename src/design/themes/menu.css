@@ -1,0 +1,182 @@
+/*
+ * Theme "menu" (the start screen of every game mode, EGS-25): a bright game lobby. Cool daylight ground with a faint dot floor, white
+ * mode tiles with a pictogram on a coloured chip, indigo for the one action that matters (Start) and teal for the second voice.
+ * Young Serif for the course title and the mode names, Atkinson Hyperlegible Next for the rest (both already bundled). It is applied
+ * to the title only; every in-game screen keeps the theme of its mode. None of the six mode themes looks like it, so no mode seems to
+ * be the default. Light ground; AA contrast for every text slot (tests/design-tokens.test.ts).
+ * Motion: the mode tiles settle in once when the screen opens, a chosen tile lifts; both end at once under prefers-reduced-motion.
+ *
+ * Fills every colour and font slot of tokens.css under `[data-edu-theme="menu"]`. Menu-only extras are `--menu-*`.
+ */
+@import '../fonts/young-serif/font.css';
+@import '../fonts/atkinson-hyperlegible-next/font.css';
+
+[data-edu-theme='menu'] {
+  color-scheme: light;
+
+  --edu-bg: #e9ecf6; /* the lobby floor */
+  --edu-bg-2: #dde2f1;
+  --edu-surface: #ffffff; /* a mode tile */
+  --edu-surface-2: #f1f3fa;
+  --edu-line: #c3cae0;
+  --edu-line-strong: #5c6486;
+  --edu-text: #161a3a;
+  --edu-text-dim: #434a6e;
+  --edu-accent: #3b30c9; /* indigo: Start, the chosen mode */
+  --edu-accent-ink: #ffffff;
+  --edu-accent-2: #0b6e6a; /* teal */
+  --edu-good: #19703f;
+  --edu-good-ink: #ffffff;
+  --edu-bad: #ae2b3b;
+  --edu-bad-ink: #ffffff;
+  --edu-warn: #7a4a00;
+  --edu-warn-bg: #fde9b0;
+  --edu-mark: #ffd84d;
+  --edu-mark-ink: #161a3a;
+  --edu-focus: #3b30c9;
+  --edu-shadow-1: 0 1px 0 rgb(22 26 58 / 0.08), 0 3px 8px rgb(22 26 58 / 0.08);
+  --edu-shadow-2: 0 2px 0 rgb(22 26 58 / 0.08), 0 14px 30px rgb(22 26 58 / 0.18);
+  --edu-series-1: #f4cf5c;
+  --edu-series-2: #93c5ee;
+  --edu-series-3: #f0a9c2;
+  --edu-series-4: #a3d99d;
+  --edu-series-5: #f2ab6b;
+  --edu-series-6: #c2aff2;
+  --edu-series-ink: #161a3a;
+
+  --edu-font-display: 'Young Serif', Georgia, 'Times New Roman', serif;
+  --edu-font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --edu-font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+
+  /* shape: generous rounded tiles */
+  --edu-radius-s: 8px;
+  --edu-radius-m: 12px;
+  --edu-radius-l: 20px;
+  --edu-border: 2px;
+
+  --edu-enter-name: edu-enter-rise;
+  --edu-enter-scale: 1;
+  --edu-enter-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* the floor: a faint dot grid under a pale light from the top */
+[data-edu-theme='menu'] .frame {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-edu-theme='menu'] .board {
+  border: 0;
+  border-radius: var(--edu-radius-l);
+  background:
+    radial-gradient(circle at 1px 1px, var(--edu-line) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    radial-gradient(ellipse at 50% -10%, rgb(255 255 255 / 0.85), transparent 60%),
+    var(--edu-bg);
+  box-shadow: inset 0 0 0 1px var(--edu-line);
+}
+
+[data-edu-theme='menu'] .screen-title {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* a mode tile: white card, the pictogram on a chip of the mode's own colour */
+[data-edu-theme='menu'] .mode-card {
+  border: var(--edu-border) solid var(--edu-line);
+  border-radius: var(--edu-radius-l);
+  background: var(--edu-surface);
+  box-shadow: var(--edu-shadow-1);
+  transition:
+    transform var(--edu-dur-med) ease,
+    box-shadow var(--edu-dur-med) ease,
+    border-color var(--edu-dur-med) ease;
+}
+
+[data-edu-theme='menu'] .mode-card:hover {
+  border-color: var(--edu-line-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--edu-shadow-2);
+}
+
+[data-edu-theme='menu'] .mode-card[aria-pressed='true'] {
+  border-color: var(--edu-accent);
+  background: var(--edu-surface-2);
+  box-shadow:
+    0 0 0 2px var(--edu-accent),
+    var(--edu-shadow-2);
+  transform: translateY(-2px);
+}
+
+[data-edu-theme='menu'] .mode-pictogram {
+  border-radius: var(--edu-radius-m);
+  background: var(--menu-chip, var(--edu-series-2));
+  color: var(--edu-series-ink);
+}
+
+[data-edu-theme='menu'] .mode-dot {
+  border: 2px solid var(--edu-line-strong);
+  background: var(--edu-surface);
+}
+
+[data-edu-theme='menu'] .mode-card[aria-pressed='true'] .mode-dot {
+  border-color: var(--edu-accent);
+  background: var(--edu-accent);
+}
+
+[data-edu-theme='menu'] .mode-card[data-mode='quiz-arena'] {
+  --menu-chip: var(--edu-series-1);
+}
+[data-edu-theme='menu'] .mode-card[data-mode='encyclopedia'] {
+  --menu-chip: var(--edu-series-5);
+}
+[data-edu-theme='menu'] .mode-card[data-mode='mindmaze'] {
+  --menu-chip: var(--edu-series-6);
+}
+[data-edu-theme='menu'] .mode-card[data-mode='rpg'] {
+  --menu-chip: var(--edu-series-4);
+}
+[data-edu-theme='menu'] .mode-card[data-mode='roleplay'] {
+  --menu-chip: var(--edu-series-3);
+}
+[data-edu-theme='menu'] .mode-card[data-mode='detective'] {
+  --menu-chip: var(--edu-series-2);
+}
+
+/* the tiles settle in once when the screen opens */
+@keyframes menu-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+[data-edu-theme='menu'] .mode-card {
+  animation: menu-tile-in var(--edu-dur-slow) var(--edu-enter-ease) both;
+}
+
+[data-edu-theme='menu'] .mode-card:nth-child(2) {
+  animation-delay: 40ms;
+}
+[data-edu-theme='menu'] .mode-card:nth-child(3) {
+  animation-delay: 80ms;
+}
+[data-edu-theme='menu'] .mode-card:nth-child(4) {
+  animation-delay: 120ms;
+}
+[data-edu-theme='menu'] .mode-card:nth-child(5) {
+  animation-delay: 160ms;
+}
+[data-edu-theme='menu'] .mode-card:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-edu-theme='menu'] .mode-card {
+    animation: none;
+  }
+  [data-edu-theme='menu'] .mode-card:hover,
+  [data-edu-theme='menu'] .mode-card[aria-pressed='true'] {
+    transform: none;
+  }
+}

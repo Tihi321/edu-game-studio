@@ -4,11 +4,11 @@ import type { CourseItem } from '../../../shared/course'
 import { roleplaySectionSchema, isReply, isSay, lineById, type RoleplaySection, type RpReplyLine, type RpSayLine, type RpScene } from '../../../shared/shells/roleplay'
 import { button, h } from '../../dom'
 import { ask } from '../../kit/question'
-import { endScreen, languageName, newTitleState, titleScreen } from '../../kit/screens'
+import { endScreen, newTitleState, titleScreen } from '../../kit/screens'
 import { ShellSession } from '../../kit/session'
 import type { RoundState } from '../../round'
 import type { Shell, ShellHost } from '../../types'
-import { bubble, levelChip, plantSvg, smallButton, stamp, type PortraitInput } from './art'
+import { bubble, levelChip, plantSvg, smallButton, type PortraitInput } from './art'
 import { newlyOpen, sceneBoard, type SceneEntry } from './board'
 import { accuracy as accuracyOf, answerTurn, hiddenLines, isDone, lastSay, replyText, reveal, skipTurn, startScene, stepOf, turnCount, type LogEntry, type SceneState } from './dialogue'
 import { daysUntil, growth, metIn, plantsOf, stageCounts, stageOf, waterPool, type Plant, type Stage } from './garden'
@@ -295,19 +295,11 @@ class Roleplay {
 
   private title(): void {
     const ses = this.session
-    const s = this.s
     ses.finished = false
     this.playing = null
     this.water = null
     const level = ses.pack.cefr
-    const lang = this.targetLang ? languageName(this.targetLang) : ''
-    const art = h(
-      'div',
-      { class: 'pc-title-art' },
-      level ? stamp(level, lang, `${s('rp.title.level', { level })}${lang ? `, ${lang}` : ''}`) : null,
-      h('p', { class: 'pc-intro' }, s('rp.title.about'))
-    )
-    ses.render('title', titleScreen(ses, { tagline: s('rp.tagline'), art, onStart: () => this.scenes() }, () => this.title(), this.titleState), { view: { cefr: level ?? null, target: this.targetLang ?? null, scenes: this.section.scenes.length } })
+    ses.render('title', titleScreen(ses, { onStart: () => this.scenes() }, () => this.title(), this.titleState), { view: { cefr: level ?? null, target: this.targetLang ?? null, scenes: this.section.scenes.length } })
   }
 
   // ---- the scene list ----

@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { validateCourse } from '../src/shared/edu'
 import { KNOWN_SHELLS, SHELL_DEFS, enabledShells, lintShells, parseSection, sectionOf } from '../src/shared/shells'
@@ -8,6 +10,9 @@ import { makeShellUi } from '../src/player/kit/strings'
 import { musicAreaOf } from '../src/player/kit/session'
 import { rngFor } from '../src/shared/edu'
 import { loadFixture } from './edu-fixtures'
+import { makeUi } from '../src/player/i18n'
+import { MODE_IDS } from '../src/player/kit/mode-icons'
+import { applyScreenTheme, shellName } from '../src/player/kit/start'
 
 /** The shell contract (EGS-10): shell choice, the per-shell progress slot, runs over any pool, the section registry, shell strings. */
 
@@ -139,5 +144,46 @@ describe('the music area of a shell screen (EGS-22)', () => {
     expect(musicAreaOf('item', { roundKind: 'boss' })).toBe('boss')
     expect(musicAreaOf('feedback', { roundKind: 'review', unitId: 'u1' })).toBe('menu')
     expect(musicAreaOf('end', { unitId: 'u1' })).toBe('end')
+  })
+})
+
+describe('the shared start screen (EGS-25)', () => {
+  it('has one title implementation: the title-screen class is made in kit/start.ts only', () => {
+    const files: string[] = []
+    const walk = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name)
+        if (e.isDirectory()) walk(p)
+        else if (/\.tsx?$/.test(e.name) && /class:\s*[`'"]title-screen\b/.test(readFileSync(p, 'utf8'))) files.push(path.relative(path.join(__dirname, '..'), p).split(path.sep).join('/'))
+      }
+    }
+    walk(path.join(__dirname, '..', 'src', 'player'))
+    expect(files).toEqual(['src/player/kit/start.ts'])
+  })
+
+  it('puts the menu theme on the title and the shell theme on every other screen', () => {
+    const root = (() => {
+      const a = new Map<string, string>()
+      return { getAttribute: (k: string) => a.get(k) ?? null, setAttribute: (k: string, v: string) => void a.set(k, v) } as unknown as HTMLElement
+    })()
+    applyScreenTheme(root, 'title', 'castle')
+    expect(root.getAttribute('data-edu-theme')).toBe('menu')
+    applyScreenTheme(root, 'map', 'castle')
+    expect(root.getAttribute('data-edu-theme')).toBe('castle')
+    applyScreenTheme(root, 'title', 'castle')
+    expect(root.getAttribute('data-edu-theme')).toBe('menu')
+  })
+
+  it('names every mode and gives it a blurb and a pictogram in en and hr', () => {
+    for (const lang of ['en', 'hr']) {
+      const ui = makeUi(lang)
+      for (const id of MODE_IDS) {
+        expect(shellName(ui, id), `${lang} ${id} name`).not.toBe(id)
+        expect(ui(`mode.${id}.blurb` as never), `${lang} ${id} blurb`).toBeTruthy()
+      }
+      expect(ui('start.choose')).toBeTruthy()
+    }
+    expect(shellName(makeUi('en'), 'pinball')).toBe('pinball')
+    expect([...MODE_IDS].sort()).toEqual([...KNOWN_SHELLS].sort())
   })
 })

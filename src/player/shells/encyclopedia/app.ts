@@ -278,7 +278,7 @@ export class EncApp {
       'title',
       titleScreen(
         this.s,
-        { tagline: this.s.s('enc.tagline'), startLabel: this.s.started ? this.s.s('enc.continue') : this.s.s('enc.open'), onStart: () => this.explore(), art: bookEmblem() },
+        { startLabel: this.s.started ? this.s.s('enc.continue') : this.s.s('enc.open'), onStart: () => this.explore() },
         () => this.title(),
         this.titleState
       )
@@ -470,11 +470,6 @@ export class EncApp {
       queue: () => [...this.s.progress.queue]
     }
   }
-}
-
-/** A brass-and-oxblood book drawn in CSS (the title screen's art). */
-function bookEmblem(): HTMLElement {
-  return h('div', { class: 'enc-emblem', 'aria-hidden': 'true' }, h('span', { class: 'enc-emblem-leaf enc-emblem-leaf-a' }), h('span', { class: 'enc-emblem-leaf enc-emblem-leaf-b' }), h('span', { class: 'enc-emblem-spine' }), h('span', { class: 'enc-emblem-clasp' }))
 }
 
 /** The shell: mounts the app on a session and removes it again. */
