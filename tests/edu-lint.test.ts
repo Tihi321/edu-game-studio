@@ -376,3 +376,59 @@ describe('lint: the broken fixture', () => {
     }
   })
 })
+
+describe('German verb table lint (EGS-28)', () => {
+  /** A hr-a1 game turned into a German course with one hand-made conjugation item (the kind itself comes with EGS-27, so it is read structurally). */
+  async function germanGame(forms: { person: string; answer: string }[], extra: Raw = {}, cefr: string | undefined = 'A1'): Promise<GameData> {
+    const data = await game('hr-a1-greetings')
+    ;(data.pack as Raw).targetLang = 'de'
+    ;(data.pack as Raw).cefr = cefr
+    data.catalogs.de ??= { strings: {} } as GameData['catalogs'][string]
+    const de = data.catalogs.de!
+    de.strings['item.conj1.verb'] = 'gehen'
+    de.accepted ??= {}
+    for (const f of forms) {
+      de.strings[`item.conj1.form.${f.person}`] = f.answer
+      de.accepted[`item.conj1.form.${f.person}`] = [f.answer]
+    }
+    ;(data.pack.items as unknown as Raw[]).push({
+      id: 'conj1', kind: 'conjugation', objective: (data.pack.items[0] as unknown as Raw).objective, verb: 'item.conj1.verb', tense: 'praesens',
+      forms: forms.map((f) => ({ person: f.person, answer: `item.conj1.form.${f.person}` })), ...extra
+    })
+    return data
+  }
+  const problems = (data: GameData): LintProblem[] => lintGameData(data, () => true).filter((p) => p.code.startsWith('CONJ_'))
+
+  it('reports CONJ_FORM_MISMATCH (error) for "gehst" as the er form', async () => {
+    const p = problems(await germanGame([{ person: 'er', answer: 'gehst' }, { person: 'du', answer: 'gehst' }]))
+    const hit = p.filter((x) => x.code === 'CONJ_FORM_MISMATCH')
+    expect(hit).toHaveLength(1)
+    expect(hit[0]!.severity).toBe('error')
+    expect(hit[0]!.path).toMatch(/^items\[\d+\]\.forms\[0\]$/)
+    expect(hit[0]!.message).toContain('geht')
+  })
+
+  it('accepts right forms', async () => {
+    expect(problems(await germanGame([{ person: 'er', answer: 'geht' }, { person: 'du', answer: 'gehst' }]))).toEqual([])
+  })
+
+  it('warns CONJ_VERB_UNKNOWN for a verb outside the table and does not fail', async () => {
+    const data = await germanGame([{ person: 'er', answer: 'geht' }])
+    data.catalogs.de!.strings['item.conj1.verb'] = 'quatschen'
+    const p = problems(data)
+    expect(p.map((x) => [x.code, x.severity])).toEqual([['CONJ_VERB_UNKNOWN', 'warning']])
+  })
+
+  it('warns CONJ_TENSE_LEVEL for Konjunktiv II in an A1 course, not in B1', async () => {
+    const a1 = await germanGame([{ person: 'ich', answer: 'ginge' }], { tense: 'konjunktiv2' })
+    expect(problems(a1).map((x) => [x.code, x.severity])).toEqual([['CONJ_TENSE_LEVEL', 'warning']])
+    const b1 = await germanGame([{ person: 'ich', answer: 'ginge' }], { tense: 'konjunktiv2' }, 'B1')
+    expect(problems(b1)).toEqual([])
+  })
+
+  it('does nothing for a course not taught in German', async () => {
+    const data = await germanGame([{ person: 'er', answer: 'gehst' }])
+    ;(data.pack as Raw).targetLang = 'hr'
+    expect(problems(data)).toEqual([])
+  })
+})

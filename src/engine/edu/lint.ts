@@ -5,6 +5,7 @@ import { GAME_DATA_FORMAT, type GameData } from '../../shared/game-data'
 import { ITEM_KINDS, formOf, makeCheckContext, makeTextResolver, normalizeText, validateCourse, type CheckContext, type ItemKindDef, type TextRef, type TextResolver } from '../../shared/edu'
 import { SHELL_LINT_CODES, SHELL_WARNING_CODES, lintShells, shellTextRefs } from '../../shared/shells'
 import { GAME_DATA_FILE } from './build'
+import { CONJ_LINT_CODES, CONJ_WARNING_CODES, lintConjugationItem } from './lint-conjugation'
 
 /**
  * `edu_lint`: the pedagogy and integrity check over a BUILT game (`game-data.json` plus the build folder's asset files). It reuses the
@@ -75,13 +76,15 @@ export const LINT_CODES = [
   'ITEM_NO_FACT',
   'ARTICLE_NO_CITATION',
   'PLACEHOLDER_ASSET',
-  'GAME_DATA_INVALID'
+  'GAME_DATA_INVALID',
+  // German verb table (EGS-28); reported for `conjugation` items of a course taught in German
+  ...CONJ_LINT_CODES
 ] as const
 
 /** Every code the lint can report: its own and the game shells'. */
 export const ALL_LINT_CODES: readonly string[] = [...LINT_CODES, ...SHELL_LINT_CODES]
 
-const WARNING_CODES = new Set(['PLACEHOLDER_ASSET', ...SHELL_WARNING_CODES])
+const WARNING_CODES = new Set(['PLACEHOLDER_ASSET', ...CONJ_WARNING_CODES, ...SHELL_WARNING_CODES])
 /** Single-answer kinds: more than one correct option is a mistake. */
 const SINGLE_KEY_KINDS = new Set(['mcq', 'true-false', 'listening'])
 /** The word "placeholder": an error in a text, unless the text belongs to an asset that is labelled a placeholder (then the asset is a warning). */
@@ -333,6 +336,12 @@ export function lintGameData(data: GameData, assetExists: (url: string) => boole
   pack.units.forEach((u, i) => {
     if (!reached.has(u.id)) out.add('UNIT_UNREACHABLE', `units[${i}]`, `no learner can reach the unit "${u.id}": it needs ${u.requires.filter((r) => !reached.has(r)).join(', ') || 'itself'}, which can never be mastered`)
   })
+
+  // ---- German verb table: `conjugation` items (EGS-28; a no-op until the kind exists and unless pack.targetLang is 'de') ----
+  for (const e of entries) {
+    if (e.raw.kind !== 'conjugation') continue
+    for (const lang of editions) for (const p of lintConjugationItem(pack, e.raw, `items[${e.index}]`, resolvers[lang]!)) out.add(p.code, p.path, p.message, lang, p.severity)
+  }
 
   // ---- game shells (src/shared/shells): reachability, completability, puzzles ... ----
   for (const p of lintShells(data, resolvers)) out.add(p.code, p.path, p.message, p.lang, p.severity)
