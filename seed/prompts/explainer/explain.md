@@ -12,6 +12,9 @@ Language: {{language}}
 The fact base (the only source of claims; the id in square brackets is what `didYouKnowFact` names):
 {{factbase}}
 
+Language rules (a language course only; empty otherwise; use the part on feedback, and never state a rule that contradicts them):
+{{language_rules}}
+
 The items of the unit (JSON), with their answer keys and the facts they rest on:
 {{items}}
 

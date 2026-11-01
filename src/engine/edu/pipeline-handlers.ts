@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { AUDIO_KINDS, IMAGE_KINDS } from '../../shared/media'
 import { languageInfo } from '../../shared/languages'
+import { languageRulesText } from '../../shared/lang'
 import type { ResolvedBrief } from '../../shared/brief'
 import type { TextCatalog } from '../../shared/course'
 import { loadCourseFolder } from './course-io'
@@ -193,6 +194,8 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       }
     }
   }
+  /** `{{language_rules}}`: the rules of the taught language (the item-writer also gets the item shapes); empty for a course with none. */
+  const rules = (h: Pick<H, 'R'>, forWriter = false): string => languageRulesText(h.R.brief.targetLang, forWriter)
   const curriculumOf = async (slug: string): Promise<Curriculum> => {
     const c = await P.curriculum(slug)
     if (!c) throw new Error('there is no curriculum yet')
@@ -280,7 +283,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       dataDir,
       role: 'language-coach',
       task: 'scope',
-      vars: { title: vars.title, audience: vars.audience, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), units: unitLines(cur.units), objectives: objectiveLines(cur.objectives), factbase: factbaseText(fb.facts), verb_units_note: verbUnitsNote(R, 'scope') },
+      vars: { title: vars.title, audience: vars.audience, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), units: unitLines(cur.units), objectives: objectiveLines(cur.objectives), factbase: factbaseText(fb.facts), verb_units_note: verbUnitsNote(R, 'scope'), language_rules: rules(h) },
       schema: scopeSchema,
       check: (s) => checkScope(s, cur.units.map((u) => u.id), cur.units.filter((u) => u.verb).map((u) => u.id))
     })
@@ -356,7 +359,8 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         item_id_prefix: `${u.id}-q`,
         scope: R.language ? await unitScope(h.slug, u.id) : '',
         target_language: R.brief.targetLang ? langName(R.brief.targetLang) : '',
-        gap_marker: GAP_MARKER
+        gap_marker: GAP_MARKER,
+        language_rules: rules(h, true)
       },
       schema: itemsSchema,
       check: (o) => checkItems(o.items, { objectives: objectivesFor(cur), factIds: fb.facts.map((f) => f.id), allowedKinds: R.itemKinds, unit: u.id, existingIds: existing, itemsPerObjective: R.itemsPerObjective })
@@ -378,7 +382,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         dataDir,
         role: 'misconception-designer',
         task: 'distractors',
-        vars: { ...vars, unit_id: u.id, factbase: factbaseText(fb.facts), items: itemsJson(given) },
+        vars: { ...vars, unit_id: u.id, factbase: factbaseText(fb.facts), items: itemsJson(given), language_rules: rules(h) },
         schema: distractorsSchema,
         check: (out) => checkDistractors(given, out)
       })
@@ -401,6 +405,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         dataDir,
         title: vars.title,
         round: h.round,
+        languageRules: rules(h),
         facts: fb.facts,
         sources: fb.sources,
         unit: { articles: (await P.articles(h.slug, u.id)).map((a) => ({ id: a.id, title: a.title, body: a.body })), items: items.map(renderItemForCheck) }
@@ -468,6 +473,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         item_kinds: R.itemKinds.join(', '),
         items: itemsJson(prev.filter((i) => flagged.includes(i.id))),
         problems: formatProblems(problems.length ? problems : [{ ref: '', issue: review.notes || 'the fact-checker sent the items back' }]),
+        language_rules: rules(h, true),
         target_language: R.brief.targetLang ? langName(R.brief.targetLang) : '',
         gap_marker: GAP_MARKER
       },
@@ -492,7 +498,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       dataDir,
       role: 'explainer',
       task: 'explain',
-      vars: { ...vars, unit_id: u.id, factbase: factbaseText(fb.facts), items: itemsJson(items) },
+      vars: { ...vars, unit_id: u.id, factbase: factbaseText(fb.facts), items: itemsJson(items), language_rules: rules(h) },
       schema: explainSchema,
       check: (out) => checkExplain(items, out, fb.facts.map((f) => f.id))
     })
@@ -522,7 +528,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         dataDir,
         role: 'language-coach',
         task: 'accepted',
-        vars: { title: vars.title, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), items: refs.map((r) => r.line).join('\n') },
+        vars: { title: vars.title, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), items: refs.map((r) => r.line).join('\n'), language_rules: rules(h) },
         schema: acceptedSchema,
         check: (out) => checkAccepted(items, out)
       })

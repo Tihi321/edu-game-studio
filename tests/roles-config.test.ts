@@ -118,7 +118,7 @@ describe('the seeded prompts', () => {
     'researcher/write_notes': ['question', 'context', 'pages'],
     'researcher/search_queries': ['question', 'tried'],
     'researcher/from_knowledge': ['question', 'context'],
-    'fact-checker/fact_check': ['title', 'round', 'factbase', 'sources', 'coverage', 'content', 'scores_example']
+    'fact-checker/fact_check': ['title', 'round', 'factbase', 'sources', 'language_rules', 'coverage', 'content', 'scores_example']
   }
 
   it('every variable a handler passes is used by its template, and every {{var}} of a template is passed', () => {
