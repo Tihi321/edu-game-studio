@@ -89,6 +89,8 @@ export interface TestEnv {
   mock: MockProvider
   events: EngineEvent[]
   logs: string[]
+  /** A fresh engine on the same folder with the same options (stop the first one before); `cleanup` stops it as well. */
+  reopen(): Promise<Engine>
   cleanup(): Promise<void>
 }
 
@@ -102,7 +104,7 @@ export async function makeEnv(o: EnvOptions = {}, engineOpts: Partial<EngineOpti
   const events: EngineEvent[] = []
   const logs: string[] = []
   const mock = new MockProvider('mock', { chunkDelayMs: 5 })
-  const engine = new Engine({
+  const options: EngineOptions = {
     dataDir: dir,
     emit: (e) => events.push(e),
     log: (m) => logs.push(m),
@@ -111,15 +113,24 @@ export async function makeEnv(o: EnvOptions = {}, engineOpts: Partial<EngineOpti
     pollMs: 40,
     discover: false,
     ...engineOpts
-  })
+  }
+  const engine = new Engine(options)
   await engine.start()
+  const reopened: Engine[] = []
   return {
+    async reopen() {
+      const next = new Engine(options)
+      await next.start()
+      reopened.push(next)
+      return next
+    },
     dir,
     engine,
     mock,
     events,
     logs,
     async cleanup() {
+      for (const e of reopened) await e.stop()
       await engine.stop()
       await rm(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 })
     }

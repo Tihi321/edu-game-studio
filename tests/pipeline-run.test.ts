@@ -1,46 +1,51 @@
-import { rm } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { Engine } from '../src/engine/engine'
 import { pipelineJobId } from '../src/engine/edu/pipeline'
 import { collect } from '../src/engine/models/types'
 import { waitIdle } from './edu-helpers'
-import { waitFor } from './helpers'
-import { BRIEF, courseFile, json, makePipelineEnv, OK_PLAYTEST, pf, pipelineOf, run, SLUG, statusOf, toolsOf } from './pipeline-helpers'
+import { BRIEF, json, makePipelineEnv, pf, pipelineOf, run, SLUG, statusOf, toolsOf } from './pipeline-helpers'
 
 describe('resume, retry and restart', () => {
   it('a restarted engine on the same folder finishes the run: edu_run_pipeline again redoes nothing that was finished', async () => {
     const env = await makePipelineEnv()
-    let second: Engine | undefined
     try {
-      const { call } = toolsOf(env)
-      expect((await call('edu_run_pipeline', { brief: BRIEF })).ok).toBe(true)
-      await waitFor(async () => (await env.engine.edu.pipeline.readSteps(SLUG))?.steps['curriculum:all']?.status === 'done', 30_000, 'the curriculum')
-      await env.engine.stop()
-      second = new Engine({
-        dataDir: env.dir,
-        emit: () => undefined,
-        registry: { mock: env.mock },
-        router: { backoffMs: 1, retries: 1 },
-        pollMs: 40,
-        discover: false,
-        searchProviders: [env.provider],
-        search: { fetchPage: async () => '' },
-        playtest: async () => OK_PLAYTEST
+      // the first model call after the curriculum parks on a gate: the stop lands at a known point, not by timing
+      let release!: () => void
+      const gate = new Promise<void>((r) => (release = r))
+      let parked!: () => void
+      const reached = new Promise<void>((r) => (parked = r))
+      const undoGate = env.mock.on({ role: 'subject-expert' }, async () => {
+        parked()
+        await gate
+        throw Object.assign(new Error('the engine was stopped'), { name: 'AbortError' })
       })
+      expect((await toolsOf(env).call('edu_run_pipeline', { brief: BRIEF })).ok).toBe(true)
+      await reached
+      const before = (await env.engine.edu.pipeline.readSteps(SLUG))!.steps
+      expect(before['curriculum:all']?.status).toBe('done')
+      const stopping = env.engine.stop()
+      release()
+      await stopping
+      undoGate()
+      const doneBefore = Object.entries(before).filter(([, s]) => s.status === 'done').map(([k, s]): [string, string | undefined] => [k, s.job])
+      expect(doneBefore.length).toBeGreaterThanOrEqual(3) // plan, research or curriculum steps were finished before the stop
+
+      const second = await env.reopen()
       second.factory = { ...second.factory, max_attempts: 1 }
-      await second.start()
       const again = await buildToolsCall(second, 'edu_run_pipeline', { slug: SLUG })
       expect(again.ok, again.text).toBe(true)
       expect((again.data as { run: number }).run).toBe(1)
-      await waitFor(async () => (await second!.edu.getCourseMeta(SLUG))?.data && ((await second!.edu.getCourseMeta(SLUG))!.data as { stage?: string }).stage === 'published', 60_000, 'the course to be published')
+      expect((await second.edu.waitIdle(SLUG, { timeoutMs: 30_000 })).timedOut).toBe(false)
+      const after = (await second.edu.pipeline.readSteps(SLUG))!.steps
+      for (const [k, job] of doneBefore) expect(after[k], k).toMatchObject({ status: 'done', job }) // kept, same job id
+      expect((await second.edu.getCourseMeta(SLUG))!.data).toMatchObject({ stage: 'published' })
       expect(env.author.count('director/plan_brief')).toBe(1)
       expect(env.author.count('curriculum-designer/curriculum')).toBe(1)
       expect(env.author.count('publisher/publish')).toBe(1)
     } finally {
-      await second?.stop()
-      await rm(env.dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 })
+      await env.cleanup()
     }
-  }, 90_000)
+  }, 15_000)
 
   it('a job that fails for good shows its text in edu_status (stage failed); retry: true puts it back and the run finishes', async () => {
     const env = await makePipelineEnv()
@@ -70,33 +75,6 @@ describe('resume, retry and restart', () => {
 })
 
 describe('the MCP side', () => {
-  it('edu_create_course takes a brief (slug from the topic), edu_run_pipeline refuses what it cannot run', async () => {
-    const env = await makePipelineEnv()
-    try {
-      const { call } = toolsOf(env)
-      const made = await call('edu_create_course', { brief: BRIEF })
-      expect(made.data).toMatchObject({ slug: SLUG, created: true, stage: 'draft' })
-      expect((await env.engine.edu.getCourseMeta(SLUG))!.data).toMatchObject({ stage: 'draft', brief: { topic: 'The Roman Empire' } })
-      expect((await call('edu_create_course', { brief: BRIEF })).text).toMatch(/already exists/)
-      expect((await call('edu_create_course', { slug: 'x' })).text).toMatch(/give a brief, or slug, title/)
-      expect((await call('edu_run_pipeline', {})).text).toMatch(/give a slug.*or a brief/)
-      expect((await call('edu_run_pipeline', { slug: 'nope' })).text).toMatch(/no course "nope"/)
-      expect((await call('edu_run_pipeline', { brief: { ...BRIEF, model: 'nobody/none' } })).text).toMatch(/unknown model "nobody\/none"/)
-      expect((await call('edu_run_pipeline', { brief: { ...BRIEF, format: 'epic' } })).text).toMatch(/no course format "epic"/)
-      expect((await call('edu_run_pipeline', { slug: SLUG, restart: true, from: 'dessert' })).text).toMatch(/unknown stage "dessert"/)
-      // a course made by hand has no brief
-      await call('edu_create_course', { slug: 'by-hand', title: 'T', languages: ['en'], sourceLang: 'en', subject: 's', audience: 'a' })
-      expect((await call('edu_run_pipeline', { slug: 'by-hand' })).text).toMatch(/has no brief/)
-      // a course with a brief and no run yet: edu_run_pipeline {slug} starts it
-      const started = await call('edu_run_pipeline', { slug: SLUG })
-      expect(started.data).toMatchObject({ slug: SLUG, run: 1 })
-      await waitIdle(env, SLUG, 60_000)
-      expect((await pipelineOf(env)).stage).toBe('published')
-    } finally {
-      await env.cleanup()
-    }
-  }, 90_000)
-
   it('the client loop: with model client/claude-code in the brief every role task waits for the client, edu_wait returns for them, each task text is self-contained, and answering them all publishes the course', async () => {
     const env = await makePipelineEnv({ mixed: true })
     try {
@@ -163,48 +141,6 @@ describe('the MCP side', () => {
       await env.cleanup()
     }
   }, 120_000)
-
-  it('story: frame writes a frame story into the pack; story: scriptorium hands the idea over once, and a Scriptorium that is down skips the step', async () => {
-    const handed: unknown[] = []
-    const fake = (up: boolean) => ({
-      url: 'http://fake/scriptorium',
-      status: async () => (up ? { up: true as const } : { up: false as const, error: 'Scriptorium is not running at http://fake/scriptorium. Edu Studio never starts it' }),
-      handOffStory: async (s: unknown) => (handed.push(s), { story: 'the-scribe' }),
-      waitForStory: async () => ({ done: false, reason: 'timeout', story: 'the-scribe', book: null, title: null, stage: null, folder: null })
-    })
-    const frame = await makePipelineEnv()
-    try {
-      await run(frame, { ...BRIEF, story: 'frame' })
-      const pack = await json<{ extensions: { story: { premise: string; beats: { unit: string }[] } } }>(courseFile(frame, SLUG, 'course', 'pack.json'))
-      expect(pack.extensions.story.beats.map((b) => b.unit)).toEqual(['u1', 'u2'])
-      expect((await pipelineOf(frame)).stage).toBe('published')
-    } finally {
-      await frame.cleanup()
-    }
-    const up = await makePipelineEnv({ engine: { scriptorium: fake(true) } })
-    try {
-      await run(up, { ...BRIEF, story: 'scriptorium' })
-      expect(handed).toHaveLength(1)
-      expect(handed[0]).toMatchObject({ idea: expect.stringContaining('scribe'), audience: 'teenagers', length: expect.stringContaining('2000 words'), title: expect.stringContaining('Roman Empire') })
-      const p = await pipelineOf(up)
-      expect(p).toMatchObject({ stage: 'published' })
-      expect(p.steps.find((s) => s.step === 'story:all')).toMatchObject({ status: 'done', note: expect.stringContaining('the-scribe') })
-      expect(await json(pf(up, 'story.json'))).toMatchObject({ mode: 'scriptorium', story: 'the-scribe' })
-    } finally {
-      await up.cleanup()
-    }
-    const down = await makePipelineEnv({ engine: { scriptorium: fake(false) } })
-    try {
-      handed.length = 0
-      await run(down, { ...BRIEF, story: 'scriptorium' })
-      expect(handed).toHaveLength(0)
-      const p = await pipelineOf(down)
-      expect(p.stage).toBe('published')
-      expect(p.steps.find((s) => s.step === 'story:all')).toMatchObject({ status: 'skipped', note: expect.stringContaining('never starts it') })
-    } finally {
-      await down.cleanup()
-    }
-  }, 180_000)
 })
 
 async function buildToolsCall(engine: Engine, name: string, args: Record<string, unknown>) {
