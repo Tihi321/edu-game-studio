@@ -33,6 +33,8 @@ export interface AuthorOptions {
   musicPlan?: 'ok' | 'repair' | 'unusable' | 'merge'
   /** The voice-director's answer: `ok` (default), `repair` (wrong the first time) or `unusable` (never right: the deterministic plan is used). */
   voicePlan?: 'ok' | 'repair' | 'unusable'
+  /** The translator's answer: `ok` (default), `repair` (leaves the last entry out the first time) or `drops` (leaves it out every time: the step fails). */
+  editions?: 'ok' | 'repair' | 'drops'
 }
 
 export interface Author {
@@ -101,6 +103,16 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     }
     log('language-coach/scope')
     return { units: lines(t).map((l) => /^- (u\d+): /.exec(l)?.[1]).filter((u): u is string => !!u).map((u) => ({ unit: u, vocabulary: [{ term: 'bok', gloss: 'hello' }], grammar: [] })) }
+  })
+
+  on('translator', (t, req) => {
+    const entries = lines(t).filter((l) => l.startsWith('{"key"')).map((l) => JSON.parse(l) as { key: string; text?: string; accepted?: string[] })
+    const lang = grab(t, /translate them into ([^.\n]+)\./)
+    const again = t.includes('Your answer has problems')
+    log(again ? 'translator/edition:repair' : 'translator/edition')
+    void req
+    const drop = o.editions === 'drops' || (o.editions === 'repair' && !again)
+    return { items: (drop ? entries.slice(0, -1) : entries).map((e) => ({ key: e.key, ...(e.text !== undefined ? { text: `[${lang}] ${e.text}` } : {}), ...(e.accepted ? { accepted: e.accepted.map((a) => `[${lang}] ${a}`) } : {}) })) }
   })
 
   on('subject-expert', (t) => {

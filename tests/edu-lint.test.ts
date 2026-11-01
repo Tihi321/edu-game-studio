@@ -231,6 +231,18 @@ describe('lint: each rule', () => {
     expect(codes(lint(d))).not.toContain('MISSING_TEXT')
   })
 
+  it('TEXT_MISSING in a language course names the edition that lacks the key; a taught key in the target catalog serves every edition (EGS-32)', async () => {
+    const d = await game('hr-a1-greetings')
+    expect(d.pack.targetLang).toBe('hr')
+    d.pack.languages = ['en', 'de'] // two editions of a course that teaches Croatian
+    d.catalogs.de = { ...structuredClone(d.catalogs.en!), lang: 'de' }
+    const key = Object.keys(d.catalogs.en!.strings).find((k) => k.endsWith('.prompt'))!
+    delete d.catalogs.en!.strings[key]
+    const ps = only(lint(d), 'TEXT_MISSING')
+    expect(ps).toHaveLength(1)
+    expect(ps[0]!.message).toMatch(/\(in en\)$/)
+  })
+
   it('PREREQ_CYCLE and UNIT_UNREACHABLE', async () => {
     const d = await game('solar-system')
     d.pack.units[0]!.requires = [d.pack.units[2]!.id]

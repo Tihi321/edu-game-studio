@@ -76,7 +76,7 @@ describe('the whole pipeline on the mock team', () => {
       expect(p.next).toMatch(/published/)
       const bad = p.steps.filter((s) => !['done', 'skipped'].includes(s.status))
       expect(bad).toEqual([])
-      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
+      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
       expect(p.steps.find((s) => s.step === 'art_review:all')!.note).toMatch(/no model with vision/) // the mock model has no vision: the art-critic is skipped, with the reason
       expect(statusOf(p, 'music_plan:all')).toBe('done')
       expect(statusOf(p, 'music_generate:all')).toBe('done')

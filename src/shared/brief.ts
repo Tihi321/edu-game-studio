@@ -13,7 +13,7 @@ import type { FormatEntry } from './schemas'
  *   level        their level in the topic ("beginner"), free text
  *   cefr         a language course: the CEFR level taught
  *   sourceLang   the language the course is written in (default en)
- *   languages    the editions (default [sourceLang]); other editions come from Book Translator later, the step `editions` is skipped
+ *   languages    the editions (default [sourceLang]); the step `editions` (the translator role) makes every other one, skipped with one language
  *   targetLang   a language course: the language that is taught
  *   shells       the game shells asked for (default [quiz-arena]); the player has only quiz-arena today
  *   format       an id of config/formats.md (default quick; language-a1 when targetLang is set)

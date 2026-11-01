@@ -21,7 +21,8 @@ import { assertSlug, coursesDir } from './paths'
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
  *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> assemble
  *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise)
- *   -> voice_plan -> voice_generate (EGS-17: after the reviews, so the clips speak the final text; the pack is re-linked) -> build -> lint -> playtest
+ *   -> voice_plan -> voice_generate (EGS-17: after the reviews, so the clips speak the final text; the pack is re-linked)
+ *   -> editions (EGS-32: the translator makes the other editions of the final text; skipped with one language) -> build -> lint -> playtest
  *   -> playtest_report -> publish (code: must-pass, threshold, hard gates; the publisher writes the blurb) -> summarize
  * ```
  *
@@ -33,13 +34,16 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'voice', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'voice', 'editions', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
+
+/** The editions the translator has to make: the languages of the brief but the source language and the taught language. */
+export const editionLanguages = (R: Pick<ResolvedBrief, 'languages' | 'brief'>): string[] => R.languages.filter((l) => l !== R.brief.sourceLang && l !== R.brief.targetLang)
 
 /** Which stage a task belongs to (for `restart from`). */
 const STAGE_OF: Record<string, Stage> = {
   plan: 'plan',
-  editions: 'plan',
+  editions: 'editions',
   research: 'research',
   factbase: 'factbase',
   curriculum: 'curriculum',
@@ -91,6 +95,7 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   assemble: ['assembled.json', 'polish.json'],
   review: ['reviews/review-*'],
   voice: ['voice.json'],
+  editions: ['editions.json'],
   lint: ['lint.json'],
   playtest: ['playtest.json', 'report.json'],
   publish: ['publish.json']
@@ -461,7 +466,6 @@ export class Pipeline {
     const R = st.resolved
 
     if ((await this.ensure(c, { task: 'plan', role: 'director', label: 'plan the course' })) !== 'done') return 'running'
-    if (R.languages.length > 1) this.skip(c, 'editions', null, `the editions ${R.languages.filter((l) => l !== R.brief.sourceLang).join(', ')} come from Book Translator later (EGS-18); the course has its source language only`)
     const plan = await this.readJson<{ research: { question: string; unit: number }[] }>(slug, 'plan.json')
     if (!plan) return 'running'
     if ((await this.research(c, plan)) !== 'done') return 'running'
@@ -519,6 +523,7 @@ export class Pipeline {
     }
 
     if ((await this.voiceFlow(c)) !== 'done') return 'running'
+    if ((await this.editionsFlow(c)) !== 'done') return 'running'
 
     for (const [task, role, label] of [
       ['build', 'director', 'build the game'],
@@ -532,6 +537,20 @@ export class Pipeline {
     if (pub === 'blocked') return this.settle(c, true)
     if (pub !== 'done') return 'running'
     return this.settle(c, false)
+  }
+
+  /**
+   * The editions step (EGS-32): after the voice (the last step that writes text into the pack) and before the build, the translator makes the catalog of
+   * every edition that is not the source language (and not the taught language of a language course, whose catalog is the taught phrases). The pack
+   * then lists them in `languages`. Skipped when there is none, with the reason.
+   */
+  private async editionsFlow(c: Ctx): Promise<'done' | 'wait' | 'blocked'> {
+    const need = editionLanguages(c.st.resolved)
+    if (need.length === 0) {
+      this.skip(c, 'editions', null, c.st.resolved.languages.length > 1 ? 'no edition besides the source and the taught language' : 'one language only: no other edition to make')
+      return 'done'
+    }
+    return this.ensure(c, { task: 'editions', role: 'translator', label: `translate the text into ${need.join(', ')}` })
   }
 
   /**
