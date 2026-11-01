@@ -2,19 +2,17 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { useTemp } from './edu-build-helpers'
-import { buildFixtureGame, chromiumUnavailable } from './bot-helpers'
+import { buildFixtureGame } from './bot-helpers'
 
 /**
  * The game-style picker (EGS-10): one course, several shells. The title of every shell shows `shell-picker` when the course plays in
  * two or more; picking one unmounts the shell and mounts the other (keyboard, no reload), the choice is remembered per course, and
- * `?shell=<id>` opens a shell directly. Skipped, with a message, when Chromium cannot be launched.
+ * `?shell=<id>` opens a shell directly. Without Chromium the run fails.
  */
 
 useTemp()
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[shell-picker.e2e] SKIPPED: Chromium cannot be launched (${unavailable}).`)
 
-describe.skipIf(!!unavailable)('the game-style picker', () => {
+describe('the game-style picker', () => {
   it('switches shells from the title, remembers the choice and honours ?shell=', { timeout: 120_000 }, async () => {
     const dir = await buildFixtureGame('solar-system')
     const { chromium } = await import('playwright')
@@ -65,7 +63,7 @@ describe.skipIf(!!unavailable)('the game-style picker', () => {
  * The shared start screen (EGS-25): every shell shows the same title skeleton in the `menu` theme, the in-game screens keep the shell's
  * theme, picking a mode on the title never shows another theme and keeps the progress, and nothing overflows on a phone.
  */
-describe.skipIf(!!unavailable)('the shared start screen', () => {
+describe('the shared start screen', () => {
   it('has one skeleton and the menu theme on every shell, and the shell theme once the game starts', { timeout: 240_000 }, async () => {
     const { chromium } = await import('playwright')
     const browser = await chromium.launch()

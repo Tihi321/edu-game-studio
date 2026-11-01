@@ -7,7 +7,7 @@ Edu Studio turns a topic into a playable educational game. Read `README.md` for 
 Electron 44, electron-vite, React 19, zustand, TypeScript strict, zod 4, Vitest, ESLint flat config, Yarn 4 (`nodeLinker: node-modules`), Node 24.
 
 - Node is managed by fnm. If `node` or `yarn` is not on `PATH`, run `fnm exec --using=24 yarn <script>`.
-- Check your work with `yarn typecheck`, `yarn lint` and `yarn test`. `yarn build` must keep working. Do not leave a test unrun because Node was missing.
+- Check your work with `yarn typecheck`, `yarn lint` and `yarn test` (the fast suite, no Chromium). Whoever changes a game shell, the player or the autoplay bot also runs `yarn test:e2e` (the Chromium tests, `tests/*.e2e.test.ts`; it fails, not skips, without Chromium). A test that needs a browser goes in a `*.e2e.test.ts` file; no other test imports `playwright` or `bot-helpers` (a guard test checks it). `yarn build` must keep working. Do not leave a test unrun because Node was missing.
 - `yarn build:engine && node out/engine/index.js --mcp-only` starts the headless MCP server (port 7463). Point it at a scratch data folder (`EDU_DATA=.claude/temp/<name>`), never at `~/EduGames`.
 
 ## Work in tickets

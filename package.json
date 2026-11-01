@@ -23,6 +23,8 @@
     "studio:shots": "node scripts/studio-shots.mjs",
     "previews": "node scripts/theme-previews.mjs",
     "test": "vitest run",
+    "test:e2e": "vitest run -c vitest.e2e.config.ts",
+    "test:all": "yarn test && yarn test:e2e",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.player.json",
     "lint": "eslint ."
   },

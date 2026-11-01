@@ -4,18 +4,14 @@ import { afterAll, describe, expect, it } from 'vitest'
 import type { Browser, BrowserContext, Locator, Page } from 'playwright'
 import { startLiveServer, type LiveHandle } from '../src/engine/live/server'
 import { selectQuestions, type LiveQuestion } from '../src/shared/live'
-import { chromiumUnavailable } from './bot-helpers'
 import { LIVE_OUT, loadFixture } from './live-helpers'
 
 /**
  * The live quiz in a real browser (EGS-21): a host page and three player pages (separate browser contexts, one at 390x844 with touch)
  * play a 3-question quiz of the solar-system fixture against the real server and the real built client (`out/live`, built by the vitest
  * global setup). Checks the leaderboard order after each question, the podium, the explanation in the reveal, 0 console errors and axe
- * (no serious or critical violation) on the question and the leaderboard screens. Skipped, with a message, only when Chromium cannot be launched.
+ * (no serious or critical violation) on the question and the leaderboard screens. Without Chromium the run fails (`yarn playwright install chromium`).
  */
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[live-quiz.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 
@@ -55,7 +51,7 @@ async function answer(page: Page, q: LiveQuestion, right: boolean): Promise<void
   await page.locator('[data-testid=live-locked]:not([hidden]), [data-testid=live-verdict]').first().waitFor({ state: 'visible', timeout: 10_000 })
 }
 
-describe.skipIf(!!unavailable)('the live quiz in a browser', () => {
+describe('the live quiz in a browser', () => {
   it('plays three questions with a host page and three players, with the right leaderboard and podium', { timeout: 120_000 }, async () => {
     const { pack, catalogs } = await loadFixture('solar-system')
     const questions = selectQuestions(pack, catalogs, 'en', { count: 3, seed: 11 })

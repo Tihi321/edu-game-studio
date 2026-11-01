@@ -30,8 +30,15 @@ The phase numbers are the ones of the hub plan.
 - **EGS-32** editions step (HUB-22): the pipeline's `editions` step is real. After the voice and before the build, the `translator` role (the course model, `client/claude-code` included) translates the source-language text catalog into every other language of the brief (the taught phrases of a language course are not translated), the output is validated, a missing key is asked again once, and `pack.languages` lists the editions. Book Translator stays a manual alternative. This replaces the old placeholder row that used the number EGS-18 (the speaking practice row below is the real EGS-18). Plan `.claude/tickets/EGS-32-editions-step/`.
 - **EGS-47** seed history: the pre-HUB-22 hashes of roles.md, voice.md, languages.md, voice-director/plan.md and articles_revise.md, so an older data folder gets the HUB-22 seed files. Plan `.claude/tickets/EGS-47-seed-history/`.
 - **EGS-52** playtest bot timeout: the pipeline playtest killed the struggling bot (random, 55 %, ~490 answers, ~7 min) after 5 min and reported "the bot printed no result (exit 1)". Default timeout 15 min, a killed bot is reported as a timeout. Plan `.claude/tickets/EGS-52-bot-random-hang/plan.md`.
+- **EGS-40** test diet (HUB-24), step 1: `yarn test` (fast, no Chromium, `*.e2e.test.ts` excluded) and `yarn test:e2e` (`vitest.e2e.config.ts`, Chromium, fails without it); the Chromium blocks of pipeline-run, art/music/voice-pipeline and edu-playtest moved into e2e files; a guard test keeps Chromium out of `yarn test`; timing before. Plan `../creative-hub/.claude/tickets/HUB-24-edu-test-diet/plan.md`.
+- **EGS-41** test diet: make the pipeline-run restart test deterministic (a gate instead of polling), trim pipeline.test and pipeline-run, merge art/music/voice-pipeline into media-pipeline.
+- **EGS-42** test diet: lint tests into one table (one case per lint code, with a guard), MCP contract in edu-mcp (tool-name list), trim mcp-http, mcp-config, edu-cli.
+- **EGS-43** test diet: engine, schema, player-logic and puzzle trims; one `walk` test per shell in the fast suite.
+- **EGS-44** test diet: provider clients, live quiz and infra trims; no sleeps or timer waits in the fast suite.
+- **EGS-45** test diet: trim the bot e2e files to one perfect run per shell plus one keyboard and axe run.
+- **EGS-46** test diet: German test files (after EGS-34/36/38), the "after" timing run and the recount; moves EGS-40..46 to Done.
 - **EGS-19** hub wiring support: whatever the hub's registration needs from this repo (a `hub.ps1 check` handshake, the tool count, a skill that makes a course from one sentence).
-- **EGS-20** packaging: the Windows installer and portable exe (electron-builder, icons, a package check), CI.
+- **EGS-20** packaging: the Windows installer and portable exe (electron-builder, icons, a package check), CI (CI runs `yarn test` and, as a separate job, `yarn test:e2e`).
 - **EGS-21** Android through Capacitor, later.
 
 ## Done

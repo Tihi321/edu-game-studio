@@ -6,7 +6,7 @@ import { buildCourse } from '../src/engine/edu/build'
 import { copyFixture, tmp } from './edu-build-helpers'
 
 /**
- * Shared by the bot end-to-end tests of the game shells (`tests/bot-<shell>.e2e.test.ts`, EGS-10+): Chromium detection, building a
+ * Shared by the bot end-to-end tests of the game shells (`tests/bot-<shell>.e2e.test.ts`, EGS-10+): building a
  * fixture with the REAL player bundle (`out/player`, built by the vitest global setup) and running `scripts/play.mjs`. Call `useTemp()`
  * (edu-build-helpers) at the top of the test file.
  */
@@ -16,15 +16,18 @@ export const PLAY = path.join(ROOT, 'scripts', 'play.mjs')
 /** The real player bundle the vitest global setup built: `out/player`, or `EDU_TEST_PLAYER_OUT` (see tests/setup/player-bundle.ts). */
 export const PLAYER_OUT = process.env.EDU_TEST_PLAYER_OUT ? path.resolve(ROOT, process.env.EDU_TEST_PLAYER_OUT) : path.join(ROOT, 'out', 'player')
 
-/** null when Chromium can be launched, else why not (the e2e tests are skipped with a message). */
-export async function chromiumUnavailable(): Promise<string | null> {
+/**
+ * Throws when Chromium cannot be launched, so an e2e run on a machine without a browser FAILS (never skips). The e2e config calls it in a
+ * `beforeAll` of every test file (tests/setup/e2e-chromium.ts).
+ */
+export async function requireChromium(): Promise<void> {
   try {
     const { chromium } = await import('playwright')
     const b = await chromium.launch()
     await b.close()
-    return null
   } catch (e) {
-    return e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
+    const why = e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
+    throw new Error(`Chromium cannot be launched (${why}). Run "yarn playwright install chromium".`, { cause: e })
   }
 }
 

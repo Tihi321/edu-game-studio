@@ -64,7 +64,9 @@ yarn install
 | `yarn play <build-dir> --mode <perfect, wrong or random> [--shell <id>]` | The autoplay bot (`node scripts/play.mjs`): plays a built game in headless Chromium, in any shell the course enables; see "Autoplay bot" |
 | `yarn previews` | Builds the static theme previews (chalkboard, castle, parchment, pixel) into `.claude/temp/theme-previews/`, screenshots them at 1280x800 and 390x844 and runs axe-core |
 | `yarn studio:shots` | Builds the studio renderer with a mocked `window.edustudio` (the golden fixtures), screenshots every page and Course tab at 1280x800 and 390x844 (light and dark, empty, loading and error states) into `.claude/temp/screens/phase2/studio/` and runs axe-core on each; fails on a serious or critical violation |
-| `yarn test` | Vitest |
+| `yarn test` | Vitest, the fast suite: no Chromium (every `tests/*.e2e.test.ts` is excluded) |
+| `yarn test:e2e` | Vitest on `tests/*.e2e.test.ts` only (`vitest.e2e.config.ts`): the autoplay bot and the player in headless Chromium; slow. Without Chromium it fails (`yarn playwright install chromium`). Run it whenever a game shell or the player changes |
+| `yarn test:all` | `yarn test`, then `yarn test:e2e` |
 | `yarn typecheck` | `tsc` for the node and web projects |
 | `yarn lint` | ESLint |
 

@@ -2,7 +2,6 @@ import { rm } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { Engine } from '../src/engine/engine'
 import { pipelineJobId } from '../src/engine/edu/pipeline'
-import { runPlaytest } from '../src/engine/edu/playtest'
 import { collect } from '../src/engine/models/types'
 import { waitIdle } from './edu-helpers'
 import { waitFor } from './helpers'
@@ -214,34 +213,3 @@ async function buildToolsCall(engine: Engine, name: string, args: Record<string,
   const r = await callTool(tools, name, args)
   return { ok: !r.isError, text: r.content[0].text, data: (r.structuredContent ?? {}) as Record<string, unknown> }
 }
-
-// ---- the real autoplay bot on a pipeline course, only where Chromium is installed ----
-
-async function chromiumAvailable(): Promise<string | null> {
-  try {
-    const { chromium } = await import('playwright')
-    const b = await chromium.launch()
-    await b.close()
-    return null
-  } catch (e) {
-    return e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
-  }
-}
-const unavailable = await chromiumAvailable()
-if (unavailable) console.warn(`[pipeline] the real-bot test is SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
-
-describe.skipIf(!!unavailable)('the pipeline with the real autoplay bot', () => {
-  it('the course the mock team made is played by the bot (perfect and the 75 % learner) and published', async () => {
-    const env = await makePipelineEnv({ playtest: (dir, opts) => runPlaytest(dir, { ...opts, personas: ['perfect', 'average'], concurrency: 2, timeoutMs: 200_000 }) })
-    try {
-      await run(env, BRIEF, 200_000)
-      const p = await pipelineOf(env)
-      expect(p.stage, JSON.stringify(p.blockedBy ?? p.failed)).toBe('published')
-      const play = await json<{ ok: boolean; runs: { persona: string; summary: { finished: boolean; consoleErrors: number } }[] }>(pf(env, 'playtest.json'))
-      expect(play.ok).toBe(true)
-      expect(play.runs.map((r) => [r.persona, r.summary.finished, r.summary.consoleErrors])).toEqual([['perfect', true, 0], ['average', true, 0]])
-    } finally {
-      await env.cleanup()
-    }
-  }, 300_000)
-})

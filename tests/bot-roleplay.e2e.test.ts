@@ -1,19 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
+import { expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The language role-play shell played end to end by the autoplay bot (EGS-13, `scripts/bot/roleplay.mjs`): for every fixture that enables
  * the shell (hr-a1-greetings: four conversations, the garden of 13 words), perfect, wrong and random (seeded) pass with 0 console errors, one
- * keyboard-only perfect run (no mouse click) and an axe run (no serious or critical violation). Skipped, with a message, only when Chromium
- * cannot be launched (`yarn playwright install chromium`).
+ * keyboard-only perfect run (no mouse click) and an axe run (no serious or critical violation). Without Chromium the run fails.
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[bot-roleplay.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 interface Case {
   fixture: 'hr-a1-greetings'
@@ -36,7 +32,7 @@ interface Stats {
 }
 const stats = (s: BotSummary): Stats => s.roleplay as Stats
 
-describe.skipIf(!!unavailable)('autoplay bot in the role-play shell', () => {
+describe('autoplay bot in the role-play shell', () => {
   for (const c of CASES) {
     describe(c.fixture, () => {
       let dirP: Promise<string> | undefined

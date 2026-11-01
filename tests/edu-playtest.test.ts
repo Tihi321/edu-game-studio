@@ -2,11 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { assembleCourse } from '../src/engine/edu/assemble'
 import { ChromiumMissingError, findPlayScript, PERSONAS, playtestDigest, runPlaytest } from '../src/engine/edu/playtest'
 import type { BotSummary, PlaytestResult } from '../src/engine/edu/playtest'
-import { CourseStore } from '../src/engine/edu/store'
-import { assembleInput } from './edu-authored-fixture'
 import { tmp, useTemp } from './edu-build-helpers'
 import { makeEduEnv } from './edu-helpers'
 
@@ -146,36 +143,5 @@ describe('the playtest runner (a fake bot script)', () => {
     } finally {
       await env.cleanup()
     }
-  })
-})
-
-// ---- the real bot, only where Chromium is installed ----
-
-async function chromiumAvailable(): Promise<string | null> {
-  try {
-    const { chromium } = await import('playwright')
-    const b = await chromium.launch()
-    await b.close()
-    return null
-  } catch (e) {
-    return e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
-  }
-}
-const unavailable = await chromiumAvailable()
-if (unavailable) console.warn(`[edu-playtest] the real-bot test is SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
-
-describe.skipIf(!!unavailable)('the real autoplay bot on an assembled course', () => {
-  it('a course made by assembleCourse is playable: the perfect learner finishes it and the 75 % learner reaches the end, with no console error', { timeout: 240_000 }, async () => {
-    const dataDir = await tmp('edu-playtest-')
-    const store = new CourseStore(dataDir, { playerDir: path.join(ROOT, 'out', 'player') })
-    const { pack, catalogs } = assembleCourse(assembleInput())
-    await store.writeAssembled('roman-basics', pack, catalogs)
-    const built = await store.build('roman-basics')
-    expect(built.ok).toBe(true)
-    const r = await runPlaytest(store.buildDir('roman-basics'), { personas: ['perfect', 'average'], concurrency: 2, timeoutMs: 200_000 })
-    expect(r.failures).toEqual([])
-    expect(r.ok).toBe(true)
-    expect(r.runs.map((x) => [x.persona, x.summary?.finished])).toEqual([['perfect', true], ['average', true]])
-    expect(r.runs.every((x) => x.summary!.consoleErrors === 0)).toBe(true)
   })
 })

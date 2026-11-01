@@ -5,20 +5,17 @@ import { pathToFileURL } from 'node:url'
 import type { Page } from 'playwright'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, PLAYER_OUT } from './bot-helpers'
+import { PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * Speaking practice (EGS-18), in a real browser with a fake `SpeechRecognition`: the mic fills the input of a typed item, a cloze gap and a
  * listening-in-type-mode item; the learner can edit the text; the shared matcher checks it tolerantly; the button is absent without a
  * recognizer, for a course without a target language and when the learner switches it off; the keyboard works (Enter/Space, Escape);
- * axe finds no serious or critical violation on the item screen with the mic. Skipped, with a message, only when Chromium cannot be launched.
+ * axe finds no serious or critical violation on the item screen with the mic. Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[speaking.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 type Pack = { items: { id: string; kind: string; mode?: string; objective: string; gaps?: { bank?: unknown }[] }[]; objectives: { id: string; unit: string }[]; units: { id: string; requires: string[] }[]; targetLang?: string; extensions: Record<string, unknown> }
 
@@ -92,7 +89,7 @@ const say = (page: Page, text: string): Promise<unknown> => page.evaluate(`windo
 const lastResult = (page: Page): Promise<{ correct: boolean; typo?: boolean } | undefined> => page.evaluate('EduEngine.getState().lastResult')
 const itemId = (page: Page): Promise<string> => page.evaluate('EduEngine.getState().itemId')
 
-describe.skipIf(!!unavailable)('speak your answer', () => {
+describe('speak your answer', () => {
   const dirs: Partial<Record<string, Promise<string>>> = {}
   const built = (k: Parameters<typeof build>[0]): Promise<string> => (dirs[k] ??= build(k))
 

@@ -4,20 +4,16 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, PLAYER_OUT } from './bot-helpers'
+import { PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The player on a phone (EGS-19), in a real browser: 390x844 with touch, as the Capacitor WebView shows it. The safe-area CSS is in the
  * player, the touch targets are at least 44 px, nothing scrolls sideways, and a fake `window.Capacitor.Plugins.App` back button goes one
- * screen back inside a shell (and exits the app when there is no screen to go back to). Skipped, with a message, only when Chromium cannot
- * be launched.
+ * screen back inside a shell (and exits the app when there is no screen to go back to). Without Chromium the run fails.
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[android-mobile.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 async function build(): Promise<string> {
   const { root } = await copyFixture('solar-system')
@@ -39,7 +35,7 @@ interface Back {
   __back: { listeners: (() => void)[]; exited: number }
 }
 
-describe.skipIf(!!unavailable)('the player on a phone', () => {
+describe('the player on a phone', () => {
   it('has the safe-area CSS, 44 px targets, no sideways scroll, and the Android back button', { timeout: 120_000 }, async () => {
     const dir = await build()
     const css = await readFile(path.join(dir, 'player.css'), 'utf8')
