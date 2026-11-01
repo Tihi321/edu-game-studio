@@ -24,7 +24,7 @@ describe('the brief', () => {
     expect(lang).toMatchObject({ units: 4, language: true, cefr: 'A1', languages: ['en', 'hr', 'de'] })
   })
 
-  it('a language brief picks language-<cefr> (A1, A2, B1); B2, C1 and C2 without a format fail in words; the verb-unit numbers come with the format (EGS-29)', async () => {
+  it('a language brief picks language-<cefr> (A1, A2, B1); C1 and C2 without a format fail in words, B2 has its own format (EGS-36); the verb-unit numbers come with the format (EGS-29)', async () => {
     const { readFile } = await import('node:fs/promises')
     const { parseMdWith } = await import('../src/shared/md')
     const seedFormats = parseMdWith(await readFile('seed/config/formats.md', 'utf8'), formatsSchema).data.formats
@@ -34,14 +34,18 @@ describe('the brief', () => {
     expect(resolveBrief({ ...b, cefr: 'A2' }, seedFormats)).toMatchObject({ format: { id: 'language-a2' }, units: 5, itemsPerObjective: 4, verbUnits: 2, cefr: 'A2' })
     expect(resolveBrief({ ...b, cefr: 'B1' }, seedFormats)).toMatchObject({ format: { id: 'language-b1' }, units: 6, articlesPerUnit: 2, verbUnits: 2 })
     expect(resolveBrief({ ...b, cefr: 'A2', units: 1 }, seedFormats).verbUnits).toBe(1)
-    expect(() => resolveBrief({ ...b, cefr: 'B2' }, seedFormats)).toThrow(/no format for B2 yet/)
+    expect(resolveBrief({ ...b, cefr: 'B2' }, seedFormats)).toMatchObject({ format: { id: 'language-b2' }, units: 6, itemsPerObjective: 5, articlesPerUnit: 2, verbUnits: 1, cefr: 'B2', reading: true, readingWords: [350, 700], glossaryPerText: [10, 20] })
+    expect(resolveBrief({ ...b, cefr: 'B1' }, seedFormats)).toMatchObject({ reading: true, readingWords: [200, 400], glossaryPerText: [6, 12] })
+    expect(resolveBrief({ ...b, cefr: 'A2' }, seedFormats).reading).toBe(false)
+    expect(resolveBrief({ topic: 'Rome', audience: 'adults', format: 'language-b2' }, seedFormats).reading).toBe(false) // not a language course: no readings
     expect(() => resolveBrief({ ...b, cefr: 'C1' }, seedFormats)).toThrow(/out of scope \(HUB-22\)/)
     expect(() => resolveBrief({ ...b, cefr: 'C2' }, seedFormats)).toThrow(/out of scope \(HUB-22\)/)
     expect(resolveBrief({ ...b, cefr: 'C1', format: 'language-b1' }, seedFormats).format.id).toBe('language-b1') // a named format wins
     expect(resolveBrief({ topic: 'Rome', audience: 'adults', cefr: 'B2' }, seedFormats).format.id).toBe('quick') // not a language course
-    // conjugation is listed by the formats but left out of what the item-writer is asked for until EGS-27 makes it an authored kind
+    // conjugation is an authored kind since EGS-27: the language formats ask the item-writer for it, the other formats do not list it
     expect(seedFormats.find((x) => x.id === 'language-a1')!.item_kinds).toContain('conjugation')
-    expect(resolveBrief(b, seedFormats).itemKinds).not.toContain('conjugation')
+    expect(resolveBrief(b, seedFormats).itemKinds).toContain('conjugation')
+    expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).itemKinds).not.toContain('conjugation')
     expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).verbUnits).toBe(0)
   })
 
@@ -97,7 +101,7 @@ describe('the whole pipeline on the mock team', () => {
       expect(p.next).toMatch(/published/)
       const bad = p.steps.filter((s) => !['done', 'skipped'].includes(s.status))
       expect(bad).toEqual([])
-      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
+      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'harvest:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
       expect(p.steps.find((s) => s.step === 'art_review:all')!.note).toMatch(/no model with vision/) // the mock model has no vision: the art-critic is skipped, with the reason
       expect(statusOf(p, 'music_plan:all')).toBe('done')
       expect(statusOf(p, 'music_generate:all')).toBe('done')

@@ -1,5 +1,6 @@
 import type { ItemRenderer } from '../types'
 import { mcqRenderer, multiSelectRenderer, trueFalseRenderer } from './choice'
+import { conjugationRenderer } from './conjugation'
 import { crosswordRenderer } from './crossword'
 import { flashcardRenderer } from './flashcard'
 import { hotspotRenderer } from './hotspot'
@@ -10,7 +11,7 @@ import { sortGroupsRenderer } from './sort'
 import { clozeRenderer, typedRenderer } from './text'
 import { wordSearchRenderer } from './wordsearch'
 
-/** The renderers of the 13 built-in item kinds. `main.ts` registers them with `EduEngine.registerItemKind`. */
+/** The renderers of the 14 built-in item kinds. `main.ts` registers them with `EduEngine.registerItemKind`. */
 export const BUILTIN_RENDERERS: ItemRenderer[] = [
   mcqRenderer,
   trueFalseRenderer,
@@ -24,5 +25,6 @@ export const BUILTIN_RENDERERS: ItemRenderer[] = [
   listeningRenderer,
   flashcardRenderer,
   crosswordRenderer,
-  wordSearchRenderer
+  wordSearchRenderer,
+  conjugationRenderer
 ]

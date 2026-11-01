@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "lang": "en",
+  "strings": {
+    "item.c-sein.prompt": "Conjugate the verb sein in the present tense.",
+    "item.c-sein.expl": "Sein is irregular: bin, bist, ist, sind, seid.",
+    "item.q-sein-mcq.prompt": "Which form of sein goes with \"du\"?",
+    "item.q-sein-mcq.expl": "With \"du\" you say \"du bist\".",
+    "item.q-sein-mcq.opt.b.why": "\"ist\" goes with er / sie / es.",
+    "item.q-sein-mcq.opt.c.why": "\"seid\" goes with \"ihr\".",
+    "item.c-gehen.prompt": "Conjugate the verb gehen in the present tense.",
+    "item.c-gehen.expl": "Gehen is regular: add -e, -st, -t, -en, -t to the stem geh-.",
+    "item.c-gehen-imp.prompt": "Write the imperative of gehen.",
+    "item.c-gehen-imp.expl": "The Sie imperative includes the pronoun: gehen Sie.",
+    "item.q-gehen-typed.prompt": "Wir ___ nach Hause. (gehen)",
+    "item.q-gehen-typed.expl": "With \"wir\" the verb has the infinitive form: wir gehen.",
+    "course.title": "German A1: verbs",
+    "unit.sein.title": "Sein",
+    "unit.sein.summary": "The verb sein.",
+    "unit.gehen.title": "Gehen",
+    "unit.gehen.summary": "The verb gehen.",
+    "obj.sein": "Conjugate sein in the present tense.",
+    "obj.gehen": "Conjugate gehen in the present and imperative."
+  }
+}

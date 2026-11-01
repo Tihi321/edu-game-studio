@@ -32,7 +32,15 @@ export const SEED_HISTORY: Record<string, string[]> = {
   // EGS-29: language-a1 only (no A2 / B1, no verb units); the curriculum and scope prompts before the verb-unit note.
   'config/formats.md': ['3633c790d5a018cfe77907fa3bdab9424c3a6e02'],
   'prompts/curriculum-designer/curriculum.md': ['efabbebdfa66580082fa27a7a35871803f3592b7'],
-  'prompts/language-coach/scope.md': ['dbb3818a2d982a14d7393b146160e9e291f9b0ec']
+  // EGS-30: the writer prompts before the {{language_rules}} block, and the language coach agent.
+  'prompts/language-coach/scope.md': ['dbb3818a2d982a14d7393b146160e9e291f9b0ec', '0a0652273ba7ebc68df3b4967880ac90533dd068'],
+  'prompts/item-writer/items.md': ['abb0d76e2427f4d4efa2c197bd984aebfa3dfbe6'],
+  'prompts/item-writer/items_revise.md': ['be4a25db18916d47ae5a1176b10abbe0939af450'],
+  'prompts/language-coach/accepted.md': ['b3b07d18991a0d74005d716b1f7bf79a26d8521c'],
+  'prompts/misconception-designer/distractors.md': ['60c7d76084a44ca6ef73c0756c93daf4a8939b42'],
+  'prompts/explainer/explain.md': ['97b72f05ed74ab8c4805036e5fa0068e34d9a601'],
+  'prompts/fact-checker/fact_check.md': ['d40f651bc39e2defbf8fc423d7ea2b008635ec73'],
+  'agents/language-coach-ines-markovic.md': ['9c2f75b0bb382873742e7ba9366a563682c3388f']
 }
 
 export interface SeedState {

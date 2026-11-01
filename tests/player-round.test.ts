@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { checkItem, makeTextResolver, newCard, rngFor, schedule, solveItem, type CheckContext } from '../src/shared/edu'
 import type { CourseItem } from '../src/shared/course'
-import { MAX_RETRIES, gradeOf, itemsOfUnit, missedIds, pickNext, quizConfig, recordResult, roundAccuracy, startRound, timerApplies, unitOfItemId, type RoundState } from '../src/player/round'
+import { MAX_RETRIES, gradeOf, itemsOfUnit, missedIds, pickNext, quizConfig, recordResult, roundAccuracy, startRound, timerApplies, unitOfItemId, verbDueCount, verbItems, verbPool, type RoundState } from '../src/player/round'
 import { loadFixture } from './edu-fixtures'
 
 type Fixture = Awaited<ReturnType<typeof loadFixture>>
@@ -155,5 +155,50 @@ describe('grades and the timer', () => {
       const off = typing || ['flashcard', 'crossword', 'word-search'].includes(item.kind)
       expect(timerApplies(item), item.id).toBe(!off)
     }
+  })
+})
+
+describe('verb drill (EGS-31)', () => {
+  const DAY = 86_400_000
+  const NOW = 100 * DAY
+  const seen = (id: string, due: number, ease = 2.5) => ({ ...newCard(id, 0), last: 1, due, ease })
+
+  it('has conjugation items only of the verb units, and none without verb units', async () => {
+    const f = await loadFixture('de-verbs-a1')
+    expect(verbItems(f.pack).map((i) => i.id)).toEqual(['c-sein', 'c-gehen', 'c-gehen-imp'])
+    expect(verbItems({ ...f.pack, extensions: {} })).toEqual([])
+    expect(verbItems({ ...f.pack, extensions: { language: { verbUnits: ['u-gehen'] } } }).map((i) => i.id)).toEqual(['c-gehen', 'c-gehen-imp'])
+    const solar = await loadFixture('solar-system')
+    expect(verbItems(solar.pack)).toEqual([])
+  })
+
+  it('picks due cards before new ones, then the weakest', async () => {
+    const f = await loadFixture('de-verbs-a1')
+    const cards = { 'c-gehen': seen('c-gehen', NOW - DAY), 'c-gehen-imp': seen('c-gehen-imp', NOW + 5 * DAY, 1.5), 'c-sein': seen('c-sein', NOW + 9 * DAY, 2.0) }
+    expect(verbDueCount(f.pack, cards, NOW)).toBe(1)
+    expect(verbPool(f.pack, cards, NOW, 7)).toEqual(['c-gehen', 'c-gehen-imp', 'c-sein']) // due, then weakest first
+    expect(verbPool(f.pack, { 'c-gehen-imp': seen('c-gehen-imp', NOW + DAY) }, NOW, 7)).toEqual(['c-sein', 'c-gehen', 'c-gehen-imp']) // new before seen
+    expect(verbPool(f.pack, {}, NOW, 2)).toEqual(['c-sein', 'c-gehen']) // capped
+    const rs = startRound(f.pack, 'verbs', { cards, now: NOW })
+    expect(rs.kind).toBe('verbs')
+    expect(rs.size).toBe(3)
+    const { order } = play(f, rs, () => true, 1, cards)
+    expect(order).toEqual(['c-gehen', 'c-gehen-imp', 'c-sein'])
+  })
+
+  it('brings a missed form back and is deterministic', async () => {
+    const f = await loadFixture('de-verbs-a1')
+    const run = () => play(f, startRound(f.pack, 'verbs', { now: NOW }), (item, n) => n !== 0, 7)
+    const a = run()
+    expect(a.order[0]).toBe('c-sein')
+    expect(a.order.filter((id) => id === 'c-sein').length).toBeGreaterThan(1)
+    expect(missedIds(a.rs)).toEqual(['c-sein'])
+    expect(run().order).toEqual(a.order)
+  })
+
+  it('is empty (no button) for a course without verb units', async () => {
+    const f = await loadFixture('de-verbs-a1')
+    const rs = startRound({ ...f.pack, extensions: {} }, 'verbs', { now: NOW })
+    expect(rs.size).toBe(0)
   })
 })

@@ -25,7 +25,7 @@ What works now:
 
 - The engine: model router (LM Studio, Strata, DeepSeek, Anthropic, Gemini, OpenRouter, any OpenAI-compatible server you add, and `client`, where Claude does the model work through MCP at no cost), job queue, scheduler, agents, budget caps, seed refresh.
 - The MCP server on port 7463 (`edu_*` tools, see `docs/mcp-guide.md`), with course create and edit, items, text, validate, build and lint.
-- The course contract (`src/shared/course.ts`): 13 item kinds with checkers, tolerant answer matching, SM-2 spaced repetition and adaptive difficulty.
+- The course contract (`src/shared/course.ts`): 14 item kinds with checkers, tolerant answer matching, SM-2 spaced repetition and adaptive difficulty.
 - The player (`src/player/`, `docs/player.md`): our own DOM/CSS runtime (Canvas 2D for the RPG map) with the chalkboard quiz arena and the encyclopedia explorer, MindMaze castle, RPG quest, language role-play and detective / escape room (`src/player/shells/`), all built on the shell kit (`src/player/kit/`: the same questions, feedback, spaced repetition, mastery and progress in every shell); a built game works over `file://`.
 - Game shell sections (`src/shared/shells/`): what a course authors for a shell (`shells.config.<shell>`), checked by the validator and by `edu_lint` (every room reachable, every door's question there, quests that can be finished, dialogues that end, puzzles proved unique); without a section most shells build an automatic layout from the units.
 - `edu_lint` and the autoplay bot (`scripts/play.mjs`).

@@ -1,4 +1,4 @@
-import type { ClozeItem, CourseItem, CrosswordItem, HotspotItem, ListeningItem, MatchPairsItem, McqItem, MultiSelectItem, OrderItem, SortGroupsItem, TrueFalseItem } from '../shared/course'
+import type { ClozeItem, ConjugationItem, CourseItem, CrosswordItem, HotspotItem, ListeningItem, MatchPairsItem, McqItem, MultiSelectItem, OrderItem, SortGroupsItem, TrueFalseItem } from '../shared/course'
 import { makeCheckContext, makeTextResolver, solveItem, type CheckContext } from '../shared/edu'
 import type { GameData } from '../shared/game-data'
 import type { EduDebugApi, PlayerState } from './types'
@@ -35,6 +35,8 @@ export function wrongAnswerFor(item: CourseItem): unknown {
     }
     case 'cloze':
       return Object.fromEntries((item as unknown as ClozeItem).gaps.map((g) => [g.id, 'qqq']))
+    case 'conjugation':
+      return Object.fromEntries((item as unknown as ConjugationItem).forms.filter((f) => !f.given).map((f) => [f.person, 'qqq']))
     case 'typed':
       return 'qqqqq'
     case 'match-pairs': {
@@ -74,6 +76,11 @@ export function createDebug(getState: () => PlayerState): EduDebugApi {
   return {
     solve(itemId) {
       const f = lookup(itemId)
+      if (f?.item.kind === 'conjugation') {
+        // every open form: the page shows only the asked ones (`ask`) and the bot fills the inputs it finds
+        const i = f.item as unknown as ConjugationItem
+        return Object.fromEntries(i.forms.filter((x) => !x.given).map((x) => [x.person, f.ctx.text.canonical(x.answer) ?? '']))
+      }
       return f ? solveItem(f.item, f.ctx) : undefined
     },
     wrong(itemId) {

@@ -65,6 +65,7 @@ A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral te
 | `flashcard` | `back` (key), `backAsset?` (self-graded) |
 | `crossword` | `words: [{id, answer: <accepted key>, clue}]` (3-20), `seed`, `maxSize` (the grid is generated per language) |
 | `word-search` | `words: [{id, answer: <accepted key>}]`, `seed`, `size?`, `directions: forward|diagonal|all` |
+| `conjugation` | `verb` (key of the infinitive), `tense` (id: `praesens`, `perfekt`, `praeteritum`, `futur1`, `imperativ`, `konjunktiv2`), `forms: [{person, label: <key>, answer: <accepted key, the form WITHOUT the pronoun>, given?}]` (2-7), `ask?` (how many open forms one presentation asks), `strictDiacritics?`. Each form is typed on its own, typos are never accepted, `score` = right / asked. Persons for German: ich, du, er (er / sie / es), wir, ihr, sie (plural), Sie. Compound and separable forms include every word to type ("bin gegangen", "stehe auf"); imperativ has du, ihr, Sie only. B2 tense ids (German, checked against the verb table): `passiv-praesens`, `passiv-praeteritum`, `perfekt-passiv`, `konjunktiv2-vergangenheit`, `konjunktiv1`, `konjunktiv1-vergangenheit`. B2 grammar items carry `extensions.grammar`: cloze `{kind:'relative', gender: m|f|n|pl, case: nom|acc|dat|gen, prep?, gap?}` or `{kind:'connector', class: verb-final|inversion|coordinating, gap?}`, sort-groups `{kind:'connector-sort', groups:{<groupId>: <class>}}`, typed `{kind:'transform'}` (two or more accepted variants); lint `GRAMMAR_FORM_MISMATCH` (error), `GRAMMAR_CONNECTOR_CLASS` (error), `GRAMMAR_TRANSFORM_ONE_ANSWER` (warning). The live quiz skips it. |
 
 **Writing items well** (the lint checks the checkable ones): ask each objective in two or more different forms; every wrong choice of an mcq, multi-select or listening-choose item has a `why` (the misconception it stands for); one fact per item; a typed answer lists its synonyms; keep the explanation short and add a `didYouKnow` hook.
 
@@ -98,6 +99,10 @@ A course lives in `courses/<slug>/course/`: `pack.json` (the language-neutral te
 | `ARTICLE_NO_CITATION` | error | in a pipeline pack: an article cites no fact, or one that is not in the fact base |
 | `PLACEHOLDER` | error | a text says TODO, TBD, FIXME (upper case, or lower case with a colon), lorem ipsum, XXX, `[[`, "placeholder", or has a `{{` that is not a gap marker of its own cloze item |
 | `PLACEHOLDER_ASSET` | warning | an asset (or an item's text that uses it) says it is a placeholder, such as a test tone standing in for speech: replace it before publishing |
+| `CONJ_PERSON_DUPLICATE` | error | a conjugation item lists a person twice |
+| `CONJ_ASK_TOO_MANY` | error | `ask` is larger than the number of forms that are asked (not given) |
+| `CONJ_IMPERATIVE_PERSON` | error | German imperativ with a person other than du, ihr, Sie |
+| `CONJ_FORM_DUPLICATE_AMBIGUOUS` | warning | two asked persons have the same canonical form (wir / sie / Sie in the present): the learner cannot tell them apart |
 | `GAME_DATA_INVALID` | error | `game-data.json` is missing or is not a game |
 
 ## Make a course from a brief
@@ -293,7 +298,7 @@ Each role of the team answers with one JSON object, checked by a zod schema (`sr
 | curriculum-designer | `curriculum` | `{units: [{id, title, summary, requires}], objectives: [{id, unit, bloom, text, facts: [fact ids]}]}`: ids unique, `requires` acyclic, every unit has an objective, every objective rests on existing facts |
 | language-coach | `scope`, `accepted` | the vocabulary and grammar per unit (a language course); the other accepted answers of typed gaps (`ref` = item id, or `<item id>.<gap id>`) |
 | subject-expert | `articles`, `articles_revise` | `{articles: [{id, unit, title, body, related}]}`: the body cites facts as `[f3]`; every article cites at least one existing fact |
-| item-writer | `items`, `items_revise` | `{items: [...]}` of the kinds mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, flashcard; each names its objective and the facts it rests on; every objective in at least two kinds |
+| item-writer | `items`, `items_revise` | `{items: [...]}` of the kinds mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, flashcard, conjugation (language courses; `{kind: "conjugation", verb, tense, forms: [{person, accepted: [form]}], given?: [persons], ask?}`); each names its objective and the facts it rests on; every objective in at least two kinds |
 | misconception-designer | `distractors` | the full option list of each mcq and multi-select item (right options unchanged, a `why` for every wrong one) and the `why` of each true-false |
 | explainer | `explain`, `polish` | `explanation`, `hint` and a `didYouKnow` with its `didYouKnowFact`; `polish` returns `{strings: {key: text}}` for flagged keys only |
 | fact-checker, accessibility-reviewer, child-safety-reviewer | `fact_check`, `review` | the review JSON `{verdict, scores, notes, problems: [{ref, issue, fix?, severity?}]}`; scores `accuracy`; `accessibility` and `readability`; `age_fit` |
@@ -356,6 +361,8 @@ The roles of the studio (the director now, the content team from EGS-06) ask a m
 ## Languages
 
 `edu_languages` lists the 37 built-in course languages (code, English name, native name, right-to-left, script) and the ones added in `config/languages.md`. Player menu strings exist for Croatian so far; other languages keep the English menus until the player extends the table.
+
+**Language rules in the prompts (EGS-30).** When a course teaches a language that has rules (German today, `src/shared/lang`), the writer roles get them as the prompt variable `{{language_rules}}` (empty for other languages): item-writer (`items`, `items_revise`, plus the authored shape of the `conjugation` kind), language-coach (`scope`, `accepted`), misconception-designer, explainer and fact-checker. The German text is `src/shared/lang/de/rules.ts` (in code, so it is bundled with the engine and needs no seed refresh); the changed prompts reach an existing data folder through the seed refresh. The text is model-written German and has not been reviewed by a native speaker.
 
 ## Notes
 

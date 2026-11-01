@@ -77,9 +77,9 @@ describe('the seeded quality, formats and search providers', () => {
     expect(Object.keys(q.weights).sort()).toEqual(['accessibility', 'accuracy', 'age_fit', 'difficulty', 'flow', 'readability'])
   })
 
-  it('formats.md: quick (2 units), standard (4), deep (6) and language-a1, -a2, -b1, with the item kinds the pipeline can author', () => {
+  it('formats.md: quick (2 units), standard (4), deep (6) and language-a1, -a2, -b1, -b2, with the item kinds the pipeline can author', () => {
     const f = parseMdWith(seed('config', 'formats.md'), formatsSchema).data.formats
-    expect(f.map((x) => [x.id, x.units])).toEqual([['quick', 2], ['standard', 4], ['deep', 6], ['language-a1', 4], ['language-a2', 5], ['language-b1', 6]])
+    expect(f.map((x) => [x.id, x.units])).toEqual([['quick', 2], ['standard', 4], ['deep', 6], ['language-a1', 4], ['language-a2', 5], ['language-b1', 6], ['language-b2', 6]])
     for (const x of f) {
       // `conjugation` is listed by the language formats before it is an authored kind (EGS-27); resolveBrief leaves it out until then
       expect(x.item_kinds.every((k) => k === 'conjugation' || (AUTHORED_ITEM_KINDS as readonly string[]).includes(k)), x.id).toBe(true)
@@ -91,7 +91,9 @@ describe('the seeded quality, formats and search providers', () => {
     expect(f.find((x) => x.id === 'language-a1')).toMatchObject({ language: true, cefr: 'A1', verb_units: 1, verbs_per_unit: 6 })
     expect(f.find((x) => x.id === 'language-a2')).toMatchObject({ language: true, cefr: 'A2', verb_units: 2, items_per_objective: 4 })
     expect(f.find((x) => x.id === 'language-b1')).toMatchObject({ language: true, cefr: 'B1', verb_units: 2, articles_per_unit: 2 })
-    expect(f.find((x) => x.id === 'quick')).toMatchObject({ verb_units: 0 })
+    expect(f.find((x) => x.id === 'language-b1')).toMatchObject({ reading: true, reading_words: [200, 400], glossary_per_text: [6, 12] })
+    expect(f.find((x) => x.id === 'language-b2')).toMatchObject({ language: true, cefr: 'B2', units: 6, objectives_per_unit: 3, items_per_objective: 5, articles_per_unit: 2, research_questions_per_unit: 2, verb_units: 1, reading: true, reading_words: [350, 700], glossary_per_text: [10, 20] })
+    expect(f.find((x) => x.id === 'quick')).toMatchObject({ verb_units: 0, reading: false })
     expect(formatsSchema.safeParse({ kind: 'formats', formats: [{ id: 'Bad Id', label: 'x', units: 1 }] }).success).toBe(false)
     expect(formatsSchema.safeParse({ kind: 'formats', formats: [{ id: 'ok', label: 'x', units: 0 }] }).success).toBe(false)
   })
@@ -118,7 +120,7 @@ describe('the seeded prompts', () => {
     'researcher/write_notes': ['question', 'context', 'pages'],
     'researcher/search_queries': ['question', 'tried'],
     'researcher/from_knowledge': ['question', 'context'],
-    'fact-checker/fact_check': ['title', 'round', 'factbase', 'sources', 'coverage', 'content', 'scores_example']
+    'fact-checker/fact_check': ['title', 'round', 'factbase', 'sources', 'language_rules', 'coverage', 'content', 'scores_example']
   }
 
   it('every variable a handler passes is used by its template, and every {{var}} of a template is passed', () => {
@@ -165,7 +167,7 @@ describe('quality and formats in the engine', () => {
     try {
       const e = env.engine
       expect(e.getQuality()).toMatchObject({ threshold: 7, max_rounds: 2, must_pass: ['fact-checker', 'accessibility-reviewer', 'child-safety-reviewer'] })
-      expect(e.getFormats().map((f) => f.id)).toEqual(['quick', 'standard', 'deep', 'language-a1', 'language-a2', 'language-b1'])
+      expect(e.getFormats().map((f) => f.id)).toEqual(['quick', 'standard', 'deep', 'language-a1', 'language-a2', 'language-b1', 'language-b2'])
       expect(e.edu.deps.getQuality()).toBe(e.getQuality())
       expect(e.edu.deps.getFormats()).toEqual(e.getFormats())
       const file = path.join(env.dir, 'config', 'quality.md')

@@ -152,7 +152,7 @@ export const qualitySchema = configBase('quality').extend({
 })
 
 /** The item forms the item-writer may write (the pack's kinds that the pipeline authors; hotspot, listening and the puzzles come later). */
-export const AUTHORED_ITEM_KINDS = ['mcq', 'true-false', 'multi-select', 'cloze', 'typed', 'match-pairs', 'order', 'sort-groups', 'flashcard'] as const
+export const AUTHORED_ITEM_KINDS = ['mcq', 'true-false', 'multi-select', 'cloze', 'typed', 'match-pairs', 'order', 'sort-groups', 'flashcard', 'conjugation'] as const
 
 /** A course format: how big a course is. The brief names one (`format`); its numbers size the pipeline's jobs. */
 export const formatEntrySchema = z.looseObject({
@@ -170,7 +170,7 @@ export const formatEntrySchema = z.looseObject({
   /** Questions the researcher is asked for each unit. */
   research_questions_per_unit: z.number().int().min(0).max(8).default(2),
   /** The item kinds the item-writer may use. */
-  item_kinds: z.array(z.string()).min(1).default([...AUTHORED_ITEM_KINDS]),
+  item_kinds: z.array(z.string()).min(1).default(AUTHORED_ITEM_KINDS.filter((k) => k !== 'conjugation')),
   /** A language course: vocabulary and grammar scope by the language-coach, typed answers with accepted lists. */
   language: z.boolean().default(false),
   /** The CEFR level a language format teaches. */
@@ -178,7 +178,13 @@ export const formatEntrySchema = z.looseObject({
   /** A language course: how many units are verb units (every objective about one verb group; EGS-29). 0 for none. */
   verb_units: z.number().int().min(0).max(12).default(0),
   /** A language course: verbs the language-coach picks for each verb unit. */
-  verbs_per_unit: z.number().int().min(1).max(20).default(6)
+  verbs_per_unit: z.number().int().min(1).max(20).default(6),
+  /** A language course: the articles are graded readings in the taught language, with a glossary per text (EGS-36); the reader view is the first screen of the encyclopedia. */
+  reading: z.boolean().default(false),
+  /** Words per reading, [min, max] (the writer's target; the lint warns outside 300 to 800). */
+  reading_words: z.tuple([z.number().int().min(50).max(3000), z.number().int().min(50).max(3000)]).default([350, 700]),
+  /** Glossary entries per reading, [min, max]. */
+  glossary_per_text: z.tuple([z.number().int().min(1).max(60), z.number().int().min(1).max(60)]).default([10, 20])
 })
 
 export const formatsSchema = configBase('formats').extend({

@@ -1,17 +1,16 @@
 import type { CoursePack } from '../../shared/course'
 import type { TextResolver } from '../../shared/edu'
-import { conjugate, findVerb, levelRank, tenseForCefr, type DeTense } from '../../shared/lang/de/verbs'
+import { DE_TENSES, conjugate, findVerb, levelRank, tenseForCefr, type DeTense } from '../../shared/lang/de/verbs'
 
 /**
- * Lint of `conjugation` items against the German verb table (EGS-28).
+ * Lint of `conjugation` items (EGS-27 structure, EGS-28 verb table).
  *
- * The `conjugation` item kind is added by EGS-27. This module reads an item STRUCTURALLY (kind === 'conjugation', `verb`, `tense`,
- * `forms[].person` / `.answer` as in the EGS-27 schema) so it compiles and runs without the kind being registered. It only does
- * anything when `pack.targetLang === 'de'`.
+ * The structural checks (duplicate person, `ask` too large, ambiguous forms, imperative persons) work on the raw pack item; the checks against
+ * the German verb table only run when `pack.targetLang === 'de'`.
  */
 
-export const CONJ_LINT_CODES = ['CONJ_FORM_MISMATCH', 'CONJ_VERB_UNKNOWN', 'CONJ_TENSE_LEVEL'] as const
-export const CONJ_WARNING_CODES: ReadonlySet<string> = new Set(['CONJ_VERB_UNKNOWN', 'CONJ_TENSE_LEVEL'])
+export const CONJ_LINT_CODES = ['CONJ_PERSON_DUPLICATE', 'CONJ_ASK_TOO_MANY', 'CONJ_IMPERATIVE_PERSON', 'CONJ_FORM_DUPLICATE_AMBIGUOUS', 'CONJ_FORM_MISMATCH', 'CONJ_VERB_UNKNOWN', 'CONJ_TENSE_LEVEL'] as const
+export const CONJ_WARNING_CODES: ReadonlySet<string> = new Set(['CONJ_FORM_DUPLICATE_AMBIGUOUS', 'CONJ_VERB_UNKNOWN', 'CONJ_TENSE_LEVEL'])
 
 export interface ConjProblem {
   code: (typeof CONJ_LINT_CODES)[number]
@@ -21,13 +20,56 @@ export interface ConjProblem {
   lang?: string
 }
 
-const TENSES = new Set<string>(['praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2'])
+const TENSES: ReadonlySet<string> = new Set<string>(DE_TENSES)
 const clean = (s: string): string => s.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase()
+
+const DE_IMPERATIVE_PERSONS = new Set(['du', 'ihr', 'Sie'])
+
+interface RawForm {
+  person?: unknown
+  answer?: unknown
+  given?: unknown
+}
+
+/** The checks that need no verb table: persons, `ask`, forms that cannot be told apart. */
+function structure(pack: Pick<CoursePack, 'targetLang'>, item: Record<string, unknown>, at: string, res: TextResolver): ConjProblem[] {
+  const out: ConjProblem[] = []
+  const forms = (Array.isArray(item.forms) ? item.forms : []).filter((f): f is RawForm => typeof f === 'object' && f !== null)
+  const seen = new Set<string>()
+  forms.forEach((f, i) => {
+    if (typeof f.person !== 'string') return
+    if (seen.has(f.person)) out.push({ code: 'CONJ_PERSON_DUPLICATE', path: `${at}.forms[${i}].person`, severity: 'error', message: `the person "${f.person}" appears twice in the forms` })
+    seen.add(f.person)
+  })
+  const asked = forms.filter((f) => f.given !== true)
+  if (typeof item.ask === 'number' && item.ask > asked.length) {
+    out.push({ code: 'CONJ_ASK_TOO_MANY', path: `${at}.ask`, severity: 'error', message: `ask is ${item.ask} but only ${asked.length} form(s) are asked (the others are given)` })
+  }
+  if (pack.targetLang === 'de' && item.tense === 'imperativ') {
+    forms.forEach((f, i) => {
+      if (typeof f.person === 'string' && !DE_IMPERATIVE_PERSONS.has(f.person)) out.push({ code: 'CONJ_IMPERATIVE_PERSON', path: `${at}.forms[${i}].person`, severity: 'error', message: `the imperative has no form for "${f.person}" (only du, ihr, Sie)` })
+    })
+  }
+  const byForm = new Map<string, string[]>()
+  for (const f of asked) {
+    if (typeof f.person !== 'string' || typeof f.answer !== 'string') continue
+    const canonical = res.accepted(f.answer)[0]
+    if (canonical === undefined || canonical.trim() === '') continue
+    const key = clean(canonical)
+    byForm.set(key, [...(byForm.get(key) ?? []), f.person])
+  }
+  for (const [form, persons] of byForm) {
+    if (persons.length > 1) out.push({ code: 'CONJ_FORM_DUPLICATE_AMBIGUOUS', path: `${at}.forms`, severity: 'warning', message: `"${form}" is the form of ${persons.join(' and ')}, all asked: the learner cannot tell which person is meant (give one of them)` })
+  }
+  return out
+}
 
 /** The problems of one conjugation item (raw pack item) in one edition. */
 export function lintConjugationItem(pack: Pick<CoursePack, 'targetLang' | 'cefr'>, item: Record<string, unknown>, at: string, res: TextResolver): ConjProblem[] {
-  if (pack.targetLang !== 'de' || item.kind !== 'conjugation') return []
+  if (item.kind !== 'conjugation') return []
   const out: ConjProblem[] = []
+  out.push(...structure(pack, item, at, res))
+  if (pack.targetLang !== 'de') return out
   const verbKey = typeof item.verb === 'string' ? item.verb : ''
   const infinitive = (res.text(verbKey) ?? '').trim()
   const tense = typeof item.tense === 'string' ? item.tense : ''

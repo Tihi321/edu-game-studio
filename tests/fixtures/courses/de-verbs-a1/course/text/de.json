@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "lang": "de",
+  "strings": {
+    "item.c-sein.verb": "sein",
+    "item.c-sein.form.ich.label": "ich",
+    "item.c-sein.form.du.label": "du",
+    "item.c-sein.form.er.label": "er / sie / es",
+    "item.c-sein.form.wir.label": "wir",
+    "item.c-sein.form.ihr.label": "ihr",
+    "item.q-sein-mcq.opt.a": "bist",
+    "item.q-sein-mcq.opt.b": "ist",
+    "item.q-sein-mcq.opt.c": "seid",
+    "item.c-gehen.verb": "gehen",
+    "item.c-gehen.form.ich.label": "ich",
+    "item.c-gehen.form.du.label": "du",
+    "item.c-gehen.form.er.label": "er / sie / es",
+    "item.c-gehen.form.wir.label": "wir",
+    "item.c-gehen.form.ihr.label": "ihr",
+    "item.c-gehen-imp.verb": "gehen",
+    "item.c-gehen-imp.form.du.label": "du",
+    "item.c-gehen-imp.form.ihr.label": "ihr",
+    "item.c-gehen-imp.form.Sie.label": "Sie",
+    "item.q-gehen-typed.answer": "gehen"
+  },
+  "accepted": {
+    "item.c-sein.form.ich": [
+      "bin"
+    ],
+    "item.c-sein.form.du": [
+      "bist"
+    ],
+    "item.c-sein.form.er": [
+      "ist"
+    ],
+    "item.c-sein.form.wir": [
+      "sind"
+    ],
+    "item.c-sein.form.ihr": [
+      "seid"
+    ],
+    "item.c-gehen.form.ich": [
+      "gehe"
+    ],
+    "item.c-gehen.form.du": [
+      "gehst"
+    ],
+    "item.c-gehen.form.er": [
+      "geht"
+    ],
+    "item.c-gehen.form.wir": [
+      "gehen"
+    ],
+    "item.c-gehen.form.ihr": [
+      "geht"
+    ],
+    "item.c-gehen-imp.form.du": [
+      "geh",
+      "gehe"
+    ],
+    "item.c-gehen-imp.form.ihr": [
+      "geht"
+    ],
+    "item.c-gehen-imp.form.Sie": [
+      "gehen Sie"
+    ],
+    "item.q-gehen-typed.answer": [
+      "gehen"
+    ]
+  }
+}

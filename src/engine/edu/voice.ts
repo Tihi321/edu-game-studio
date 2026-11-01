@@ -415,6 +415,9 @@ export function buildVoicePlan(lines: VoiceLine, src: VoiceSource, o: { media: P
   }
 }
 
+/** Tags of an item that a listening item derived from it does not inherit (the reading conventions of EGS-36 and the harvested vocabulary card). */
+const NOT_INHERITED_TAGS: ReadonlySet<string> = new Set(['reading', 'tfng', 'self-check', 'gloss'])
+
 /**
  * The listening item for a taught phrase: same objective and facts as its source item (which passed the fact-check), with the source's accepted answers
  * (`type`) or options (`choose`), so the learner meets the same phrase by ear. Its text keys are the source's where they exist, new ones where they do not.
@@ -432,7 +435,8 @@ export function deriveListening(source: Json, c: ListenCandidate, src: Pick<Voic
     explanation: source.explanation,
     ...(source.hint ? { hint: source.hint } : {}),
     difficulty: Math.min(5, (typeof source.difficulty === 'number' ? source.difficulty : 3) + 1),
-    tags: [...new Set([...(Array.isArray(source.tags) ? (source.tags as string[]) : []), 'listening'])],
+    // the tags of the source, but not the ones that promise a passage, an option layout or a model answer the derived item does not have (EGS-36)
+    tags: [...new Set([...(Array.isArray(source.tags) ? (source.tags as string[]).filter((t) => !NOT_INHERITED_TAGS.has(t)) : []), 'listening'])],
     mode: c.mode,
     shuffle: true,
     extensions: { facts, [DERIVED_MARK]: { derivedFrom: String(source.id) } }

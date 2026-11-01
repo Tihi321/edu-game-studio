@@ -8,8 +8,14 @@
 import { REFLEXIVE_PRONOUNS, isDePerson, type DePerson } from './pronouns'
 
 export type DeLevel = 'A1' | 'A2' | 'B1'
-export type DeTense = 'praesens' | 'perfekt' | 'praeteritum' | 'futur1' | 'imperativ' | 'konjunktiv2'
-export const DE_TENSES: readonly DeTense[] = ['praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2']
+export type DeTense =
+  | 'praesens' | 'perfekt' | 'praeteritum' | 'futur1' | 'imperativ' | 'konjunktiv2'
+  // B2 (EGS-37)
+  | 'passiv-praesens' | 'passiv-praeteritum' | 'perfekt-passiv' | 'konjunktiv2-vergangenheit' | 'konjunktiv1' | 'konjunktiv1-vergangenheit'
+export const DE_TENSES: readonly DeTense[] = [
+  'praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2',
+  'passiv-praesens', 'passiv-praeteritum', 'perfekt-passiv', 'konjunktiv2-vergangenheit', 'konjunktiv1', 'konjunktiv1-vergangenheit'
+]
 
 type Slot = 'ich' | 'du' | 'er' | 'wir' | 'ihr' | 'sie'
 
@@ -252,6 +258,17 @@ const WERDEN: Record<Slot, string> = { ich: 'werde', du: 'wirst', er: 'wird', wi
 const HABEN: Record<Slot, string> = { ich: 'habe', du: 'hast', er: 'hat', wir: 'haben', ihr: 'habt', sie: 'haben' }
 const SEIN: Record<Slot, string> = { ich: 'bin', du: 'bist', er: 'ist', wir: 'sind', ihr: 'seid', sie: 'sind' }
 const WUERDE: Record<Slot, string> = { ich: 'würde', du: 'würdest', er: 'würde', wir: 'würden', ihr: 'würdet', sie: 'würden' }
+const WURDE: Record<Slot, string> = { ich: 'wurde', du: 'wurdest', er: 'wurde', wir: 'wurden', ihr: 'wurdet', sie: 'wurden' }
+const HAETTE: Record<Slot, string> = { ich: 'hätte', du: 'hättest', er: 'hätte', wir: 'hätten', ihr: 'hättet', sie: 'hätten' }
+const WAERE: Record<Slot, string[]> = { ich: ['wäre'], du: ['wärst', 'wärest'], er: ['wäre'], wir: ['wären'], ihr: ['wärt', 'wäret'], sie: ['wären'] }
+/** Konjunktiv I of sein is irregular (no -e in the er form): sei, seiest, sei, seien, seiet, seien. */
+const SEI: Record<Slot, string[]> = { ich: ['sei'], du: ['seist', 'seiest'], er: ['sei'], wir: ['seien'], ihr: ['seiet'], sie: ['seien'] }
+const K1_END: Record<Slot, string> = { ich: 'e', du: 'est', er: 'e', wir: 'en', ihr: 'et', sie: 'en' }
+/** Verbs without a personal Passiv besides the ones with aux sein, modals and reflexives (stative or intransitive). */
+const NO_PASSIV = new Set(['haben', 'wissen', 'kennen', 'gefallen', 'gehören', 'wohnen', 'leben', 'liegen', 'sitzen', 'stehen', 'schlafen', 'heißen', 'kosten', 'regnen', 'scheinen', 'lachen', 'weinen', 'lächeln', 'träumen', 'bekommen'])
+/** Whether the verb has a Passiv in the table (transitive, not reflexive, not a modal, not stative). */
+export const hasPassiv = (v: DeVerb): boolean => v.aux !== 'sein' && !v.modal && !v.reflexive && !NO_PASSIV.has(v.inf)
+
 /** Verbs whose Konjunktiv II is only the special form ("würde sein" is not taught). */
 const K2_ALONE = new Set(['sein', 'haben', 'werden', 'wissen', 'können', 'müssen', 'dürfen', 'sollen', 'wollen', 'mögen'])
 
@@ -297,6 +314,17 @@ function k2Forms(v: DeVerb, slot: Slot): string[] {
   return [f]
 }
 
+/** Konjunktiv I of the base verb: infinitive stem + e / est / e / en / et / en (sei... for sein). Modals follow the same rule (könne, müsse). */
+function konjunktiv1(v: DeVerb, slot: Slot): string[] {
+  const base = baseOf(v.inf, v.sep)
+  if (base === 'sein') return SEI[slot]
+  if (slot === 'wir' || slot === 'sie') return [base]
+  const end = K1_END[slot]
+  // sammeln: er sammle, du sammlest, ihr sammlet (the e before l drops)
+  if (base.endsWith('eln')) return [`${base.slice(0, -3)}l${end}`]
+  return [`${stemOf(base)}${end}`]
+}
+
 function imperativeDu(v: DeVerb): string[] {
   if (v.modal) return []
   const base = baseOf(v.inf, v.sep)
@@ -338,6 +366,22 @@ export function conjugate(verb: DeVerb, tense: DeTense, person: string): string[
       if (!K2_ALONE.has(verb.inf)) out.push(join(WUERDE[slot], refl, verb.inf))
       return out
     }
+    case 'passiv-praesens':
+      return hasPassiv(verb) ? [join(WERDEN[slot], verb.partizip2)] : []
+    case 'passiv-praeteritum':
+      return hasPassiv(verb) ? [join(WURDE[slot], verb.partizip2)] : []
+    case 'perfekt-passiv':
+      return hasPassiv(verb) ? [join(SEIN[slot], verb.partizip2, 'worden')] : []
+    case 'konjunktiv2-vergangenheit': {
+      const aux = verb.aux === 'sein' ? WAERE[slot] : [HAETTE[slot]]
+      return aux.map((a) => join(a, refl, verb.partizip2))
+    }
+    case 'konjunktiv1':
+      return konjunktiv1(verb, slot).map((f) => join(f, refl, sep))
+    case 'konjunktiv1-vergangenheit': {
+      const aux = verb.aux === 'sein' ? SEI[slot] : konjunktiv1(findVerb('haben')!, slot)
+      return aux.map((a) => join(a, refl, verb.partizip2))
+    }
     case 'imperativ': {
       if (verb.modal) return []
       if (person === 'du') return imperativeDu(verb).map((f) => join(f, refl, sep))
@@ -356,7 +400,7 @@ const LEVEL_ORDER: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5,
 export const levelRank = (level: string): number => LEVEL_ORDER[level] ?? 0
 
 /** The CEFR level at which a learner meets this tense of this verb (Präteritum of non-modal strong verbs at B1, Konjunktiv II and Futur I at B1 except the common forms). */
-export function tenseForCefr(verb: DeVerb | undefined, tense: DeTense): 'A1' | 'A2' | 'B1' {
+export function tenseForCefr(verb: DeVerb | undefined, tense: DeTense): 'A1' | 'A2' | 'B1' | 'B2' {
   switch (tense) {
     case 'praesens':
     case 'imperativ':
@@ -367,6 +411,13 @@ export function tenseForCefr(verb: DeVerb | undefined, tense: DeTense): 'A1' | '
       return verb && (verb.modal || verb.inf === 'sein' || verb.inf === 'haben') ? 'A2' : 'B1'
     case 'futur1':
       return 'B1'
+    case 'passiv-praesens':
+    case 'passiv-praeteritum':
+    case 'perfekt-passiv':
+    case 'konjunktiv2-vergangenheit':
+    case 'konjunktiv1':
+    case 'konjunktiv1-vergangenheit':
+      return 'B2'
     case 'konjunktiv2':
       return verb?.inf === 'mögen' ? 'A1' : verb && (verb.modal || ['sein', 'haben', 'werden'].includes(verb.inf)) ? 'A2' : 'B1'
   }

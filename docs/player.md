@@ -12,7 +12,7 @@ An image or an audio element that fails to load is a `console.error` (`main.ts` 
 
 | File | What |
 |---|---|
-| `main.ts` | Entry: creates `window.EduEngine`, registers the 13 item renderers and the quiz-arena shell, starts the game when the page is ready |
+| `main.ts` | Entry: creates `window.EduEngine`, registers the 14 item renderers and the quiz-arena shell, starts the game when the page is ready |
 | `engine.ts` | `EduEngine`: registry of shells and item renderers, the published state |
 | `shells/quiz-arena.ts` | The chalkboard quiz arena (screens, HUD, feedback panel, timer, combo, keys) |
 | `round.ts` | Pure round logic: adaptive pick, in-session retry queue, due-card preference, interleaving, accuracy, grades, timer rule |
@@ -43,7 +43,7 @@ EduEngine.debug.wrong(itemId)           // an answer the checker rejects (a dist
 EduEngine.start()                       // mounts the shell named by GameData.shell (called by the bundle itself)
 ```
 
-`debug` is for the autoplay bot: it is read-only (it computes with the shared `solveItem` on the game data the page already holds, changes no state and draws nothing, so no answer appears in the UI). `solve` returns the answer shapes of the checkers (an option id, `true`/`false`, a list of ids, `{gapId: text}`, the typed text, `{leftId: rightId}`, an id order, `{itemId: groupId}`, a region id, a flashcard grade, `{wordId: text}` for a crossword, a list of `{start, end}` cell lines for a word search); `wrong` returns the same shape, wrong (an empty list for a word search = give up). An unknown item or kind gives `undefined`. A word bank in a cloze is answered by the bot through `bank-<gapId>-<wordKey>`.
+`debug` is for the autoplay bot: it is read-only (it computes with the shared `solveItem` on the game data the page already holds, changes no state and draws nothing, so no answer appears in the UI). `solve` returns the answer shapes of the checkers (an option id, `true`/`false`, a list of ids, `{gapId: text}`, the typed text, `{leftId: rightId}`, an id order, `{itemId: groupId}`, a region id, a flashcard grade, `{person: text}` for a conjugation (every open form; the page asks `ask` of them and the bot types the inputs it finds), `{wordId: text}` for a crossword, a list of `{start, end}` cell lines for a word search); `wrong` returns the same shape, wrong (an empty list for a word search = give up). An unknown item or kind gives `undefined`. A word bank in a cloze is answered by the bot through `bank-<gapId>-<wordKey>`.
 
 A later shell or item kind is one more `register...` call (before `start()`). `GameData.shell` picks the shell, falling back to `quiz-arena`. A question whose kind has no renderer is skipped with a `console.warn`, never a crash.
 
@@ -59,7 +59,7 @@ A later shell or item kind is one more `register...` call (before `start()`). `G
   seed: number
   unitId?: string              // the unit of the round (not for boss / review rounds)
   round?: number               // 1-based round number in this page session (a replay is a new round)
-  roundKind?: 'unit' | 'boss' | 'review'
+  roundKind?: 'unit' | 'boss' | 'review' | 'verbs'
   itemId?: string              // only on screens 'item' and 'feedback'
   itemKind?: string            //   "
   itemIndex?: number           //   0-based position of the question in the round; retries of misses count
@@ -84,7 +84,7 @@ Naming scheme: kebab-case, `<thing>` or `<thing>-<id>`, where `<id>` is the id f
 `course-title` (h1), `course-subject` (when it differs from the title), `lang-picker` and `lang-<code>` (one per edition, only when there are two or more; `aria-pressed` marks the current), `setting-timer` (checkbox, off by default), `setting-sound` (only when the pack has cues; off: nothing plays), `setting-reduce-audio` (next to it, same condition: no music, sound effects at 40 % of their volume; kept with the progress as `settings.reduceAudio`), **`start`** (labelled Continue when there is saved progress; opens the map), `export` (downloads `<slug>-progress.json`), `import` (opens the file chooser) and `import-file` (the `<input type="file">`: `setInputFiles` works on it), `reset` then `reset-confirm` / `reset-cancel` (inline, no browser dialog), `title-message` (result of import / export / reset, `role=status`), `storage-warning` (when localStorage is unusable).
 
 ### `map`
-`menu` (back to the title), `map-stars`, `map-title`, `unit-map`, `unit-<unitId>` (a button; `disabled` and `data-locked="true"` while a required unit has fewer than 2 stars; `data-stars` 0..3; `data-requires` lists the prerequisite ids), `boss` (disabled until every unit has 2 stars; `data-stars`), `review` (only when the review queue is not empty), `finish` (only after the boss was beaten once; shows the end screen).
+`menu` (back to the title), `map-stars`, `map-title`, `unit-map`, `unit-<unitId>` (a button; `disabled` and `data-locked="true"` while a required unit has fewer than 2 stars; `data-stars` 0..3; `data-requires` lists the prerequisite ids), `boss` (disabled until every unit has 2 stars; `data-stars`), `verb-drill` (EGS-31: only when `extensions.language.verbUnits` names units with `conjugation` items; label "Verb drill (n due)"; starts a `verbs` round: the due conjugation cards first, most overdue first, then items never asked, then the weakest by ease, at most the round length, in that fixed order; a miss comes back like in any round; it earns no stars and is not rated; every answer schedules the item's SM-2 card; which persons an `ask` item asks is the item renderer's seeded pick, with no bias to earlier misses because `progress` stores none), `review` (only when the review queue is not empty), `finish` (only after the boss was beaten once; shows the end screen).
 
 ### `item` and `feedback`
 HUD: `leave` (back to the map, the round is dropped), `hud-unit`, `hud-progress` (pips), `hud-score`, `hud-combo`, `hud-timer` (only visible when the timer runs on this question). Question: `question-number`, `retry-tag` (a missed question coming back), `prompt` (not for flashcards: the card shows it), `item-image`, `hint` (button) and `hint-text`, `item-body` (`data-kind` = the item kind), the item widgets below, `combo-burst` (appears at combos 3, 5, 7, 10, 15 ...).
@@ -99,6 +99,7 @@ Item widgets, by kind (the answer shapes are the ones of `src/shared/edu/checker
 | `true-false` | `option-true`, `option-false` | click, or 1 / 2 |
 | `multi-select` | `option-<optionId>` (`aria-pressed`), `submit` | toggle options, then `submit` |
 | `cloze` | `gap-<gapId>` (a text input, or the slot of a word bank), `bank-<gapId>-<wordKey>` (a bank word; the key is the catalog key, e.g. the gap's `answer`), `letter-<char>`, `submit` | fill every gap, `submit` |
+| `conjugation` | `conj-<person>` (a text input per asked person), `conj-<person>-result` (mark and, if wrong, `conj-answer-<person>`), `conj-given-<person>` (a read-only row), `conj-verb`, `conj-tense`, `letter-<char>`, `check` | type every asked form without the pronoun, Enter moves to the next input and checks on the last, or `check` |
 | `typed` | `answer-input`, `letter-<char>`, `submit` | type, Enter or `submit` |
 | `match-pairs` | `pair-left-<pairId>`, `pair-right-<pairId>` (the right text that belongs to that pair), `submit` | click a left then a right; `submit` when all are paired |
 | `order` | `order-list`, `order-row-<itemId>`, `order-up-<itemId>`, `order-down-<itemId>`, `submit` | move rows with the buttons (or drag), `submit` |
@@ -112,7 +113,7 @@ Item widgets, by kind (the answer shapes are the ones of `src/shared/edu/checker
 Typed text goes through the tolerant matcher: case, spacing and punctuation never matter; missing accents are accepted under policy `ignore` / `warn` (a note under `warn`) and are a near-miss under `strict`; one letter off in an answer of 4+ letters is accepted with a spelling note. Courses whose typed answers are Croatian get the buttons `letter-č` `letter-ć` `letter-š` `letter-ž` `letter-đ` (other languages: `SPECIAL_LETTERS` in `i18n.ts`).
 
 ### `summary`
-`summary-title`, `summary-stars` (`data-stars`; not for a review round), `summary-accuracy` (first-try accuracy of the fresh questions), `summary-score`, `summary-unlocked`, `summary-boss-open`, `summary-need-stars`, `summary-boss-fail`, `summary-misses` and `miss-<itemId>`, **`to-map`**, `review` (when the queue is not empty), `replay` (not for a review round), `finish` (boss beaten with 1+ star).
+`summary-title`, `summary-stars` (`data-stars`; not for a review round), `summary-accuracy` (first-try accuracy of the fresh questions), `summary-score`, `summary-unlocked`, `summary-boss-open`, `summary-need-stars`, `summary-boss-fail`, `summary-misses` and `miss-<itemId>`, **`to-map`**, `review` (when the queue is not empty), `replay` (not for a review round; for a verb drill it starts a new drill), `finish` (boss beaten with 1+ star).
 
 ### `review`
 `review-title`, `review-list` / `review-empty`, `review-item-<itemId>` (prompt, answer, explanation), **`practice`** (a round of the queued items), `to-map`.
@@ -264,6 +265,10 @@ Every world screen has the tabs (`nav-index`, `nav-timeline` and `nav-map` only 
 ```
 
 Every text value is a catalog key (so Book Translator translates it); step ids are unique across all hunts. A part that is missing falls back to the automatic layout (or is hidden): without `hunts`, one hunt per unit whose steps are the unit's articles (at most 6; a unit without articles gets one built from each objective and its facts), each asking an item of the objective that cites a fact the article cites ("Find the article about ..."); without `timeline`, the dated entries of `order` items with `timeline: true`, linked to the article that names them; without `map`, the first image asset with no pins (the `map` tab is hidden when the course has no image). Courses play without the section (`requiresSection: false`).
+
+#### Vocabulary deck and self-check cards (EGS-36)
+
+The pipeline step `harvest` adds a flashcard `<articleId>-gl-<n>` (tag `gloss`, `extensions.gloss = {article, entry}`) per glossary entry; an entry switched off in the reader (`glossOff`) is never asked. A flashcard tagged `self-check` is a writing or speaking task: the back is a model answer, the hint `selfcheck.hint` is shown after the flip and only the learner's own grade counts.
 
 #### Readings: the reader, tap-to-gloss and the passage link (EGS-35, B2)
 

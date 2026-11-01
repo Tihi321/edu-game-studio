@@ -21,6 +21,7 @@ import { assertSlug, coursesDir } from './paths'
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
  *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> assemble
  *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise)
+ *   -> harvest (EGS-36: a flashcard for each glossary entry of the readings; readings only)
  *   -> voice_plan -> voice_generate (EGS-17: after the reviews, so the clips speak the final text; the pack is re-linked)
  *   -> editions (EGS-32: the translator makes the other editions of the final text; skipped with one language) -> build -> lint -> playtest
  *   -> playtest_report -> publish (code: must-pass, threshold, hard gates; the publisher writes the blurb) -> summarize
@@ -34,7 +35,7 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'voice', 'editions', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'harvest', 'voice', 'editions', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
 
 /** The editions the translator has to make: the languages of the brief but the source language and the taught language. */
@@ -44,6 +45,7 @@ export const editionLanguages = (R: Pick<ResolvedBrief, 'languages' | 'brief'>):
 const STAGE_OF: Record<string, Stage> = {
   plan: 'plan',
   editions: 'editions',
+  harvest: 'harvest',
   research: 'research',
   factbase: 'factbase',
   curriculum: 'curriculum',
@@ -94,6 +96,7 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   music: ['music.json'],
   assemble: ['assembled.json', 'polish.json'],
   review: ['reviews/review-*'],
+  harvest: ['harvest.json'],
   voice: ['voice.json'],
   editions: ['editions.json'],
   lint: ['lint.json'],
@@ -522,6 +525,7 @@ export class Pipeline {
       k++
     }
 
+    if ((await this.harvestFlow(c)) !== 'done') return 'running'
     if ((await this.voiceFlow(c)) !== 'done') return 'running'
     if ((await this.editionsFlow(c)) !== 'done') return 'running'
 
@@ -537,6 +541,20 @@ export class Pipeline {
     if (pub === 'blocked') return this.settle(c, true)
     if (pub !== 'done') return 'running'
     return this.settle(c, false)
+  }
+
+  /**
+   * The harvest step (EGS-36): after the audience reviews (the readings and their glossaries are final), one flashcard for each glossary entry joins the
+   * course, with no model. It runs before the voice and the editions, so the cards are spoken and translated like the rest. Skipped with the reason when the
+   * course has no readings.
+   */
+  private async harvestFlow(c: Ctx): Promise<'done' | 'wait' | 'blocked'> {
+    const R = c.st.resolved
+    if (!(R.reading && R.language)) {
+      this.skip(c, 'harvest', null, 'the course has no readings with a glossary')
+      return 'done'
+    }
+    return this.ensure(c, { task: 'harvest', role: 'director', label: 'make the vocabulary cards from the glossaries' })
   }
 
   /**

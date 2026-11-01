@@ -1,5 +1,6 @@
 import type {
   ClozeItem,
+  ConjugationItem,
   CourseItem,
   CrosswordItem,
   FlashcardItem,
@@ -67,6 +68,10 @@ export function answerLines(item: CourseItem, ctx: Pick<FeedbackContext, 'text' 
       const i = item as unknown as ClozeItem
       const gaps = new Map(i.gaps.map((g) => [g.id, text.canonical(g.answer) ?? '?']))
       return [fillGaps(t(i.text), (id) => gaps.get(id) ?? '?')]
+    }
+    case 'conjugation': {
+      const i = item as unknown as ConjugationItem
+      return i.forms.map((f) => `${t(f.label)} ${text.canonical(f.answer) ?? '?'}`)
     }
     case 'typed': {
       const c = text.canonical((item as unknown as TypedItem).answer)
@@ -145,7 +150,7 @@ export function whysFor(item: CourseItem, answer: unknown, text: TextResolver): 
 }
 
 const detailKey = (kind: string): UiKey =>
-  kind === 'order' ? 'fb.detail.order' : kind === 'sort-groups' ? 'fb.detail.sort' : kind === 'cloze' ? 'fb.detail.gaps' : kind === 'crossword' || kind === 'word-search' ? 'fb.detail.words' : 'fb.matched'
+  kind === 'order' ? 'fb.detail.order' : kind === 'sort-groups' ? 'fb.detail.sort' : kind === 'cloze' ? 'fb.detail.gaps' : kind === 'conjugation' ? 'fb.detail.forms' : kind === 'crossword' || kind === 'word-search' ? 'fb.detail.words' : 'fb.matched'
 
 export function buildFeedback(item: CourseItem, answer: unknown, result: CheckResult, ctx: FeedbackContext, timedOut = false): Feedback {
   const { text, ui } = ctx

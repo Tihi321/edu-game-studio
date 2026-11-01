@@ -138,6 +138,13 @@ export interface ProgressExport {
   progress: Progress
 }
 
+/** The vocabulary entries the learner took out of the deck (`<articleId>/<entryId>`, saved by the reader in the encyclopedia's shell data; EGS-36). */
+export function glossOffOf(p: Pick<Progress, 'shells'>): ReadonlySet<string> {
+  const data = p.shells.encyclopedia?.data
+  const off = typeof data === 'object' && data !== null && !Array.isArray(data) ? (data as Record<string, unknown>).glossOff : undefined
+  return new Set(Array.isArray(off) ? off.filter((x): x is string => typeof x === 'string') : [])
+}
+
 export const exportProgress = (p: Progress): string => JSON.stringify({ format: EXPORT_FORMAT, version: PROGRESS_VERSION, pack: p.pack, progress: p } satisfies ProgressExport, null, 2)
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)

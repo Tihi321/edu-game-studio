@@ -2,6 +2,7 @@ import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
 import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
+import { isGlossHidden } from '../../shared/gloss-deck'
 import { sectionOf } from '../../shared/shells'
 import { PlayTimer } from '../classroom'
 import { clear, h, type Child } from '../dom'
@@ -22,6 +23,7 @@ import {
   isUnlocked,
   masteryMap,
   newlyUnlocked,
+  glossOffOf,
   ProgressStore,
   recordRound,
   starsFor,
@@ -365,7 +367,7 @@ export class ShellSession<K extends string = string> {
 
   /** Whether an item can be shown (a renderer is registered for its kind). */
   canAsk(item: CourseItem | undefined): item is CourseItem {
-    return !!item && !!this.host.getItemRenderer(item.kind)
+    return !!item && !!this.host.getItemRenderer(item.kind) && !isGlossHidden(item, glossOffOf(this.progress)) // a vocabulary card taken out of the deck is not asked (EGS-36)
   }
 
   /** The items of the review queue that still exist, oldest first. */

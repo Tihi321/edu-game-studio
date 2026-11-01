@@ -22,6 +22,12 @@ The articles of this unit, for context (the learner can read them in the game):
 Vocabulary and grammar of the unit (a language course only; empty otherwise):
 {{scope}}
 
+Language rules (a language course only; empty otherwise; follow them when they are given):
+{{language_rules}}
+
+Readings (a course with readings only; empty otherwise). The articles above are readings with numbered paragraph lines; follow this when it is given:
+{{reading_note}}
+
 How many and which kinds:
 - At least {{items_per_objective}} items for each objective, in AT LEAST TWO DIFFERENT KINDS per objective (the same fact asked in a second form is the point). The kinds you may use: {{item_kinds}}.
 - Ids: {{item_id_prefix}}1, {{item_id_prefix}}2 ... (letters, digits, - and _ only). Option, gap, pair, step, group and entry ids are short and unique inside their item (a, b, c ...; g1 ...).

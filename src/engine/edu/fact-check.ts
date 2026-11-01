@@ -68,6 +68,8 @@ export interface FactCheckInput {
   /** The review round (1 for the first). */
   round: number
   /** The fact base: the facts and the numbered sources. */
+  /** The rules of the taught language for the prompt (`{{language_rules}}`); empty or missing for a course without. */
+  languageRules?: string
   facts: Fact[]
   sources: SourceEntry[]
   unit: FactCheckUnit
@@ -89,6 +91,7 @@ export async function factCheck(ctx: JobContext, input: FactCheckInput): Promise
       round: input.round,
       factbase: factLines(input.facts) || '(the fact base is empty)',
       sources: sourceLines(input.sources) || '(no sources)',
+      language_rules: input.languageRules ?? '',
       coverage: structural.length ? structural.map((p) => `- ${p.ref}: ${p.issue}`).join('\n') : '(no problems found by the script)',
       content: renderUnit(input.unit)
     }
