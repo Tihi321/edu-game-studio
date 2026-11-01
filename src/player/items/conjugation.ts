@@ -14,7 +14,7 @@ import { letterRow, visuallyHidden } from './common'
  * right form of each wrong one.
  */
 
-const TENSE_KEYS = new Set(['praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2'])
+const TENSE_KEYS = new Set(['praesens', 'perfekt', 'praeteritum', 'futur1', 'imperativ', 'konjunktiv2', 'passiv-praesens', 'passiv-praeteritum', 'perfekt-passiv', 'konjunktiv2-vergangenheit', 'konjunktiv1', 'konjunktiv1-vergangenheit'])
 
 /** The persons asked in this presentation: all open forms, or `ask` of them chosen by the seeded generator (table order kept). */
 export function askedPersons(item: ConjugationItem, ctx: Pick<ItemContext, 'rng'>): string[] {

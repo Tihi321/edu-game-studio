@@ -444,3 +444,82 @@ describe('German verb table lint (EGS-28)', () => {
     expect(problems(data)).toEqual([])
   })
 })
+
+describe('German B2 grammar lint (EGS-37)', () => {
+  /** A hr-a1 game turned into a German course with one hand-made grammar item (read structurally). */
+  async function grammarGame(make: (strings: Record<string, string>, accepted: Record<string, string[]>) => Raw): Promise<GameData> {
+    const data = await game('hr-a1-greetings')
+    ;(data.pack as Raw).targetLang = 'de'
+    ;(data.pack as Raw).cefr = 'B2'
+    data.catalogs.de ??= { strings: {} } as GameData['catalogs'][string]
+    const de = data.catalogs.de!
+    de.accepted ??= {}
+    const it = make(de.strings, de.accepted)
+    ;(data.pack.items as unknown as Raw[]).push({ id: 'g1', objective: (data.pack.items[0] as unknown as Raw).objective, ...it })
+    return data
+  }
+  const problems = (data: GameData): LintProblem[] => lint(data).filter((p) => p.code.startsWith('GRAMMAR_'))
+  const cloze = (answer: string, grammar: Raw) => (s: Record<string, string>, a: Record<string, string[]>): Raw => {
+    s['g1.text'] = 'Die Frau, {{a}} ich helfe, ist nett.'
+    s['g1.a'] = answer
+    a['g1.a'] = [answer]
+    return { kind: 'cloze', text: 'g1.text', gaps: [{ id: 'a', answer: 'g1.a' }], extensions: { grammar } }
+  }
+
+  it('relative cloze: the right pronoun passes, a wrong one is GRAMMAR_FORM_MISMATCH (error)', async () => {
+    expect(problems(await grammarGame(cloze('der', { kind: 'relative', gender: 'f', case: 'dat' })))).toEqual([])
+    const bad = problems(await grammarGame(cloze('die', { kind: 'relative', gender: 'f', case: 'dat' })))
+    expect(bad.map((p) => [p.code, p.severity])).toEqual([['GRAMMAR_FORM_MISMATCH', 'error']])
+    expect(bad[0]!.message).toContain('der')
+  })
+  it('relative cloze with a preposition accepts "mit der" and "der"', async () => {
+    expect(problems(await grammarGame(cloze('mit der', { kind: 'relative', gender: 'f', case: 'dat', prep: 'mit' })))).toEqual([])
+    expect(problems(await grammarGame(cloze('mit dem', { kind: 'relative', gender: 'f', case: 'dat', prep: 'mit' })))).toHaveLength(1)
+  })
+  it('relative cloze with an unknown gender is GRAMMAR_FORM_MISMATCH', async () => {
+    expect(codes(problems(await grammarGame(cloze('der', { kind: 'relative', gender: 'x', case: 'dat' }))))).toEqual(['GRAMMAR_FORM_MISMATCH'])
+  })
+  it('connector cloze: GRAMMAR_CONNECTOR_CLASS when the class is wrong', async () => {
+    expect(problems(await grammarGame(cloze('weil', { kind: 'connector', class: 'verb-final' })))).toEqual([])
+    const bad = problems(await grammarGame(cloze('deshalb', { kind: 'connector', class: 'verb-final' })))
+    expect(bad.map((p) => [p.code, p.severity])).toEqual([['GRAMMAR_CONNECTOR_CLASS', 'error']])
+  })
+  it('sort-groups: a connector in the wrong group is GRAMMAR_CONNECTOR_CLASS', async () => {
+    const make = (weilGroup: string) => (s: Record<string, string>): Raw => {
+      for (const [k, v] of Object.entries({ 'g1.vf': 'Verb am Ende', 'g1.inv': 'Inversion', 'g1.w': 'weil', 'g1.d': 'deshalb' })) s[k] = v
+      return {
+        kind: 'sort-groups', groups: [{ id: 'vf', title: 'g1.vf' }, { id: 'inv', title: 'g1.inv' }],
+        items: [{ id: 'w', text: 'g1.w', group: weilGroup }, { id: 'd', text: 'g1.d', group: 'inv' }],
+        extensions: { grammar: { kind: 'connector-sort', groups: { vf: 'verb-final', inv: 'inversion' } } }
+      }
+    }
+    expect(problems(await grammarGame(make('vf')))).toEqual([])
+    const bad = problems(await grammarGame(make('inv')))
+    expect(bad.map((p) => p.code)).toEqual(['GRAMMAR_CONNECTOR_CLASS'])
+  })
+  it('transform: one accepted answer is GRAMMAR_TRANSFORM_ONE_ANSWER (warning), two are fine', async () => {
+    const make = (variants: string[]) => (s: Record<string, string>, a: Record<string, string[]>): Raw => {
+      s['g1.q'] = 'Man kauft das Haus. (Passiv)'
+      s['g1.ans'] = variants[0]!
+      a['g1.ans'] = variants
+      return { kind: 'typed', prompt: 'g1.q', answer: 'g1.ans', extensions: { grammar: { kind: 'transform' } } }
+    }
+    const one = problems(await grammarGame(make(['Das Haus wird gekauft.'])))
+    expect(one.map((p) => [p.code, p.severity])).toEqual([['GRAMMAR_TRANSFORM_ONE_ANSWER', 'warning']])
+    expect(problems(await grammarGame(make(['Das Haus wird gekauft.', 'Das Haus wird von jemandem gekauft.'])))).toEqual([])
+  })
+  it('ignores a course not taught in German', async () => {
+    const d = await grammarGame(cloze('die', { kind: 'relative', gender: 'f', case: 'dat' }))
+    ;(d.pack as Raw).targetLang = 'hr'
+    expect(problems(d)).toEqual([])
+  })
+  it('a Passiv conjugation item is checked by CONJ_FORM_MISMATCH against the new tense', async () => {
+    const make = (answer: string) => (s: Record<string, string>, a: Record<string, string[]>): Raw => {
+      s['g1.verb'] = 'machen'; s['g1.f'] = answer; a['g1.f'] = [answer]; s['g1.l'] = 'er'; s['g1.f2'] = 'wurdest gemacht'; a['g1.f2'] = ['wurdest gemacht']; s['g1.l2'] = 'du'
+      return { kind: 'conjugation', verb: 'g1.verb', tense: 'passiv-praeteritum', forms: [{ person: 'er', label: 'g1.l', answer: 'g1.f' }, { person: 'du', label: 'g1.l2', answer: 'g1.f2' }] }
+    }
+    const conj = (d: GameData): LintProblem[] => lint(d).filter((p) => p.code.startsWith('CONJ_'))
+    expect(conj(await grammarGame(make('wurde gemacht')))).toEqual([])
+    expect(codes(conj(await grammarGame(make('wird gemacht'))))).toEqual(['CONJ_FORM_MISMATCH'])
+  })
+})

@@ -1,0 +1,9 @@
+# EGS-37 B2 grammar tables and items (HUB-22)
+
+Copied from the HUB-22 plan in the creative hub.
+
+- **Inputs:** EGS-27 (kind), EGS-28 (verb table).
+- **Do:** `src/shared/lang/de/grammar.ts`: (a) **connectors** `{ word, class: 'verb-final' | 'inversion' | 'coordinating', meaning, level }` (verb-final: weil, dass, obwohl, während, sodass, indem, falls, ob, damit, nachdem, bevor; inversion: deshalb, trotzdem, deswegen, außerdem, dennoch, folglich; coordinating: und, aber, denn, oder, sondern); (b) the **relative pronoun table** by gender, number and case (with preposition); (c) extend EGS-28's `conjugate` with tenses `passiv-praesens`, `passiv-praeteritum`, `perfekt-passiv`, `konjunktiv2-vergangenheit` for the whole verb table (Konjunktiv I only as a stretch, only if its golden tests pass; else documented as left out); (d) B2 grammar rules text in `rulesFor('de')`. Item patterns (in the prompts, checked by lint where deterministic): connector cloze with a bank of both classes; `order` for word order after a connector; `sort-groups` verb-final vs inversion from the table; relative-pronoun cloze with `extensions.grammar = { kind: 'relative', gender, case }` (answer checked against the table); Passiv and Konjunktiv II past as `conjugation` items; `typed` transformations ("Man baut das Haus." -> Passiv) only with `extensions.grammar.kind = 'transform'` and an accepted list of two or more variants.
+  Lint: `GRAMMAR_FORM_MISMATCH` (error), `GRAMMAR_CONNECTOR_CLASS` (error), `GRAMMAR_TRANSFORM_ONE_ANSWER` (warning); `CONJ_TENSE_LEVEL` knows the B2 tenses.
+- **Outputs:** tables, lint, tests (golden: 20 Passiv and 20 Konjunktiv II past forms, the full relative-pronoun table, every connector class), prompt text, docs, ROADMAP row. Same honesty note as EGS-28.
+- **Contract:** `extensions.grammar`; the four new tense ids; `rulesFor('de').promptRules` including B2.
