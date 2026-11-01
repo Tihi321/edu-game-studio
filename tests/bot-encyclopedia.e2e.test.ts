@@ -2,21 +2,18 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { buildFixtureGame, chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
+import { buildFixtureGame, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The encyclopedia explorer played end to end by the autoplay bot (EGS-10, `scripts/bot/encyclopedia.mjs`): for every fixture that enables
  * the shell (solar-system and european-capitals with their authored hunts, timeline and map) and for solar-system WITHOUT its section (the
  * automatic layout), perfect, wrong and random (seeded) pass with 0 console errors, one keyboard-only perfect run (no mouse click) and an
- * axe run (no serious or critical violation). Skipped, with a message, only when Chromium cannot be launched
+ * axe run (no serious or critical violation). Without Chromium the run fails (`yarn playwright install chromium`).
  * (`yarn playwright install chromium`). The wrong and random mouse runs use prefers-reduced-motion (the driver sets it).
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[bot-encyclopedia.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 interface Case {
   title: string
@@ -38,7 +35,7 @@ const CASES: Case[] = [
   { title: 'solar-system (automatic layout, no section)', fixture: 'solar-system', auto: true, hunts: 4, steps: 10, collectibles: 5, places: 0 }
 ]
 
-describe.skipIf(!!unavailable)('autoplay bot in the encyclopedia explorer', () => {
+describe('autoplay bot in the encyclopedia explorer', () => {
   for (const c of CASES) {
     describe(c.title, () => {
       let dirP: Promise<string> | undefined
@@ -163,7 +160,7 @@ interface PassageStats {
   taps: number
 }
 
-describe.skipIf(!!unavailable)('autoplay bot in the reader of a reading course (de-b2-reading)', () => {
+describe('autoplay bot in the reader of a reading course (de-b2-reading)', () => {
   let dirP: Promise<string> | undefined
   const built = (): Promise<string> => (dirP ??= buildFixtureGame('de-b2-reading'))
   const run = async (shell: string, ...args: string[]) => play(await built(), [...args, '--shell', shell])

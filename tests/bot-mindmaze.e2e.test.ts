@@ -2,20 +2,17 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
+import { expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The MindMaze castle played end to end by the autoplay bot (EGS-11, `scripts/bot/mindmaze.mjs`): for every fixture that enables the shell
  * (solar-system and european-capitals with their authored castle) and for solar-system WITHOUT its section (the automatic layout), perfect,
  * wrong and random (seeded) pass with 0 console errors, one keyboard-only perfect run (no mouse click) and an axe run (no serious or critical
- * violation). Skipped, with a message, only when Chromium cannot be launched (`yarn playwright install chromium`).
+ * violation). Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[bot-mindmaze.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 interface Case {
   title: string
@@ -30,7 +27,7 @@ const CASES: Case[] = [
   { title: 'solar-system (automatic layout, no section)', fixture: 'solar-system', auto: true, wings: 3 }
 ]
 
-describe.skipIf(!!unavailable)('autoplay bot in the MindMaze castle', () => {
+describe('autoplay bot in the MindMaze castle', () => {
   for (const c of CASES) {
     describe(c.title, () => {
       let dirP: Promise<string> | undefined

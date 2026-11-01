@@ -1,16 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildFixtureGame, chromiumUnavailable, expectCleanAxe, expectPassed, play } from './bot-helpers'
+import { buildFixtureGame, expectCleanAxe, expectPassed, play } from './bot-helpers'
 
 /**
  * The autoplay bot on the German verbs fixture (EGS-27, `tests/fixtures/courses/de-verbs-a1`): conjugation items (typed forms per person,
  * one with `ask`, one with a given form) next to an mcq and a typed item. Perfect = every answer right, wrong = none right, random in
- * between, 0 console errors, keyboard only (no mouse click), axe clean. Skipped, with a message, only when Chromium cannot be launched.
+ * between, 0 console errors, keyboard only (no mouse click), axe clean. Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[bot-conjugation.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
-
-describe.skipIf(!!unavailable)('autoplay bot on de-verbs-a1', () => {
+describe('autoplay bot on de-verbs-a1', () => {
   let dirP: Promise<string> | undefined
   const built = (): Promise<string> => (dirP ??= buildFixtureGame('de-verbs-a1'))
 

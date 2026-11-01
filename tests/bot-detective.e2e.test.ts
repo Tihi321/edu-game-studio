@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { chromiumUnavailable, buildFixtureGame, expectCleanAxe, expectPassed, play } from './bot-helpers'
+import { buildFixtureGame, expectCleanAxe, expectPassed, play } from './bot-helpers'
 import { useTemp } from './edu-build-helpers'
 
 /**
  * The detective shell played end to end by the autoplay bot (EGS-14, `scripts/bot/detective.mjs`) for both fixtures that enable it
  * (solar-system: four murdle cases; european-capitals: murdle, a logic grid and the chase): perfect, wrong and random (seeded) pass with
  * 0 console errors, one keyboard-only perfect run (no mouse click) and an axe run (no serious or critical violation) per fixture.
- * Skipped, with a message, only when Chromium cannot be launched (`yarn playwright install chromium`).
+ * Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[bot-detective.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 interface Info {
   rooms: { id: string; stars?: number; asked?: number; turned?: number }[]
@@ -33,7 +30,7 @@ const CASES = [
   { fixture: 'european-capitals' as const, rooms: 4, chase: true, grid: ['case-facedown-murdle', 'case-facedown-logic', 'case-grid-marked-logic'] }
 ]
 
-describe.skipIf(!!unavailable)('autoplay bot in the detective shell', () => {
+describe('autoplay bot in the detective shell', () => {
   for (const c of CASES) {
     describe(c.fixture, () => {
       let dirP: Promise<string> | undefined

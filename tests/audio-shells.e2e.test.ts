@@ -3,22 +3,16 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, expectPassed, play, PLAYER_OUT } from './bot-helpers'
+import { expectPassed, play, PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The music and the sound effects in every shell (EGS-22), in a real browser: the solar-system fixture gets a music cue for the menu and for
  * the first unit, and a sound effect; for each shell a recording `Audio` stands in for the real one. The title plays the menu music after the first
- * gesture, a unit's world plays the unit's track, "reduce audio" and "sound" stop the music, and the sound effect of an answer plays. Skipped, with
- * a message, only when Chromium cannot be launched.
+ * gesture, a unit's world plays the unit's track, "reduce audio" and "sound" stop the music, and the sound effect of an answer plays. Without Chromium the run fails.
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[audio-shells.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
-
-
 
 async function buildWithCues(): Promise<string> {
   const { root } = await copyFixture('solar-system')
@@ -58,7 +52,7 @@ const RECORDER = `
   window.Audio.prototype = Real.prototype
 `
 
-describe.skipIf(!!unavailable)('the game audio in the shells of one course', () => {
+describe('the game audio in the shells of one course', () => {
   let dirP: Promise<string> | undefined
   const built = (): Promise<string> => (dirP ??= buildWithCues())
 

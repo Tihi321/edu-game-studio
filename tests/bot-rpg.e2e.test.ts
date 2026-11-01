@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { buildFixtureGame, chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play } from './bot-helpers'
+import { buildFixtureGame, expectCleanAxe, expectPassed, PLAYER_OUT, play } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 useTemp()
@@ -12,8 +12,6 @@ useTemp()
  * layout on three courses that have no section (a copy of solar-system without it, european-capitals and hr-a1-greetings with the shell
  * switched on). perfect, wrong and random (seeded) with 0 console errors, one keyboard-only run (0 mouse clicks) and an axe run each.
  */
-
-const unavailable = await chromiumUnavailable()
 
 /** A copy of a golden fixture that plays in the RPG shell with the automatic layout (no section), built with the real player bundle. */
 async function autoGame(fixture: string): Promise<string> {
@@ -37,7 +35,7 @@ const GAMES: { name: string; label: string; build: () => Promise<string>; full: 
   { name: 'hr-a1-greetings', label: 'hr-a1-greetings (automatic layout)', build: () => autoGame('hr-a1-greetings'), full: false }
 ]
 
-describe.skipIf(!!unavailable)('autoplay bot in the RPG shell', () => {
+describe('autoplay bot in the RPG shell', () => {
   for (const g of GAMES) {
     describe(g.label, () => {
       let dirP: Promise<string> | undefined

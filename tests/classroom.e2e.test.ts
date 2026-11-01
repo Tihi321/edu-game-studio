@@ -4,20 +4,17 @@ import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
 import { parseStudentResult, studentResultSchema } from '../src/shared/classroom'
-import { chromiumUnavailable, PLAYER_OUT } from './bot-helpers'
+import { PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * Classroom mode in a real browser (EGS-20): the solar-system fixture is built with an assignment. The title of the quiz arena and of another
  * shell show the banner (title, target, due date, the teacher's message as plain text), the learner types a name, and "Send to my teacher"
  * downloads a result file that parses with the schema, has the name and the stars of the saved progress, and holds no more than the summary.
- * Skipped, with a message, only when Chromium cannot be launched.
+ * Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
 useTemp()
-
-const unavailable = await chromiumUnavailable()
-if (unavailable) console.warn(`[classroom.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 async function buildWithAssignment(): Promise<{ dir: string; packId: string; u1: string }> {
   const { root } = await copyFixture('solar-system')
@@ -36,7 +33,7 @@ async function buildWithAssignment(): Promise<{ dir: string; packId: string; u1:
   return { dir: out, packId: pack.id, u1 }
 }
 
-describe.skipIf(!!unavailable)('classroom mode in the built player', () => {
+describe('classroom mode in the built player', () => {
   let built: Promise<{ dir: string; packId: string; u1: string }> | undefined
   const game = () => (built ??= buildWithAssignment())
 

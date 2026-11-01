@@ -8,8 +8,7 @@ import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 /**
  * The autoplay bot end to end: both golden fixtures are built into a game folder with the REAL player bundle (`out/player`, built by the
  * vitest global setup) and `scripts/play.mjs` plays each one in headless Chromium in all three modes, with the keyboard only (`--keyboard`,
- * no mouse click at all) and with axe-core on every distinct screen and item kind (`--axe`: no serious or critical violation). Skipped, with a message, only when
- * Chromium cannot be launched (`yarn playwright install chromium`).
+ * no mouse click at all) and with axe-core on every distinct screen and item kind (`--axe`: no serious or critical violation). Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
 useTemp()
@@ -17,20 +16,6 @@ useTemp()
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PLAY = path.join(ROOT, 'scripts', 'play.mjs')
 const PLAYER_OUT = process.env.EDU_TEST_PLAYER_OUT ? path.resolve(ROOT, process.env.EDU_TEST_PLAYER_OUT) : path.join(ROOT, 'out', 'player')
-
-async function chromiumAvailable(): Promise<string | null> {
-  try {
-    const { chromium } = await import('playwright')
-    const b = await chromium.launch()
-    await b.close()
-    return null
-  } catch (e) {
-    return e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
-  }
-}
-
-const unavailable = await chromiumAvailable()
-if (unavailable) console.warn(`[bot.e2e] SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
 
 interface BotSummary {
   mode: string
@@ -77,7 +62,7 @@ function expectCleanAxe(summary: BotSummary): void {
   expect(axe.screens.some((s) => s.startsWith('feedback-'))).toBe(true)
 }
 
-describe.skipIf(!!unavailable)('autoplay bot on the golden fixtures', () => {
+describe('autoplay bot on the golden fixtures', () => {
   for (const name of FIXTURES) {
     describe(name, () => {
       let dirP: Promise<string> | undefined

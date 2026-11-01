@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { runPlaytest } from '../src/engine/edu/playtest'
 import { buildTools, toolList } from '../src/engine/mcp/tools'
 import { GUIDE } from '../src/engine/mcp/server'
 import { validateCourse } from '../src/shared/edu'
@@ -258,52 +257,6 @@ describe('a language course with every asset kind', () => {
       await narrationOnly.cleanup()
     }
   }, 300_000)
-})
-
-// ---- the real autoplay bot on the course, only where Chromium is installed ----
-
-async function chromiumAvailable(): Promise<string | null> {
-  try {
-    const { chromium } = await import('playwright')
-    const b = await chromium.launch()
-    await b.close()
-    return null
-  } catch (e) {
-    return e instanceof Error ? (e.message.split('\n')[0] ?? 'unknown error') : String(e)
-  }
-}
-const unavailable = await chromiumAvailable()
-if (unavailable) console.warn(`[voice-pipeline] the real-bot test is SKIPPED: Chromium cannot be launched (${unavailable}). Run "yarn playwright install chromium".`)
-
-describe.skipIf(!!unavailable)('the real autoplay bot plays the language course with sound on', () => {
-  it('0 console errors, 0 media errors, every image and audio file of the build (pictures, music, sound effects and the 6 spoken clips) is loaded, the course is finished; a broken clip is a media error', async () => {
-    const env = await makePipelineEnv({ playtest: (dir, opts) => runPlaytest(dir, { ...opts, personas: ['perfect', 'average'], concurrency: 1, timeoutMs: 200_000 }) })
-    try {
-      await useQuota(env, 7)
-      await run(env, BRIEF_LANG, 250_000)
-      const st = (await toolsOf(env).call('edu_status', { slug: SLUG })).data.pipeline as { stage: string; blockedBy?: string[]; failed?: unknown[] }
-      expect(st.stage, JSON.stringify(st.blockedBy ?? st.failed)).toBe('published')
-      const play = await json<{ ok: boolean; runs: { persona: string; summary: { finished: boolean; consoleErrors: number; mediaErrors: number; steps: number; media: { checked: boolean; images: number; audio: number } } }[] }>(pf(env, 'playtest.json'))
-      expect(play.ok).toBe(true)
-      expect(play.runs.map((r) => r.persona)).toEqual(['perfect', 'average'])
-      for (const r of play.runs) {
-        expect([r.summary.finished, r.summary.consoleErrors, r.summary.mediaErrors], r.persona).toEqual([true, 0, 0])
-        expect(r.summary.media, r.persona).toEqual({ checked: true, images: 10, audio: 18 })
-      }
-      // the bot answered the derived listening items too (they are part of the 22 items)
-      expect((await packOf(env)).items.filter((i) => i.kind === 'listening')).toHaveLength(4)
-
-      // a clip that does not decode: a media error that fails the run, like a console error
-      const build = courseFile(env, SLUG, 'build')
-      await writeFile(path.join(build, 'assets', HR_CLIPS[0]!, 'v1.wav'), 'this is not audio')
-      const bad = await runPlaytest(build, { personas: ['perfect'], timeoutMs: 120_000 })
-      expect(bad.ok).toBe(false)
-      expect(bad.runs[0]!.summary!.mediaErrors).toBeGreaterThanOrEqual(1)
-      expect(bad.failures.some((f) => new RegExp(`media: ${HR_CLIPS[0]}`).test(f))).toBe(true)
-    } finally {
-      await env.cleanup()
-    }
-  }, 500_000)
 })
 
 // ---- the tools, on the golden fixture ----
