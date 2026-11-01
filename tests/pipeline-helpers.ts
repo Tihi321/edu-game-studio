@@ -117,8 +117,28 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     return { items: (drop ? entries.slice(0, -1) : entries).map((e) => ({ key: e.key, ...(e.text !== undefined ? { text: `[${lang}] ${e.text}` } : {}), ...(e.accepted ? { accepted: e.accepted.map((a) => `[${lang}] ${a}`) } : {}) })) }
   })
 
+  // a German reading (the prompt seed/prompts/subject-expert/reading.md): 5 headed paragraphs of 4 sentences of 21 words (420 words), 10 glosses whose terms are in the text
+  const readingBody = (cite: (i: number) => string): { body: string; glossary: Record<string, string>[] } => {
+    let k = 0
+    const paragraphs = Array.from({ length: 5 }, (_, p) => {
+      const sentences = Array.from({ length: 4 }, (_, s) => {
+        k++
+        return `Die Entscheidung ${k} wurde nach langer Diskussion getroffen, obwohl viele Beteiligte zunächst andere Vorschläge gemacht hatten und die Lage unklar blieb ${cite(s)}.`
+      })
+      return `## Abschnitt ${p + 1}\n\n${sentences.join(' ')}`
+    })
+    return { body: paragraphs.join('\n\n'), glossary: Array.from({ length: 10 }, (_, i) => ({ term: `Entscheidung ${i + 1}`, lemma: 'die Entscheidung, -en', pos: 'n', gloss: `decision number ${i + 1}`, note: 'a noun' })) }
+  }
+
   on('subject-expert', (t) => {
     const unit = grab(t, /Unit (u\d+)/)
+    if (t.includes('graded long-form texts')) {
+      log(`subject-expert/reading:${unit}`)
+      const prefix = grab(t, /Use the ids (\S+?)1,/)
+      const n = Number(grab(t, /Write exactly (\d+) reading/)) || 1
+      const facts = objectives(t, unit).flatMap((x) => x.facts)
+      return { articles: Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i + 1}`, unit, title: `Lesetext ${unit} ${i + 1}`, ...readingBody((j) => `[${facts[(i + j) % facts.length]}]`), related: [] })) }
+    }
     if (t.includes('sent some articles of a learning course back')) {
       log(`subject-expert/articles_revise:${unit}`)
       const a = JSON.parse(grab(t, /The articles as they are now \(JSON\):\n([\s\S]*?)\n\nThe problems/)) as { id: string; body: string }[]
@@ -164,6 +184,16 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     const kinds = grab(t, /The kinds you may use: ([^\n]*)\./).split(',').map((k) => k.trim())
     const items = makeItems(t, unit, per, kinds)
     const taught = /empty otherwise\): \S/.test(t)
+    const readings = grab(t, /The readings of this unit are ([^.]*)\./).split(', ').filter(Boolean)
+    if (readings.length > 0) {
+      // reading mode: every item is about a text; one true / false / not given item and one self-check card (a model answer of 30 words) are added
+      const prefix = grab(t, /Ids: (\S+?)1,/)
+      const first = objectives(t, unit)[0]!
+      const withPassage = (items as Record<string, unknown>[]).map((i, n) => ({ ...i, passage: { article: readings[n % readings.length] }, tags: ['reading'], ...(taught ? { taught: true } : {}) }))
+      const tfng = readings.map((a, n) => ({ id: `${prefix}tf${n + 1}`, objective: first.id, kind: 'mcq', prompt: `The text says that decision ${n + 1} was easy.`, explanation: 'The text says it was made after a long discussion.', facts: [first.facts[0]], passage: { article: a }, tags: ['reading', 'tfng'], options: [{ id: 't', text: 'True', why: 'The text says it was hard, not easy.' }, { id: 'f', text: 'False' }, { id: 'ng', text: 'Not given', why: 'The text does say it.' }], answer: 'f' }))
+      const selfCheck = { id: `${prefix}sc1`, objective: first.id, kind: 'flashcard', taught: true, tags: ['self-check'], prompt: 'Write 80 words in a formal register: give your opinion on the text.', explanation: 'Compare your text with the model answer.', facts: [first.facts[0]], back: Array.from({ length: 30 }, (_, i) => `Wort${i + 1}`).join(' ') }
+      return { items: [...withPassage, ...tfng, selfCheck] }
+    }
     return { items: taught ? (items as Record<string, unknown>[]).map((i) => ({ ...i, taught: true })) : items }
   })
 

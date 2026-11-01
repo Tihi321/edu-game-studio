@@ -93,6 +93,7 @@
     },
     {
       "id": "ho-tfng",
+      "shuffle": false,
       "kind": "mcq",
       "objective": "obj-arbeit",
       "prompt": "ho-tfng.prompt",
@@ -290,6 +291,7 @@
     },
     {
       "id": "rv-tfng",
+      "shuffle": false,
       "kind": "mcq",
       "objective": "obj-mobil",
       "prompt": "rv-tfng.prompt",

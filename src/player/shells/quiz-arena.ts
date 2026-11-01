@@ -17,6 +17,7 @@ import {
   cardOf,
   dequeue,
   enqueueMiss,
+  glossOffOf,
   hasProgress,
   isMastered,
   isUnlocked,
@@ -29,6 +30,7 @@ import {
   totalStars,
   type Progress
 } from '../progress'
+import { hiddenGlossItems } from '../../shared/gloss-deck'
 import { gradeOf, itemsOfUnit, missedIds, pickNext, quizConfig, recordResult, roundAccuracy, startRound, timerApplies, verbDueCount, verbItems, type NextQuestion, type RoundState } from '../round'
 import { buildSnapshot } from '../state'
 import type { ItemContext, ItemRenderer, ItemView, ScreenName, Shell, ShellHost } from '../types'
@@ -454,7 +456,7 @@ class QuizArena {
   // ---- rounds ----
 
   private beginRound(kind: 'unit' | 'boss' | 'review' | 'verbs', unitId?: string): void {
-    const rs = startRound(this.pack, kind, { ...(unitId ? { unitId } : {}), queue: this.progress.queue, difficulty: kind === 'boss' ? 4 : this.difficulty, cards: this.progress.cards, now: Date.now() })
+    const rs = startRound(this.pack, kind, { ...(unitId ? { unitId } : {}), queue: this.progress.queue, difficulty: kind === 'boss' ? 4 : this.difficulty, cards: this.progress.cards, now: Date.now(), exclude: hiddenGlossItems(this.pack.items, glossOffOf(this.progress)) })
     if (rs.size === 0) return this.go('map')
     this.round = rs
     this.roundNumber += 1

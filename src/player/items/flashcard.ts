@@ -28,6 +28,8 @@ export const flashcardRenderer: ItemRenderer = {
     }
     const gradeRow = h('div', { class: 'grades', hidden: true, role: 'group', 'aria-label': ctx.ui('grade.ask') }, [...grades.values()])
     const hint = h('p', { class: 'hint-line' }, ctx.ui('flip'))
+    // a writing or speaking task (EGS-36): the back is a model answer, the learner compares and grades themselves; the engine never grades it
+    const selfCheck = ctx.item.tags.includes('self-check') ? h('p', { class: 'hint-line selfcheck-hint', testid: 'selfcheck-hint', hidden: true }, ctx.ui('selfcheck.hint')) : null
 
     function flip(): void {
       if (locked || flipped) return
@@ -37,6 +39,7 @@ export const flashcardRenderer: ItemRenderer = {
       back.removeAttribute('aria-hidden')
       flipHint.textContent = ''
       gradeRow.hidden = false
+      if (selfCheck) selfCheck.hidden = false
       hint.textContent = ctx.ui('grade.ask')
       grades.get('good')?.focus()
     }
@@ -46,7 +49,7 @@ export const flashcardRenderer: ItemRenderer = {
       ctx.submit(g)
     }
     return {
-      el: h('div', { class: 'flashcard' }, card, hint, gradeRow),
+      el: h('div', { class: 'flashcard' }, card, hint, selfCheck, gradeRow),
       focus: () => card.focus(),
       key: (e) => {
         const i = digitIndex(e)
@@ -64,6 +67,7 @@ export const flashcardRenderer: ItemRenderer = {
           back.removeAttribute('aria-hidden')
           gradeRow.hidden = false
         }
+        if (selfCheck) selfCheck.hidden = false
         card.disabled = true
         for (const [g, b] of grades) {
           b.disabled = true

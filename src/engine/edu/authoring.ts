@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { BLOOM_LEVELS, findUnitCycle } from '../../shared/course'
 import { formOf, normalizeText } from '../../shared/edu'
+import { plainReading, readingBand, readingStats } from '../../shared/reading'
+import { GLOSS_POS } from '../../shared/shells/encyclopedia'
 import { questionKey } from '../research/notes'
 import type { ChatMessage } from '../models/types'
 import { chatJson } from '../pipeline/llm'
@@ -297,10 +299,30 @@ export function mergeAccepted(items: AuthoredItem[], out: AcceptedOutput): Autho
 
 // ---- subject-expert: articles ----
 
+/** One word of a reading with its gloss (EGS-36): `term` is the exact surface form in the body, `gloss` and `note` are in the language of the course. */
+const glossEntry = z.object({
+  term: text('a glossary term'),
+  lemma: text('a lemma').optional(),
+  pos: z.enum(GLOSS_POS, { error: `pos is one of ${GLOSS_POS.join(', ')}` }).optional(),
+  gloss: text('a gloss'),
+  note: text('a note').optional()
+})
+export type AuthoredGloss = z.output<typeof glossEntry>
+
 export const articlesSchema = lenient(
   z.object({
     articles: z
-      .array(z.object({ id: ident, unit: ident, title: text('an article title'), body: text('an article body').min(80, 'an article body is a few paragraphs (at least 80 characters)'), related: ids('related').default([]) }))
+      .array(
+        z.object({
+          id: ident,
+          unit: ident,
+          title: text('an article title'),
+          body: text('an article body').min(80, 'an article body is a few paragraphs (at least 80 characters)'),
+          related: ids('related').default([]),
+          /** A reading of a language course (EGS-36): the glossary of the text. */
+          glossary: z.array(glossEntry).optional()
+        })
+      )
       .min(1, 'write at least one article')
   })
 )
@@ -316,6 +338,8 @@ export interface ArticleContext {
   count?: number
   /** Article ids of other units (an id may not repeat; `related` may name them). */
   otherArticleIds?: Iterable<string>
+  /** The articles are readings (EGS-36): their length and glossary are checked too. */
+  reading?: { words: readonly [number, number]; glossary: readonly [number, number]; cefr?: string }
 }
 
 /** Every article cites at least one fact, only facts that exist (as `[f3]` in its body); ids unique; `related` known; the unit right. */
@@ -336,6 +360,28 @@ export function checkArticles(a: Articles, o: ArticleContext): Problem[] {
     for (const f of cited) if (!facts.has(f)) out.push(problem(x.id, `it cites the fact ${f}, which is not in the fact base`, 'cite only fact ids that were given'))
     if (/\[\d+\]/.test(x.body)) out.push(problem(x.id, 'it has a source number like [3]', 'cite facts as [f3], never source numbers'))
     for (const r of x.related) if (!mine.has(r) && !other.has(r)) out.push(problem(x.id, `it relates to the article "${r}", which does not exist`, 'relate only to articles you wrote or that were listed'))
+    if (o.reading) out.push(...checkReading(x, o.reading))
+  }
+  return out
+}
+
+/** What a reading needs besides what every article needs (EGS-36): a length in the band, a glossary whose terms are in the text. */
+export function checkReading(x: { id: string; body: string; glossary?: AuthoredGloss[] | undefined }, o: NonNullable<ArticleContext['reading']>): Problem[] {
+  const out: Problem[] = []
+  const [lo, hi] = readingBand(o.cefr, o.words)
+  const words = readingStats(x.body).words
+  if (words < lo) out.push(problem(x.id, `the reading has ${words} words, at least ${lo} are needed (aim for ${o.words[0]} to ${o.words[1]})`, 'write the full text'))
+  else if (words > hi) out.push(problem(x.id, `the reading has ${words} words, at most ${hi} are allowed (aim for ${o.words[0]} to ${o.words[1]})`, 'shorten it'))
+  const body = plainReading(x.body)
+  const gl = x.glossary ?? []
+  if (gl.length < o.glossary[0]) out.push(problem(x.id, `${gl.length} glossary entries, at least ${o.glossary[0]} are needed`, `gloss ${o.glossary[0]} to ${o.glossary[1]} words above the level of the course`))
+  else if (gl.length > o.glossary[1]) out.push(problem(x.id, `${gl.length} glossary entries, at most ${o.glossary[1]}`, 'keep the hardest words'))
+  const seen = new Set<string>()
+  for (const g of gl) {
+    if (!body.includes(g.term)) out.push(problem(x.id, `the glossary term "${g.term}" is not in the text exactly as written`, 'copy the surface form from the body (same letters, same case, inflection as it stands)'))
+    const k = g.term.toLowerCase()
+    if (seen.has(k)) out.push(problem(x.id, `the word "${g.term}" is glossed twice`, 'gloss each word once'))
+    seen.add(k)
   }
   return out
 }
@@ -367,7 +413,13 @@ const itemCommon = {
   didYouKnow: text('didYouKnow').optional(),
   didYouKnowFact: ident.optional(),
   difficulty: z.number({ error: 'difficulty is a number from 1 to 5' }).int().min(1).max(5).optional(),
-  taught: z.boolean().optional()
+  taught: z.boolean().optional(),
+  /** The text a reading item is about (EGS-36): `extensions.passage` of the pack item; `paragraphs` are 1-based and inclusive. */
+  passage: z.object({ article: ident, paragraphs: z.tuple([z.number().int().min(1), z.number().int().min(1)]).optional() }).optional(),
+  /** A grammar item (EGS-37 lint keys on it): `extensions.grammar`, for example { kind: 'relative', gender, case } or { kind: 'transform' }. Passed through to the pack item. */
+  grammar: z.looseObject({ kind: z.string().min(1) }).optional(),
+  /** Item tags (EGS-36): `reading`, `tfng`, `self-check`, `irregular` ... The pipeline adds `unit:<id>` itself. */
+  tags: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/, 'a tag is lower-case letters, digits and -')).optional()
 }
 const option = z.object({ id: ident, text: text('an option text'), why: text('why').optional() })
 
@@ -467,7 +519,14 @@ export interface ItemContext {
   itemsPerObjective?: number
   /** Every wrong option has its `why` (after the misconception-designer; the lint wants it). */
   requireWhy?: boolean
+  /** The readings of the course (EGS-36): article id -> number of paragraph lines (every line of the body counts). Reading items name one of them. */
+  readings?: Record<string, number>
+  /** The readings of this unit that need at least 4 items on them (EGS-36). */
+  unitReadings?: readonly string[]
 }
+
+/** The options of a true / false / not given item, in this order (EGS-36). */
+export const TFNG_OPTION_IDS = ['t', 'f', 'ng'] as const
 
 const choiceOptions = (it: AuthoredItem): { id: string; text: string; why?: string; right: boolean }[] =>
   it.kind === 'mcq' ? it.options.map((o) => ({ ...o, right: o.id === it.answer })) : it.kind === 'multi-select' ? it.options.map((o) => ({ ...o, right: it.answers.includes(o.id) })) : []
@@ -490,6 +549,7 @@ export function checkItems(items: AuthoredItem[], o: ItemContext): Problem[] {
     if (unit === undefined) out.push(problem(it.id, `its objective "${it.objective}" does not exist`, `use one of: ${[...objectives.keys()].join(', ')}`))
     else if (o.unit && unit !== o.unit) out.push(problem(it.id, `its objective "${it.objective}" belongs to the unit "${unit}", these items are for "${o.unit}"`, `use an objective of ${o.unit}: ${[...objectives].filter(([, u]) => u === o.unit).map(([k]) => k).join(', ')}`))
     for (const f of [...it.facts, ...(it.didYouKnowFact ? [it.didYouKnowFact] : [])]) if (!facts.has(f)) out.push(problem(it.id, `it names the fact ${f}, which is not in the fact base`, 'use only fact ids that were given'))
+    out.push(...checkReadingItem(it, o.readings))
     const opts = choiceOptions(it)
     if (opts.length) {
       const seen = new Map<string, string>()
@@ -509,6 +569,10 @@ export function checkItems(items: AuthoredItem[], o: ItemContext): Problem[] {
       }
     }
   }
+  for (const a of o.unitReadings ?? []) {
+    const n = items.filter((i) => i.passage?.article === a).length
+    if (n < 4) out.push(problem(a, `only ${n} item(s) are about this reading, it needs at least 4 (one mcq, one true / false / not given, one order or heading match, one cloze), each with its passage`, 'add items with "passage": {"article": "<id>"}'))
+  }
   const forObjective = (id: string) => items.filter((i) => i.objective === id)
   const wanted = Math.max(2, o.itemsPerObjective ?? 2)
   for (const [oid, unit] of objectives) {
@@ -521,6 +585,26 @@ export function checkItems(items: AuthoredItem[], o: ItemContext): Problem[] {
   }
   return out
 }
+
+/** The reading conventions of one item (EGS-36): passage links, true / false / not given, self-check cards. */
+function checkReadingItem(it: AuthoredItem, readings: Record<string, number> | undefined): Problem[] {
+  const out: Problem[] = []
+  const tags = it.tags ?? []
+  if (tags.includes('reading') && !it.passage) out.push(problem(it.id, 'an item tagged "reading" names no passage', 'add "passage": {"article": "<reading id>", "paragraphs": [from, to]}'))
+  if (it.passage && readings) {
+    const n = readings[it.passage.article]
+    if (n === undefined) out.push(problem(it.id, `its passage is the article "${it.passage.article}", which is not a reading of this course`, `use one of: ${Object.keys(readings).join(', ') || 'none'}`))
+    else if (it.passage.paragraphs && (it.passage.paragraphs[1] > n || it.passage.paragraphs[0] > it.passage.paragraphs[1])) out.push(problem(it.id, `its passage paragraphs ${it.passage.paragraphs.join(' to ')} are outside the text (it has ${n} paragraph lines)`, `use numbers from 1 to ${n}`))
+  }
+  if (tags.includes('tfng')) {
+    if (it.kind !== 'mcq' || it.options.map((x) => x.id).join(',') !== TFNG_OPTION_IDS.join(',')) out.push(problem(it.id, 'a "tfng" item is an mcq with exactly three options with the ids t, f, ng in that order', 'options: [{"id": "t", ...true}, {"id": "f", ...false}, {"id": "ng", ...not given}]'))
+    else if (it.taught) out.push(problem(it.id, 'the options of a "tfng" item are True / False / Not given in the language of the course: leave "taught" out', 'remove "taught"'))
+    else for (const x of it.options) if (x.id !== it.answer && !x.why) out.push(problem(it.id, `the wrong option "${x.id}" of a "tfng" item has no why`, 'give each wrong option a why: the reading mistake it stands for (the misconception-designer does not rewrite tfng options)'))
+  }
+  if (tags.includes('self-check') && (it.kind !== 'flashcard' || wordCount(it.back) < 25)) out.push(problem(it.id, 'a "self-check" item is a flashcard whose back is a model answer of at least 25 words', 'write the model answer (80 to 180 words) in "back"'))
+  return out
+}
+const wordCount = (s: string): number => s.split(/\s+/).filter(Boolean).length
 
 // ---- misconception-designer: distractors ----
 
@@ -782,8 +866,9 @@ export const PROMPT_VARS = {
   'language-coach/scope': ['title', 'audience', 'cefr', 'language', 'target_language', 'units', 'objectives', 'factbase', 'verb_units_note', 'language_rules'],
   'language-coach/accepted': ['title', 'cefr', 'language', 'target_language', 'items', 'language_rules'],
   'subject-expert/articles': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'unit_title', 'unit_summary', 'objectives', 'factbase', 'articles_per_unit', 'article_id_prefix', 'other_articles', 'scope'],
+  'subject-expert/reading': ['title', 'audience', 'age', 'level', 'language', 'target_language', 'unit_id', 'unit_title', 'unit_summary', 'objectives', 'factbase', 'articles_per_unit', 'article_id_prefix', 'other_articles', 'scope', 'language_rules', 'reading_min', 'reading_max', 'glossary_min', 'glossary_max'],
   'subject-expert/articles_revise': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'factbase', 'articles', 'problems'],
-  'item-writer/items': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'unit_title', 'objectives', 'factbase', 'articles', 'item_kinds', 'items_per_objective', 'item_id_prefix', 'scope', 'target_language', 'gap_marker', 'language_rules'],
+  'item-writer/items': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'unit_title', 'objectives', 'factbase', 'articles', 'item_kinds', 'items_per_objective', 'item_id_prefix', 'scope', 'target_language', 'gap_marker', 'language_rules', 'reading_note'],
   'item-writer/items_revise': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'objectives', 'factbase', 'item_kinds', 'items', 'problems', 'target_language', 'gap_marker', 'language_rules'],
   'misconception-designer/distractors': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'factbase', 'items', 'language_rules'],
   'explainer/explain': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'factbase', 'items', 'language_rules'],

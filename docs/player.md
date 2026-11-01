@@ -266,6 +266,10 @@ Every world screen has the tabs (`nav-index`, `nav-timeline` and `nav-map` only 
 
 Every text value is a catalog key (so Book Translator translates it); step ids are unique across all hunts. A part that is missing falls back to the automatic layout (or is hidden): without `hunts`, one hunt per unit whose steps are the unit's articles (at most 6; a unit without articles gets one built from each objective and its facts), each asking an item of the objective that cites a fact the article cites ("Find the article about ..."); without `timeline`, the dated entries of `order` items with `timeline: true`, linked to the article that names them; without `map`, the first image asset with no pins (the `map` tab is hidden when the course has no image). Courses play without the section (`requiresSection: false`).
 
+#### Vocabulary deck and self-check cards (EGS-36)
+
+The pipeline step `harvest` adds a flashcard `<articleId>-gl-<n>` (tag `gloss`, `extensions.gloss = {article, entry}`) per glossary entry; an entry switched off in the reader (`glossOff`) is never asked. A flashcard tagged `self-check` is a writing or speaking task: the back is a model answer, the hint `selfcheck.hint` is shown after the flip and only the learner's own grade counts.
+
 #### Readings: the reader, tap-to-gloss and the passage link (EGS-35, B2)
 
 For a reading course (a graded long text per article, as in the German B2 format of HUB-22) the section gets two more parts:

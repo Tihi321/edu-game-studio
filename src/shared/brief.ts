@@ -17,7 +17,7 @@ import type { FormatEntry } from './schemas'
  *   languages    the editions (default [sourceLang]); the step `editions` (the translator role) makes every other one, skipped with one language
  *   targetLang   a language course: the language that is taught
  *   shells       the game shells asked for (default [quiz-arena]); the pipeline enables the shells that fit the course
- *   format       an id of config/formats.md (default quick; with targetLang: language-<cefr> for A1, A2 and B1, language-a1 when no cefr is given)
+ *   format       an id of config/formats.md (default quick; with targetLang: language-<cefr> for A1, A2, B1 and B2, language-a1 when no cefr is given)
  *   units, objectivesPerUnit, itemsPerObjective   override the format's numbers
  *   kids         a course for children: the child-safety reviewer must pass it (default: age < 13)
  *   story        none (default), frame (a frame story written by the narrative designer) or scriptorium (hand a story idea to Scriptorium)
@@ -77,13 +77,17 @@ export interface ResolvedBrief {
   verbUnits: number
   /** Verbs the language-coach picks for each verb unit. */
   verbsPerUnit: number
+  /** A language course whose articles are graded readings with a glossary (EGS-36; B1 and B2). */
+  reading: boolean
+  /** Words per reading [min, max], and glossary entries per reading [min, max]. */
+  readingWords: [number, number]
+  glossaryPerText: [number, number]
 }
 
 /** The format a brief gets when it names none (EGS-29). */
 function defaultFormatId(brief: Brief): string {
   if (!brief.targetLang) return 'quick'
   if (!brief.cefr) return 'language-a1'
-  if (brief.cefr === 'B2') throw new Error('no format for B2 yet: the B2 reading format is not installed (HUB-22, EGS-36); name a format or pick A1, A2 or B1')
   if (brief.cefr === 'C1' || brief.cefr === 'C2') throw new Error(`CEFR ${brief.cefr} is out of scope (HUB-22): language courses go up to B2; name a format to override`)
   return `language-${brief.cefr.toLowerCase()}`
 }
@@ -110,6 +114,9 @@ export function resolveBrief(input: BriefInput | Brief, formats: readonly Format
     kids: brief.kids ?? (brief.age !== undefined && brief.age < 13),
     cefr: brief.cefr ?? format.cefr,
     verbUnits: Math.min(format.verb_units, brief.units ?? format.units),
-    verbsPerUnit: format.verbs_per_unit
+    verbsPerUnit: format.verbs_per_unit,
+    reading: !!brief.targetLang && format.reading,
+    readingWords: format.reading_words,
+    glossaryPerText: format.glossary_per_text
   }
 }

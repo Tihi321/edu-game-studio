@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { AUDIO_KINDS, IMAGE_KINDS } from '../../shared/media'
 import { languageInfo } from '../../shared/languages'
 import { languageRulesText } from '../../shared/lang'
+import { paragraphsOf } from '../../shared/shells/encyclopedia'
 import type { ResolvedBrief } from '../../shared/brief'
 import type { TextCatalog } from '../../shared/course'
 import { loadCourseFolder } from './course-io'
@@ -125,7 +126,7 @@ export function renderItemForCheck(it: AuthoredItem): FactCheckItem {
 /** The choice items that still need distractors written: an mcq or multi-select with a wrong option without its why. */
 export function needsDistractors(items: readonly AuthoredItem[]): AuthoredItem[] {
   return items.filter((it) => {
-    if (it.kind === 'mcq') return it.options.some((o) => o.id !== it.answer && !o.why)
+    if (it.kind === 'mcq') return !it.tags?.includes('tfng') && it.options.some((o) => o.id !== it.answer && !o.why) // a tfng item keeps its fixed options (t, f, ng) and the writer's whys
     if (it.kind === 'multi-select') return it.options.some((o) => !it.answers.includes(o.id) && !o.why)
     return false
   })
@@ -195,7 +196,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     }
   }
   /** `{{language_rules}}`: the rules of the taught language (the item-writer also gets the item shapes); empty for a course with none. */
-  const rules = (h: Pick<H, 'R'>, forWriter = false): string => languageRulesText(h.R.brief.targetLang, forWriter)
+  const rules = (h: Pick<H, 'R'>, forWriter = false): string => languageRulesText(h.R.brief.targetLang, forWriter, h.R.cefr)
   const curriculumOf = async (slug: string): Promise<Curriculum> => {
     const c = await P.curriculum(slug)
     if (!c) throw new Error('there is no curriculum yet')
@@ -320,19 +321,41 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         if (written.length) others.push(...written)
         else for (let n = 1; n <= R.articlesPerUnit; n++) others.push({ id: `a-${o.id}-${n}`, title: `${o.title} (planned, not written yet: link to it only when it fits)` })
       }
+      const reading = isReading(R)
       const { value } = await askRole(h.ctx, {
         dataDir,
         role: 'subject-expert',
-        task: 'articles',
-        vars: { ...vars, unit_id: u.id, unit_title: u.title, unit_summary: u.summary, objectives: objectiveLines(cur.objectives, u.id), factbase: factbaseText(fb.facts), articles_per_unit: R.articlesPerUnit, article_id_prefix: `a-${u.id}-`, other_articles: others.map((a) => `- ${a.id}: ${a.title}`).join('\n') || '(none)', scope: R.language ? await unitScope(h.slug, u.id) : '' },
+        task: reading ? 'reading' : 'articles',
+        vars: {
+          ...vars,
+          unit_id: u.id,
+          unit_title: u.title,
+          unit_summary: u.summary,
+          objectives: objectiveLines(cur.objectives, u.id),
+          factbase: factbaseText(fb.facts),
+          articles_per_unit: R.articlesPerUnit,
+          article_id_prefix: `a-${u.id}-`,
+          other_articles: others.map((a) => `- ${a.id}: ${a.title}`).join('\n') || '(none)',
+          scope: R.language ? await unitScope(h.slug, u.id) : '',
+          ...(reading ? { target_language: langName(R.brief.targetLang ?? ''), language_rules: rules(h), reading_min: R.readingWords[0], reading_max: R.readingWords[1], glossary_min: R.glossaryPerText[0], glossary_max: R.glossaryPerText[1] } : {})
+        },
         schema: articlesSchema,
-        check: (a) => checkArticles(a, { factIds: fb.facts.map((f) => f.id), unitIds: cur.units.map((x) => x.id), unit: u.id, count: R.articlesPerUnit, otherArticleIds: others.map((x) => x.id) })
+        ...(reading ? { maxTokens: 16_000 } : {}),
+        check: (a) => checkArticles(a, { factIds: fb.facts.map((f) => f.id), unitIds: cur.units.map((x) => x.id), unit: u.id, count: R.articlesPerUnit, otherArticleIds: others.map((x) => x.id), ...(reading ? { reading: readingCtx(R) } : {}) })
       })
       await writeUnit(h.slug, u.id, 'articles', { articles: value.articles, round: 1 })
       return { note: `${value.articles.length} article(s)`, path: `pipeline/units/${u.id}/articles.json` }
     },
     { skipModel: async (job) => (await jobResolved(job))?.articlesPerUnit === 0 }
   )
+
+  /** The articles of the course are graded readings with a glossary (EGS-36). */
+  const isReading = (R: Pick<ResolvedBrief, 'reading' | 'language'>): boolean => R.reading && R.language
+  const readingCtx = (R: ResolvedBrief) => ({ words: R.readingWords, glossary: R.glossaryPerText, ...(R.cefr ? { cefr: R.cefr } : {}) })
+  /** The readings of a list of articles: id -> number of paragraph lines. */
+  const readingParagraphs = (articles: readonly Article[]): Record<string, number> => Object.fromEntries(articles.filter((a) => a.glossary !== undefined).map((a) => [a.id, paragraphsOf([a.body]).length]))
+  /** A reading as the item-writer sees it: every paragraph line numbered, so `passage.paragraphs` can name them. */
+  const numberedReading = (a: Article): string => `### ${a.id}: ${a.title}\n${paragraphsOf([a.body]).map((p, n) => `[${n + 1}] ${p}`).join('\n')}`
 
   const jobResolved = async (job: JobFile): Promise<ResolvedBrief | undefined> => (job.data.book ? (await P.readSteps(job.data.book))?.resolved : undefined)
 
@@ -343,6 +366,8 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     const R = h.R
     const articles = await P.articles(h.slug, u.id)
     const existing = await otherItemIds(h.slug, cur, u.id)
+    const readings = isReading(R) ? readingParagraphs(articles) : {}
+    const readingIds = Object.keys(readings)
     const { value } = await askRole(h.ctx, {
       dataDir,
       role: 'item-writer',
@@ -353,17 +378,18 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         unit_title: u.title,
         objectives: objectiveLines(cur.objectives, u.id),
         factbase: factbaseText(fb.facts),
-        articles: articles.map((a) => `### ${a.id}: ${a.title}\n${a.body}`).join('\n\n') || '(none)',
+        articles: articles.map((a) => (readings[a.id] !== undefined ? numberedReading(a) : `### ${a.id}: ${a.title}\n${a.body}`)).join('\n\n') || '(none)',
         item_kinds: R.itemKinds.join(', '),
         items_per_objective: R.itemsPerObjective,
         item_id_prefix: `${u.id}-q`,
+        reading_note: readingIds.length ? `The readings of this unit are ${readingIds.join(', ')}. Write at least 4 items for EACH reading that are about its text, each with "passage" (the article id and the paragraph numbers shown in brackets, a heading line counts) and the tag "reading": one mcq, one true / false / not given item (tag "tfng"), one order item or a heading match (match-pairs), one cloze on a sentence of the text. They count toward the objectives. Add, for the unit, at most one writing and one speaking self-check card.` : '',
         scope: R.language ? await unitScope(h.slug, u.id) : '',
         target_language: R.brief.targetLang ? langName(R.brief.targetLang) : '',
         gap_marker: GAP_MARKER,
         language_rules: rules(h, true)
       },
       schema: itemsSchema,
-      check: (o) => checkItems(o.items, { objectives: objectivesFor(cur), factIds: fb.facts.map((f) => f.id), allowedKinds: R.itemKinds, unit: u.id, existingIds: existing, itemsPerObjective: R.itemsPerObjective })
+      check: (o) => checkItems(o.items, { objectives: objectivesFor(cur), factIds: fb.facts.map((f) => f.id), allowedKinds: R.itemKinds, unit: u.id, existingIds: existing, itemsPerObjective: R.itemsPerObjective, readings, unitReadings: readingIds })
     })
     await writeUnit(h.slug, u.id, 'items', { items: value.items, round: 1 })
     return { note: `${value.items.length} item(s)`, path: `pipeline/units/${u.id}/items.json` }
@@ -442,8 +468,12 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       schema: articlesSchema,
       check: (out) => {
         const m = mergeRevision(prev, out.articles, flagged)
-        merged = m.merged
-        return [...m.problems, ...checkArticles({ articles: merged }, { factIds: fb.facts.map((f) => f.id), unitIds: cur.units.map((x) => x.id), unit: u.id, otherArticleIds: others.map((x) => x.id) })]
+        // a reading keeps its glossary when the writer leaves it out (entries whose word is gone from the new text are dropped)
+        merged = m.merged.map((a) => {
+          const was = prev.find((p) => p.id === a.id)
+          return a.glossary === undefined && was?.glossary ? { ...a, glossary: was.glossary.filter((g) => a.body.includes(g.term)) } : a
+        })
+        return [...m.problems, ...checkArticles({ articles: merged }, { factIds: fb.facts.map((f) => f.id), unitIds: cur.units.map((x) => x.id), unit: u.id, otherArticleIds: others.map((x) => x.id), ...(isReading(h.R) ? { reading: readingCtx(h.R) } : {}) })]
       }
     })
     await writeUnit(h.slug, u.id, 'articles', { articles: merged, round: h.round })
@@ -461,6 +491,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     const existing = await otherItemIds(h.slug, cur, u.id)
     const problems: Problem[] = review.problems.filter((p) => flagged.includes(p.ref))
     let merged: AuthoredItem[] = prev
+    const itemReadings = isReading(R) ? readingParagraphs(await P.articles(h.slug, u.id)) : {}
     await askRole(h.ctx, {
       dataDir,
       role: 'item-writer',
@@ -481,7 +512,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       check: (out) => {
         const m = mergeRevision(prev, out.items, flagged)
         merged = m.merged
-        return [...m.problems, ...checkItems(merged, { objectives: objectivesFor(cur), factIds: fb.facts.map((f) => f.id), allowedKinds: R.itemKinds, unit: u.id, existingIds: existing, itemsPerObjective: R.itemsPerObjective })]
+        return [...m.problems, ...checkItems(merged, { objectives: objectivesFor(cur), factIds: fb.facts.map((f) => f.id), allowedKinds: R.itemKinds, unit: u.id, existingIds: existing, itemsPerObjective: R.itemsPerObjective, readings: itemReadings, unitReadings: Object.keys(itemReadings) })]
       }
     })
     // a corrected choice item has lost the wrong choices' reasons: the distractor step of this round writes them again
@@ -819,6 +850,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         ...(R.brief.targetLang ? { targetLang: R.brief.targetLang } : {}),
         ...(R.cefr ? { cefr: R.cefr } : {}),
         verbsPerUnit: R.verbsPerUnit,
+        ...(isReading(R) ? { reading: { words: R.readingWords, glossary: R.glossaryPerText } } : {}),
         run: h.st.run,
         brief: R.brief,
         factbase: await svc.factbase.toPack(h.slug),
@@ -836,6 +868,18 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       const content = renderCourseForReview(pack as never, catalogs, R.brief.sourceLang, R.brief.targetLang)
       await P.writeJson(h.slug, 'assembled.json', { round: h.round, itemKeys, content })
       return { note: `${items.length} item(s), ${articles.length} article(s), ${Object.keys(catalogs[R.brief.sourceLang]!.strings).length} text(s)`, path: `courses/${h.slug}/course/pack.json` }
+    },
+    { noModel: true }
+  )
+
+  // ---- harvest (EGS-36): the words of the readings become flashcards of the vocabulary deck ----
+
+  step(
+    'harvest',
+    async (h) => {
+      const r = await svc.courses.harvest(h.slug)
+      await P.writeJson(h.slug, 'harvest.json', r)
+      return { note: `${r.added.length} vocabulary card(s) made from the glossaries, ${r.kept.length} already there`, path: 'pipeline/harvest.json' }
     },
     { noModel: true }
   )
