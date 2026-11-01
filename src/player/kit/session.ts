@@ -133,6 +133,8 @@ export class ShellSession<K extends string = string> {
   steps = 0
   /** Questions drawn in this page session (seeds each presentation). */
   turn = 0
+  /** The passage panel of the next questions starts open (the encyclopedia reader's practice, EGS-35). */
+  passageOpen = false
   /** True on the end screen (`getState().finished`). */
   finished = false
   screen: AnyScreen = 'loading'
@@ -390,6 +392,7 @@ export class ShellSession<K extends string = string> {
       },
       ui: (key: UiKey, vars) => this.ui(key, vars),
       specialLetters: this.specialLetters,
+      ...(this.passageOpen ? { passageOpen: true } : {}),
       submit,
       duck: (on) => this.audio.duck(on),
       ...(this.progress.settings.speak !== false && this.speechService ? { speech: this.speechService } : {})

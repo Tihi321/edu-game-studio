@@ -1,4 +1,5 @@
 import { normalizeText } from '../../../shared/edu/match'
+import { paragraphsOf } from '../../../shared/shells/encyclopedia'
 
 /**
  * Reading logic of the encyclopedia, pure (no DOM): the paragraphs of an article, the cross-links in its body (every mention of another
@@ -17,12 +18,7 @@ export interface ArticleText {
   paragraphs: string[]
 }
 
-/** The paragraphs of the body keys of an article (a blank line or a line break starts a new one). */
-export const paragraphsOf = (bodies: readonly string[]): string[] =>
-  bodies
-    .flatMap((b) => b.split(/\n+/))
-    .map((p) => p.trim())
-    .filter(Boolean)
+export { paragraphsOf }
 
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

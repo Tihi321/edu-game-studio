@@ -1,6 +1,6 @@
-import { button, h, type Child } from '../../dom'
+import { button, h } from '../../dom'
+import { glossify, glossParagraph, glossPopover } from '../../gloss'
 import type { EncApp } from './app'
-import type { Seg } from './articles'
 
 const host = (url: string): string => {
   try {
@@ -8,19 +8,6 @@ const host = (url: string): string => {
   } catch {
     return url
   }
-}
-
-/** A paragraph of runs of text and links (a link is a button: it opens the other article and `back` returns here). */
-function paragraph(app: EncApp, id: string, segs: readonly Seg[]): HTMLElement {
-  return h(
-    'p',
-    {},
-    segs.map((seg): Child =>
-      seg.link
-        ? button(`link-${seg.link}`, seg.text, () => app.article(seg.link as string, () => app.article(id)), { class: 'enc-xlink' })
-        : seg.text
-    )
-  )
 }
 
 /**
@@ -90,7 +77,12 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
   const related = a.related.filter((r) => app.arts.has(r))
   const facts = new Map(s.pack.factbase.map((f) => [f.id, f]))
   const cites = a.citations.map((c) => facts.get(c)).filter((f): f is NonNullable<typeof f> => !!f)
-  const segs = app.segments(id)
+  const words = app.glossWords(id)
+  const pop = glossPopover(s.ui)
+  const off = new Set(words.filter((w) => app.glossOff().has(`${id}/${w.id}`)).map((w) => w.id))
+  // a link to another article: it opens that one and `back` returns here
+  const link = (to: string, text: string): HTMLElement => button(`link-${to}`, text, () => app.article(to, () => app.article(id)), { class: 'enc-xlink' })
+  const segs = glossify(app.segments(id), words)
 
   return h(
     'div',
@@ -106,7 +98,7 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
         h('h1', { class: 'screen-title enc-article-title', tabindex: '-1', testid: 'article-title' }, a.title),
         h('p', { class: 'enc-rule', 'aria-hidden': 'true' }),
         seal,
-        h('div', { class: 'enc-body', testid: 'article-body' }, segs.map((sg) => paragraph(app, id, sg)))
+        h('div', { class: 'enc-body gloss-scope', testid: 'article-body', ...(words.length > 0 && s.pack.targetLang ? { lang: s.pack.targetLang } : {}) }, segs.map((sg) => glossParagraph(sg, pop, link, off)), words.length > 0 ? pop.el : null)
       ),
       h(
         'aside',

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
+import { buildFixtureGame, chromiumUnavailable, expectCleanAxe, expectPassed, PLAYER_OUT, play, type BotSummary } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
@@ -143,4 +143,91 @@ describe.skipIf(!!unavailable)('autoplay bot in the encyclopedia explorer', () =
       })
     })
   }
+})
+
+// ---- the reader and the passage panel (EGS-35): the `de-b2-reading` fixture ----
+
+interface ReaderStats {
+  chapters: number
+  taps: number
+  read: number
+  deck: number
+  toc: number
+  arrows: number
+  practice: number
+  practiceAnswers: number
+}
+interface PassageStats {
+  items: number
+  opened: number
+  taps: number
+}
+
+describe.skipIf(!!unavailable)('autoplay bot in the reader of a reading course (de-b2-reading)', () => {
+  let dirP: Promise<string> | undefined
+  const built = (): Promise<string> => (dirP ??= buildFixtureGame('de-b2-reading'))
+  const run = async (shell: string, ...args: string[]) => play(await built(), [...args, '--shell', shell])
+  const reader = (s: BotSummary) => (s.encyclopedia as { reader: ReaderStats }).reader
+  const passages = (s: BotSummary) => s.passages as PassageStats
+
+  it.concurrent('perfect: the reader opens first; contents, tap-to-gloss, the deck switch, reading to the end, arrow keys and the practice with the text open', { timeout: 300_000 }, async () => {
+    const r = await run('encyclopedia', '--mode', 'perfect', '--seed', '1')
+    expectPassed(r)
+    const s = r.summary
+    expect(s.finished).toBe(true)
+    expect(s.wrong).toBe(0)
+    expect(s.screens).toEqual(expect.arrayContaining(['title', 'reader', 'explore', 'article', 'item', 'feedback', 'hunts', 'end']))
+    expect(reader(s)).toEqual({ chapters: 2, taps: 2, read: 2, deck: 1, toc: 1, arrows: 2, practice: 2, practiceAnswers: 10 })
+    // the ten questions of the practice come with their text open; the hunts' questions have it closed and the bot opens it
+    expect(passages(s).items).toBeGreaterThanOrEqual(10)
+    expect(passages(s).opened).toBe(passages(s).items)
+    expect(passages(s).taps).toBeGreaterThan(0)
+  })
+
+  it.concurrent('keyboard only: Tab, Enter, Space and the arrow keys read, gloss, switch the deck and practise; axe is clean on the reader and its popover', { timeout: 300_000 }, async () => {
+    const r = await run('encyclopedia', '--mode', 'perfect', '--seed', '1', '--keyboard', '--axe')
+    expectPassed(r)
+    const s = r.summary
+    expect(s.finished).toBe(true)
+    expect(s.keyboard?.mouseClicks).toBe(0)
+    expect(reader(s).read).toBe(2)
+    expectCleanAxe(s, 15)
+    expect(s.axe?.screens).toEqual(expect.arrayContaining(['reader', 'reader-popover', 'reader-end', 'explore', 'article-hunt']))
+  })
+
+  it.concurrent('phone: the reader fits 390 x 844 (no overflow), axe is clean', { timeout: 300_000 }, async () => {
+    const r = await run('encyclopedia', '--mode', 'perfect', '--seed', '2', '--keyboard', '--axe', '--viewport', '390x844')
+    expectPassed(r)
+    expectCleanAxe(r.summary, 15)
+    expect(r.summary.axe?.screens).toEqual(expect.arrayContaining(['reader', 'reader-popover']))
+  })
+
+  it.concurrent('wrong: a text is practised with every answer wrong; the text stays available and nothing is won', { timeout: 300_000 }, async () => {
+    const r = await run('encyclopedia', '--mode', 'wrong', '--seed', '2', '--rounds', '1')
+    expectPassed(r)
+    expect(r.summary.finished).toBe(false)
+    expect(r.summary.correct).toBe(0)
+    expect(reader(r.summary).chapters).toBe(2)
+    expect(reader(r.summary).practice).toBe(2)
+    expect(passages(r.summary).opened).toBe(passages(r.summary).items)
+  })
+
+  it.concurrent('random: a seeded 75 % learner reads, practises and wins the hunts', { timeout: 300_000 }, async () => {
+    const r = await run('encyclopedia', '--mode', 'random', '--seed', '7', '--accuracy', '0.75')
+    expectPassed(r)
+    expect(r.summary.finished).toBe(true)
+    expect(reader(r.summary).read).toBe(2)
+  })
+
+  it.concurrent('quiz arena: the questions on a text have a closed "Read the text" panel that opens, shows the text and glosses a word', { timeout: 300_000 }, async () => {
+    const r = await run('quiz-arena', '--mode', 'perfect', '--seed', '3', '--axe')
+    expectPassed(r)
+    const s = r.summary
+    expect(s.finished).toBe(true)
+    expect(s.wrong).toBe(0)
+    expect(passages(s).items).toBe(s.steps)
+    expect(passages(s).opened).toBe(s.steps)
+    expect(passages(s).taps).toBeGreaterThan(0)
+    expectCleanAxe(s, 5)
+  })
 })

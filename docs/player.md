@@ -265,10 +265,31 @@ Every world screen has the tabs (`nav-index`, `nav-timeline` and `nav-map` only 
 
 Every text value is a catalog key (so Book Translator translates it); step ids are unique across all hunts. A part that is missing falls back to the automatic layout (or is hidden): without `hunts`, one hunt per unit whose steps are the unit's articles (at most 6; a unit without articles gets one built from each objective and its facts), each asking an item of the objective that cites a fact the article cites ("Find the article about ..."); without `timeline`, the dated entries of `order` items with `timeline: true`, linked to the article that names them; without `map`, the first image asset with no pins (the `map` tab is hidden when the course has no image). Courses play without the section (`requiresSection: false`).
 
+#### Readings: the reader, tap-to-gloss and the passage link (EGS-35, B2)
+
+For a reading course (a graded long text per article, as in the German B2 format of HUB-22) the section gets two more parts:
+
+```jsonc
+{
+  "reader": true,   // the reader is the first screen after Start (default false); a course with a glossary offers the "Reader" tab either way
+  "glossary": { "art-homeoffice": [{ "id": "pendeln", "term": "art.art-homeoffice.gl.pendeln.term", "lemma": "art.art-homeoffice.gl.pendeln.lemma",
+               "gloss": "art.art-homeoffice.gl.pendeln.gloss", "pos": "v", "note": "art.art-homeoffice.gl.pendeln.note" }] }
+}
+```
+
+`term` is the exact form in the article body (a catalog key in the target-language catalog; it is the one string that is not translated), `lemma` the dictionary form (nouns with article and plural), `gloss` and `note` are edition strings (hr, en); `pos` is `n v adj adv prep conj phrase`. A word is marked at its first mention in the text; the longest term wins where two overlap.
+
+- **Reader** (screen `reader`, tab `nav-reader`): the real articles in unit order are chapters, with a table of contents (`reader-toc`, `reader-chapter-<articleId>`), a reading-width column in larger type, `reader-prev` / `reader-next` (also the left and right arrow keys), `reader-progress` (`data-index`, `data-total`, `data-read`) and `reader-practice` (the questions on the text, one after the other, with the text open above each: context `reader`). The chapter and how far down it was are kept; a chapter counts as read when its last paragraph (`reader-end`) has been on screen, or when the learner moves on from it.
+- **Tap-to-gloss**: a glossed word is a `button.gloss` (`gloss-<id>`, `aria-expanded`, `aria-describedby` the gloss) that opens one popover (`gloss-popover`: `gloss-lemma`, `gloss-pos`, `gloss-text`, `gloss-note`, `gloss-close`; Escape closes it). The same words are tappable in the article page and in the passage panel. The glossary of the text (`glossary-panel`, `glossary-entry-<id>`) lists every word with the switch `gloss-deck-<id>` ("in my deck", on by default); a word switched off is kept in `glossOff`.
+- **Passage link**: an item names its text with `extensions.passage = { "article": "<articleId>", "paragraphs": [from, to] }` (1-based, inclusive; `paragraphs` optional). In every shell that plays items (the renderer is wrapped where it is registered, `withPassage` in `items/common.ts`) the question gets a collapsible "Read the text" panel (`passage-toggle`, `passage-panel`): closed in a round, open when the reader asked the question. A missing article just shows no panel.
+- **Saved** in `progress.shells.encyclopedia.data`: `reader: { chapter, scroll (0 to 1), done: [articleId] }` and `glossOff: ["<articleId>/<glossId>"]`, both optional; ids the course no longer has are dropped on load.
+- Debug helper `chapters()`: `[{ id, read, glosses: [id], items: [itemId] }]`.
+
 #### Lint codes (`src/shared/shells/encyclopedia.ts`)
 
 Validator: `UNKNOWN_UNIT` (a hunt's unit), `DUPLICATE_ID` (hunts, events, places, steps), `UNKNOWN_ASSET` (the map's asset), `MISSING_TEXT` (a catalog key without a string, checked per edition).
 Lint errors: `ENC_HUNT_TARGET_MISSING`, `ENC_HUNT_ITEM_MISSING`, `ENC_HUNT_ITEM_DUPLICATE` (two steps of a hunt ask the same item: the second could never come up), `ENC_UNIT_NO_HUNT` (a unit no hunt covers could never be mastered), `ENC_HUNT_EMPTY`, `ENC_TIMELINE_ARTICLE_MISSING`, `ENC_MAP_ARTICLE_MISSING`, `ENC_MAP_PLACE_OUTSIDE`, `ENC_MAP_NO_IMAGE`.
+Glossary (EGS-35): `GLOSS_TERM_NOT_IN_TEXT` (error: the term is not a substring of its article body), `GLOSS_DUPLICATE` (error: one term twice in one text), `GLOSS_COVERAGE` (warning: fewer than 8 entries for a text of 300 words or more); the validator adds `UNKNOWN_ARTICLE` (a glossary for an article that does not exist) and `DUPLICATE_ID` (a gloss id twice in one text), and a missing gloss text is `TEXT_MISSING` (in the edition). Whether a text is really B2 is not something the lint can decide.
 Warnings: `ENC_ANSWER_NOT_IN_ARTICLE` (the right answer of a step's item, by option text, canonical typed answer, cloze gaps, flashcard back or hotspot label, is not in the target article in some edition; words are matched by stem, so Croatian inflection passes; true / false, multi-select and ordering kinds are skipped), `ENC_HUNT_ITEM_OTHER_UNIT`.
 The automatic layout is linted too.
 
@@ -277,7 +298,8 @@ The automatic layout is linted too.
 - `perfect`: every unit's hunt in prerequisite order to 3 stars, then the grand hunt and `finish` -> `end`. Per clue it reads the pinned clue, reaches the target article by search + a click on the result, by the index, by search + Enter, or by a cross-link / "See also" (in turn), presses `collect-<step>` and answers right. It also searches for nonsense (no results, `search-status` says so), reads a locked chapter's article, checks every article page once (title, body, `link-*` for every mention, `related-*`, `citation-*`, the figure, no audio slot without audio, new-tab citation links), uses Home / End / the arrow keys on the timeline and the arrow keys on the map, opens an event and a place (and one place from the list), and counts the codex (empty at the start, every collectible after the unit hunts). The page content must animate with `edu-enter-page`.
 - `wrong`: every answer wrong (`--rounds N` plays each open hunt N times; runs with `prefers-reduced-motion: reduce`, and checks that nothing animates). The clue stays pinned, the target article and its `collect-<step>` are always there, a missed clue comes back (more answers than steps), the codex stays empty, the review queue fills, the hunt ends with 0 stars and can be played again, the other chapters and the grand hunt stay locked, `finish` never shows.
 - `random`: a seeded learner (`--accuracy`) hunts until every unit is mastered (2+ stars), then the grand hunt until it earns a star, within `maxSteps = ceil(6 * (steps of all hunts + 2 * units) * factor) + 20` (reduced motion, like `wrong`).
-- `--keyboard`, `--axe`, `--shots` and `--viewport` work as in every shell. The summary adds `encyclopedia: { hunts, steps, search, searchEnter, index, crossLinks, related, articlesChecked, events, places, collectibles, locked, reducedMotion }`.
+- `--keyboard`, `--axe`, `--shots` and `--viewport` work as in every shell. The summary adds `encyclopedia: { hunts, steps, search, searchEnter, index, crossLinks, related, articlesChecked, events, places, collectibles, locked, reducedMotion, reader }`.
+- A course with `reader: true` is walked in the reader first (`encyclopedia.reader: { chapters, taps, read, deck, toc, arrows, practice, practiceAnswers }`): the contents, a tap on a glossed word (popover, `aria-expanded`, close), the deck switch (kept when the chapter is opened again), reading each chapter to `reader-end`, `reader-next`, the contents, the arrow keys and the practice. In every shell the bot checks an item with `extensions.passage` (`summary.passages: { items, opened, taps }`): the panel is closed (open in the reader's practice), the toggle opens it, a glossed word in it can be tapped.
 
 ### The MindMaze castle (`mindmaze`, EGS-11)
 

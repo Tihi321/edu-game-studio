@@ -1306,3 +1306,117 @@
     transform: none;
   }
 }
+
+/* ---- a text an item is about, with tap-to-gloss words (EGS-35) ---- */
+
+.edu-stage .passage {
+  margin-bottom: var(--edu-space-4);
+}
+
+.edu-stage .passage-panel {
+  margin-top: var(--edu-space-2);
+  padding: var(--edu-space-4);
+  max-height: 22rem;
+  overflow: auto;
+  background: var(--edu-surface-2);
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-m);
+  line-height: var(--edu-leading-loose);
+}
+
+.edu-stage .passage-panel[hidden],
+.edu-stage .gloss-pop[hidden] {
+  display: none;
+}
+
+.edu-stage .passage-title {
+  margin: 0 0 var(--edu-space-3);
+  font-weight: 700;
+}
+
+.edu-stage .passage-panel p {
+  margin: 0 0 var(--edu-space-3);
+}
+
+.edu-stage .gloss-scope {
+  position: relative;
+}
+
+/* a glossed word: a button that reads as text with a dashed underline */
+.edu-stage button.gloss {
+  display: inline;
+  padding: 0 1px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  background: color-mix(in srgb, var(--edu-mark) 22%, transparent);
+  border: 0;
+  border-bottom: 2px dashed var(--edu-accent);
+  border-radius: 2px;
+  cursor: help;
+}
+
+.edu-stage button.gloss:hover,
+.edu-stage button.gloss[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--edu-mark) 45%, transparent);
+  border-bottom-style: solid;
+}
+
+/* a word taken out of the vocabulary deck is quieter */
+.edu-stage button.gloss.is-off {
+  background: transparent;
+}
+
+.edu-stage .gloss-pop {
+  position: absolute;
+  z-index: var(--edu-z-raised);
+  width: min(20rem, 100%);
+  padding: var(--edu-space-3) var(--edu-space-4);
+  padding-right: calc(var(--edu-space-4) + 1.5rem);
+  font-size: var(--edu-text-m);
+  line-height: var(--edu-leading);
+  color: var(--edu-text);
+  background: var(--edu-surface);
+  border: 2px solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-m);
+  box-shadow: var(--edu-shadow-2);
+}
+
+.edu-stage .gloss-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2);
+  align-items: baseline;
+}
+
+.edu-stage .gloss-pos {
+  font-size: var(--edu-text-s);
+  font-style: italic;
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .gloss-pop p {
+  margin: var(--edu-space-1) 0 0;
+}
+
+.edu-stage .gloss-note {
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .gloss-close {
+  position: absolute;
+  top: var(--edu-space-1);
+  right: var(--edu-space-1);
+  min-width: 2rem;
+  min-height: 2rem;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  border-radius: var(--edu-radius-s);
+}
+
+.edu-stage .gloss-close:hover {
+  background: var(--edu-surface-2);
+}

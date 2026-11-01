@@ -1,7 +1,9 @@
 import type { CheckResult } from '../../shared/edu'
 import { shuffledCopy } from '../../shared/edu'
+import { encyclopediaSectionSchema, glossaryOf, paragraphsOf, passageOf } from '../../shared/shells/encyclopedia'
 import { button, h } from '../dom'
-import type { ItemContext } from '../types'
+import { glossify, glossParagraph, glossPopover, type GlossWord } from '../gloss'
+import type { ItemContext, ItemRenderer } from '../types'
 
 /** The options in the order shown: shuffled with the seeded generator when the item allows (`shuffle` is not false). */
 export function orderedOptions<T>(ctx: ItemContext, options: readonly T[], shuffle: boolean | undefined): T[] {
@@ -67,3 +69,77 @@ export function itemImage(ctx: ItemContext): HTMLElement | null {
 }
 
 export type Revealer = (result: CheckResult, answer: unknown) => void
+
+// ---- the text an item is about (EGS-35) ----
+
+let passageCount = 0
+
+/**
+ * The "Read the text" panel of an item that names a text with `extensions.passage = { article, paragraphs? }`: a toggle (`passage-toggle`)
+ * and the panel (`passage-panel`) with the article body or its paragraph range, glossed words tappable. Closed unless `open`. Null when the
+ * item has no passage or the article does not exist.
+ */
+export function passagePanel(ctx: ItemContext, open: boolean): HTMLElement | null {
+  const passage = passageOf(ctx.item)
+  if (!passage) return null
+  const pack = ctx.data.pack
+  const article = pack.encyclopedia.articles.find((a) => a.id === passage.article)
+  const body = article ? ctx.text.text(article.body) : undefined
+  if (!article || body === undefined) return null
+  const all = paragraphsOf([body])
+  const [from, to] = passage.paragraphs ?? [1, all.length]
+  const paragraphs = all.slice(from - 1, to)
+  if (paragraphs.length === 0) return null
+
+  const section = encyclopediaSectionSchema.safeParse(pack.shells?.config?.encyclopedia ?? {})
+  const words: GlossWord[] = glossaryOf(section.success ? section.data : undefined, article.id).flatMap((e) => {
+    const term = ctx.text.text(e.term)
+    const gloss = ctx.text.text(e.gloss)
+    if (term === undefined || gloss === undefined) return []
+    const lemma = e.lemma ? ctx.text.text(e.lemma) : undefined
+    const note = e.note ? ctx.text.text(e.note) : undefined
+    return [{ id: e.id, term, gloss, ...(lemma ? { lemma } : {}), ...(e.pos ? { pos: e.pos } : {}), ...(note ? { note } : {}) }]
+  })
+
+  const id = `passage-${++passageCount}`
+  const pop = glossPopover(ctx.ui)
+  const segs = glossify(
+    paragraphs.map((p) => [{ text: p }]),
+    words
+  )
+  const panel = h(
+    'div',
+    { class: 'passage-panel gloss-scope', id, role: 'region', 'aria-label': `${ctx.ui('passage.title')}: ${ctx.text.t(article.title)}`, testid: 'passage-panel', hidden: !open },
+    h('p', { class: 'passage-title' }, ctx.text.t(article.title)),
+    segs.map((s) => glossParagraph(s, pop)),
+    pop.el
+  )
+  const toggle = button('passage-toggle', '', () => set(panel.hidden), { class: 'btn btn-small btn-ghost passage-toggle', 'aria-controls': id })
+  function set(show: boolean): void {
+    panel.hidden = !show
+    toggle.textContent = `${show ? '▾' : '▸'} ${ctx.ui(show ? 'passage.hide' : 'passage.show')}`
+    toggle.setAttribute('aria-expanded', String(show))
+    if (!show) pop.hide()
+  }
+  set(open)
+  return h('div', { class: 'passage', testid: 'passage', 'data-article': article.id }, toggle, panel)
+}
+
+/** The renderer of a kind with the passage panel above the item (when the item has a passage). Every shell gets it through `getItemRenderer`. */
+export function withPassage(renderer: ItemRenderer): ItemRenderer {
+  return {
+    ...renderer,
+    render(ctx) {
+      const view = renderer.render(ctx)
+      const panel = passagePanel(ctx, ctx.passageOpen === true)
+      if (!panel) return view
+      return {
+        el: h('div', { class: 'with-passage' }, panel, view.el),
+        focus: () => view.focus(),
+        reveal: (result, answer) => view.reveal(result, answer),
+        ...(view.key ? { key: (e: KeyboardEvent) => view.key?.(e) ?? false } : {}),
+        destroy: () => view.destroy?.()
+      }
+    }
+  }
+}

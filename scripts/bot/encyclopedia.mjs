@@ -13,8 +13,12 @@
  *   random   a seeded learner (--accuracy) plays the hunts until every unit is mastered (2+ stars), then the grand hunt until it earns a
  *            star, within maxSteps.
  *
+ * A reading course (EGS-35: `encyclopedia.reader: true`, the glossary) starts in the READER: the bot checks the contents, taps a glossed word
+ * (popover, close), switches a word out of the deck (kept when the chapter is opened again), reads each chapter to its last paragraph,
+ * moves with the buttons, the contents and the arrow keys, and practises the questions on a chapter (the passage panel is open there).
+ *
  * The shell's read-only helpers (`EduEngine.debug.shell`): hunts(), finalHunt(), target(), searchTerm(id), links(id), articles(),
- * timeline(), places(), codex(), queue(). The page publishes `getState().view` (found, read, counts, hunt, article ...).
+ * timeline(), places(), codex(), queue(), chapters(). The page publishes `getState().view` (found, read, counts, hunt, article ...).
  */
 
 /** maxSteps = ceil(6 * (steps of all hunts + the grand hunt) * factor) + 20 (a hunt asks every step once and a missed one at most twice more). */
@@ -26,7 +30,7 @@ export function maxSteps({ pack, factor }) {
 
 export async function play(bot) {
   const { page, opts, pack, tid, fail, state, exists, press, tabTo, focusedId, waitScreen, waitChange, shot, overflowCheck, answerWhileItem, openQuestion, shellDebug, rng, focusInMain, summary } = bot
-  const stats = { hunts: 0, steps: 0, search: 0, searchEnter: 0, index: 0, crossLinks: 0, related: 0, articlesChecked: 0, events: 0, places: 0, collectibles: 0, locked: 0 }
+  const stats = { hunts: 0, steps: 0, search: 0, searchEnter: 0, index: 0, crossLinks: 0, related: 0, articlesChecked: 0, events: 0, places: 0, collectibles: 0, locked: 0, reader: null }
   summary.encyclopedia = stats
   const checked = new Set()
 
@@ -245,6 +249,137 @@ export async function play(bot) {
     return { found, total: cx.length }
   }
 
+  // ---------------------------------------------------------------- the reader (EGS-35)
+
+  const progressOf = () => page.locator(tid('reader-progress')).evaluate((el) => ({ chapter: el.dataset.chapter, index: Number(el.dataset.index), total: Number(el.dataset.total), read: el.dataset.read === 'true' }))
+  const waitChapter = async (index, what) => {
+    try {
+      await page.waitForFunction(`document.querySelector('[data-testid="reader-progress"]')?.dataset.index === '${index}'`, undefined, { timeout: 8000 })
+    } catch {
+      throw new Error(`stuck: ${what} (the reader shows chapter ${(await progressOf()).index}, expected ${index})`)
+    }
+    if (opts.keyboard) await focusInMain(what)
+  }
+  const setDeck = async (gid, on) => {
+    if (opts.keyboard) {
+      await tabTo(`gloss-deck-${gid}`)
+      await page.keyboard.press('Space')
+    } else await page.locator(tid(`gloss-deck-${gid}`)).setChecked(on)
+  }
+
+  /** The whole reader: contents, tap-to-gloss, the deck switch, reading to the end, the ways between chapters, practice. */
+  async function readerWalk() {
+    const rs = (stats.reader = { chapters: 0, taps: 0, read: 0, deck: 0, arrows: 0, toc: 0, practice: 0, practiceAnswers: 0 })
+    const chapters = await shellDebug('chapters')
+    if (chapters.length === 0) throw new Error('the reader is the first screen but the course has no chapters')
+    for (const id of ['reader', 'reader-toc', 'reader-progress', 'reader-title', 'reader-body', 'reader-prev', 'reader-next', 'reader-end', 'glossary-panel']) if (!(await exists(id))) fail(`reader: there is no ${id}`)
+    if ((await page.locator('h1').count()) !== 1) fail(`the reader has ${await page.locator('h1').count()} h1 elements`)
+    if (!(await page.locator(tid('reader-prev')).isDisabled())) fail('reader: prev is enabled on the first chapter')
+    for (const c of chapters) if (!(await exists(`reader-chapter-${c.id}`))) fail(`reader: the contents have no reader-chapter-${c.id}`)
+    await shot('reader')
+    await overflowCheck('reader')
+
+    for (let i = 0; i < chapters.length; i++) {
+      const c = chapters[i]
+      const p = await progressOf()
+      if (p.chapter !== c.id || p.index !== i + 1 || p.total !== chapters.length) fail(`reader: the progress says ${JSON.stringify(p)}, expected chapter ${c.id} (${i + 1} of ${chapters.length})`)
+      rs.chapters++
+      for (const g of c.glosses) {
+        if ((await page.locator(tid(`gloss-${g}`)).count()) !== 1) fail(`reader ${c.id}: the gloss ${g} is not exactly once in the text`)
+        if (!(await exists(`gloss-deck-${g}`)) || !(await exists(`glossary-entry-${g}`))) fail(`reader ${c.id}: the glossary has no entry or deck switch for ${g}`)
+      }
+      if ((await page.locator(tid('glossary-panel')).locator('li').count()) !== c.glosses.length) fail(`reader ${c.id}: the glossary lists a different number of words than the course has`)
+
+      // tap-to-gloss: the popover opens under the word, says what it means, closes again
+      if (c.glosses.length > 0) {
+        const g = c.glosses[i % c.glosses.length]
+        await press(`gloss-${g}`)
+        const pop = page.locator(tid('gloss-popover'))
+        if (!(await pop.isVisible())) fail(`reader ${c.id}: tapping gloss-${g} opens no popover`)
+        else {
+          if ((await text('gloss-text')).length === 0) fail(`reader ${c.id}: the popover of ${g} has no gloss`)
+          if ((await page.locator(tid(`gloss-${g}`)).getAttribute('aria-expanded')) !== 'true') fail(`reader ${c.id}: gloss-${g} is not aria-expanded while its popover is open`)
+          if (!(await page.locator(tid(`gloss-${g}`)).getAttribute('aria-describedby'))) fail(`reader ${c.id}: gloss-${g} has no aria-describedby`)
+          await shot('reader-popover')
+          await press('gloss-close')
+          if (await pop.isVisible()) fail(`reader ${c.id}: gloss-close leaves the popover open`)
+        }
+        rs.taps++
+      }
+
+      // the deck switch of the first word of the first chapter (kept when the chapter is opened again, below)
+      if (i === 0 && c.glosses.length > 0) {
+        await setDeck(c.glosses[0], false)
+        if (await page.locator(tid(`gloss-deck-${c.glosses[0]}`)).isChecked()) fail('reader: the deck switch stays on after it was turned off')
+        rs.deck++
+      }
+
+      // reading to the last paragraph marks the chapter read
+      await page.locator(tid('reader-end')).scrollIntoViewIfNeeded()
+      try {
+        await page.waitForFunction("document.querySelector('[data-testid=\"reader-progress\"]')?.dataset.read === 'true'", undefined, { timeout: 8000 })
+        rs.read++
+      } catch {
+        fail(`reader ${c.id}: the last paragraph is on screen but the chapter is not marked read`)
+      }
+      if (!(await page.locator(tid('reader-done')).isVisible())) fail(`reader ${c.id}: a chapter read to the end shows no reader-done note`)
+
+      if (i < chapters.length - 1) {
+        await press('reader-next')
+        await waitChapter(i + 2, 'reader-next')
+      }
+    }
+    if (!(await page.locator(tid('reader-next')).isDisabled())) fail('reader: next is enabled on the last chapter')
+
+    // the contents jump back to the first chapter; the deck switch was kept; every chapter shows as read
+    await press(`reader-chapter-${chapters[0].id}`)
+    await waitChapter(1, 'the contents')
+    rs.toc++
+    if (chapters[0].glosses.length > 0) {
+      const g = chapters[0].glosses[0]
+      if (await page.locator(tid(`gloss-deck-${g}`)).isChecked()) fail('reader: the deck switch was not kept when the chapter was opened again')
+      if (!/\bis-off\b/.test((await page.locator(tid(`gloss-${g}`)).getAttribute('class')) ?? '')) fail(`reader: gloss-${g} is not marked as out of the deck`)
+      await setDeck(g, true)
+      if (!(await page.locator(tid(`gloss-deck-${g}`)).isChecked())) fail('reader: the deck switch cannot be turned on again')
+    }
+    for (const c of chapters) if ((await page.locator(tid(`reader-chapter-${c.id}`)).getAttribute('data-read')) !== 'true') fail(`reader: the contents do not show ${c.id} as read`)
+
+    // the arrow keys change chapter
+    if (chapters.length >= 2) {
+      await page.locator(tid('reader-title')).focus()
+      await page.keyboard.press('ArrowRight')
+      await waitChapter(2, 'ArrowRight')
+      await page.keyboard.press('ArrowLeft')
+      await waitChapter(1, 'ArrowLeft')
+      rs.arrows += 2
+    }
+
+    // practise the questions on each text: the text is open above them
+    for (let i = 0; i < chapters.length; i++) {
+      const c = chapters[i]
+      if (c.items.length === 0) continue
+      if (i > 0) {
+        await press(`reader-chapter-${c.id}`)
+        await waitChapter(i + 1, 'the contents')
+      }
+      if (!(await exists('reader-practice'))) {
+        fail(`reader ${c.id}: it has ${c.items.length} question(s) but no reader-practice`)
+        continue
+      }
+      const prev = await state()
+      await press('reader-practice')
+      await waitChange(prev, 'reader-practice')
+      const q = await state()
+      if (q.screen !== 'item' || q.context !== 'reader') throw new Error(`reader-practice did not open a question (screen "${q.screen}", context "${q.context}")`)
+      if (!c.items.includes(q.itemId)) fail(`reader-practice on ${c.id} asked ${q.itemId}, which does not belong to the text`)
+      const after = await answerWhileItem(`the practice on ${c.id}`)
+      if (after.screen !== 'reader') throw new Error(`the practice on ${c.id} ended on "${after.screen}", expected the reader`)
+      rs.practice++
+      rs.practiceAnswers += (await state()).steps - q.steps
+    }
+    await shot('reader-end')
+  }
+
   // ---------------------------------------------------------------- hunts
 
   /** Plays the hunt that has just been started (the explore screen with the clue pinned) until the run is over. Returns the answers given. */
@@ -324,7 +459,14 @@ export async function play(bot) {
   const reduced = !opts.keyboard && opts.mode !== 'perfect'
   if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' })
   stats.reducedMotion = reduced
-  await bot.pressAndWait('start', 'start', 'explore')
+  const readerFirst = pack.shells?.config?.encyclopedia?.reader === true
+  await bot.pressAndWait('start', 'start', readerFirst ? 'reader' : 'explore')
+  if (readerFirst) {
+    if (opts.keyboard) await focusInMain('start')
+    await readerWalk()
+    await press('nav-index')
+    await waitScreen('explore', 'nav-index')
+  }
   {
     const anim = await page.evaluate(() => {
       const el = document.querySelector('.enc-page > :not(.enc-tabs):not(.enc-clue)')
