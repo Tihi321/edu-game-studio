@@ -26,7 +26,7 @@ export const seedHash = (content: string | Buffer): string => createHash('sha1')
  * EGS-06: the skeleton's roles.md (the director only) and providers.md (no search providers). EGS-07: the skeleton's studios.md (no Scriptorium).
  */
 export const SEED_HISTORY: Record<string, string[]> = {
-  'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88'],
+  'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88', 'de514738d52ee3af0f0b8b6c1519e22e2af154f9'],
   'config/providers.md': ['5aecc02009ddbba887510a274691d7b79d068af0'],
   'config/studios.md': ['37a657caf935ec861a816ac7a3809bf0abf100c2'],
   // EGS-29: language-a1 only (no A2 / B1, no verb units); the curriculum and scope prompts before the verb-unit note.
@@ -40,7 +40,12 @@ export const SEED_HISTORY: Record<string, string[]> = {
   'prompts/misconception-designer/distractors.md': ['60c7d76084a44ca6ef73c0756c93daf4a8939b42'],
   'prompts/explainer/explain.md': ['97b72f05ed74ab8c4805036e5fa0068e34d9a601'],
   'prompts/fact-checker/fact_check.md': ['d40f651bc39e2defbf8fc423d7ea2b008635ec73'],
-  'agents/language-coach-ines-markovic.md': ['9c2f75b0bb382873742e7ba9366a563682c3388f']
+  'agents/language-coach-ines-markovic.md': ['9c2f75b0bb382873742e7ba9366a563682c3388f'],
+  // EGS-47: the seed files HUB-22 changed whose pre-HUB-22 hash was missing (roles: translator; voice: German; languages; readings).
+  'config/voice.md': ['49045c07ff69cd58496f3df27b070e6cfa62ca1d'],
+  'config/languages.md': ['44401d2836ce03d3bbf98541079cae48eefd6712'],
+  'prompts/voice-director/plan.md': ['b4ea7c2d1c9bcdd4a68a453ae66810130d363c19'],
+  'prompts/subject-expert/articles_revise.md': ['94b54c239ca90ffebee38097478c4e7fe46bc5be']
 }
 
 export interface SeedState {
