@@ -20,7 +20,8 @@ const THEMES = [
   ['parchment', 'Parchment and brass'],
   ['pixel', 'Pixel quest'],
   ['postcard', 'Adriatic postcard'],
-  ['noir', 'Case file noir']
+  ['noir', 'Case file noir'],
+  ['menu', 'Game lobby']
 ]
 const VIEWPORTS = [
   ['desktop', { width: 1280, height: 800 }],

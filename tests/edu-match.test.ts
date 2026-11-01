@@ -97,3 +97,47 @@ describe('matchAnswer', () => {
     expect(resolveDiacritics(undefined, undefined)).toBe('ignore')
   })
 })
+
+describe('German rules (lang: de)', () => {
+  const de = { lang: 'de', diacritics: resolveDiacritics(undefined, undefined, 'de') } as const
+  const m = (input: string, acc: string[]) => matchAnswer(input, acc, de)
+  it.each([
+    ['Mädchen', ['Mädchen'], { correct: true, exact: true }],
+    ['mädchen', ['Mädchen'], { correct: true, caps: true }],
+    ['Maedchen', ['Mädchen'], { correct: true, translit: true }],
+    ['Madchen', ['Mädchen'], { correct: false, diacritics: true }],
+    ['Straße', ['Straße'], { correct: true, exact: true }],
+    ['Strasse', ['Straße'], { correct: true, translit: true }],
+    ['Strase', ['Straße'], { correct: true, typo: true }],
+    ['Bruder', ['Brüder'], { correct: false, diacritics: true }],
+    ['Brueder', ['Brüder'], { correct: true, translit: true }],
+    ['Feuer', ['Feuer'], { correct: true, exact: true }],
+    ['Haus', ['Haus'], { correct: true, exact: true }],
+    ['haus', ['Haus'], { correct: true, caps: true }],
+    ['Wasse', ['Wasser'], { correct: true, typo: true }],
+    ['Ich heiße Anna', ['Ich heiße Anna'], { correct: true, exact: true }],
+    ['ich heisse anna', ['Ich heiße Anna'], { correct: true, translit: true, caps: true }],
+    ['ich heiße Anna', ['Ich heiße Anna'], { correct: true }],
+    ['Nur ssen', ['Nur Füße'], { correct: false }]
+  ] as const)('%s vs %j', (input, acc, want) => {
+    expect(m(input, [...acc])).toMatchObject(want)
+  })
+  it('the first word of a phrase is not a noun', () => {
+    expect(m('ich gehe', ['Ich gehe']).caps).toBeUndefined()
+  })
+  it('an item can opt out of strictness, and a course policy of warn wins', () => {
+    expect(resolveDiacritics(false, undefined, 'de')).toBe('ignore')
+    expect(resolveDiacritics(undefined, 'warn', 'de')).toBe('warn')
+    expect(resolveDiacritics(undefined, 'ignore', 'de')).toBe('strict')
+    expect(matchAnswer('Madchen', ['Mädchen'], { lang: 'de', diacritics: 'ignore' }).correct).toBe(true)
+  })
+  it('other languages are unchanged', () => {
+    expect(resolveDiacritics(undefined, undefined, 'hr')).toBe('ignore')
+    expect(matchAnswer('cuvar', ['čuvar'], { lang: 'hr' })).toMatchObject({ correct: true })
+    expect(matchAnswer('Maedchen', ['Mädchen'], { lang: 'hr' }).translit).toBeUndefined()
+    expect(matchAnswer('mädchen', ['Mädchen']).caps).toBeUndefined()
+  })
+  it('typos can be turned off (conjugation forms)', () => {
+    expect(matchAnswer('seid', ['sein'], { ...de, typos: false }).correct).toBe(false)
+  })
+})

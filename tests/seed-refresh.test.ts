@@ -29,7 +29,7 @@ describe('planSeedFile (the decision)', () => {
   })
   it('hashes ignore line endings, and the earlier seed versions are the skeleton roles.md, providers.md and studios.md (EGS-06, EGS-07)', () => {
     expect(seedHash('a\r\nb\r\n')).toBe(seedHash('a\nb\n'))
-    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['config/providers.md', 'config/roles.md', 'config/studios.md'])
+    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['config/formats.md', 'config/providers.md', 'config/roles.md', 'config/studios.md', 'prompts/curriculum-designer/curriculum.md', 'prompts/language-coach/scope.md'])
   })
 })
 

@@ -151,12 +151,14 @@ export function buildFeedback(item: CourseItem, answer: unknown, result: CheckRe
   const { text, ui } = ctx
   const verdict: Feedback['verdict'] = timedOut ? 'timeout' : result.correct ? 'correct' : result.partial ? 'partial' : 'wrong'
   const praise = ui(`praise.${ctx.rng.randint(1, 5)}` as 'praise.1')
-  const title = verdict === 'correct' ? (result.typo || result.diacritics ? ui('verdict.correct') : praise) : verdict === 'timeout' ? ui('verdict.timeout') : verdict === 'partial' ? ui('verdict.partial') : ui('verdict.wrong')
+  const title = verdict === 'correct' ? (result.typo || result.diacritics || result.translit || result.caps ? ui('verdict.correct') : praise) : verdict === 'timeout' ? ui('verdict.timeout') : verdict === 'partial' ? ui('verdict.partial') : ui('verdict.wrong')
   const lines = answerLines(item, ctx)
   const notes: string[] = []
   const canon = typeof result.expected === 'string' ? result.expected : lines.join(' ')
   if (result.typo) notes.push(ui('fb.typo', { a: canon }))
   if (result.diacritics) notes.push(ui(result.correct ? 'fb.accents' : 'fb.accents.strict', { a: canon }))
+  if (result.translit) notes.push(ui('fb.note.translit', { a: canon }))
+  if (result.caps) notes.push(ui('fb.note.caps', { a: canon }))
   const detail = result.detail && !result.correct && !timedOut ? Object.values(result.detail) : undefined
   return {
     verdict,

@@ -14,6 +14,7 @@ export type ThemeId =
   | 'pixel'
   | 'postcard'
   | 'noir'
+  | 'menu'
 
 export interface ThemeInfo {
   id: ThemeId
@@ -101,6 +102,17 @@ export const THEMES: readonly ThemeInfo[] = [
     scheme: 'dark',
     fonts: ['young-serif', 'atkinson-hyperlegible-next'],
     swatch: { bg: '#15181d', surface: '#262a2f', text: '#f0e9d8', accent: '#f2b84b', accent2: '#ef6f5e' },
+    display: "'Young Serif', Georgia, 'Times New Roman', serif",
+    body: "'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif"
+  },
+  {
+    id: 'menu',
+    label: 'Game lobby',
+    description: 'The start screen of every game mode: a bright lobby with a dotted floor, white mode tiles with a pictogram chip each, indigo for Start and teal as the second voice. Only the title uses it.',
+    shell: 'menu',
+    scheme: 'light',
+    fonts: ['young-serif', 'atkinson-hyperlegible-next'],
+    swatch: { bg: '#e9ecf6', surface: '#ffffff', text: '#161a3a', accent: '#3b30c9', accent2: '#0b6e6a' },
     display: "'Young Serif', Georgia, 'Times New Roman', serif",
     body: "'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif"
   }

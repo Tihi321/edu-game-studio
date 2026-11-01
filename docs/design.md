@@ -42,6 +42,7 @@ Shared by every shell:
 
 - multiple choice, true/false and multi-select;
 - cloze (fill the gap), typed answer with tolerant matching (accents, typos, synonyms), and match pairs;
+  (German is stricter: a missing umlaut is wrong, ae/oe/ue/ss and a lower-case noun are accepted with a note; see `docs/player.md`)
 - order and timeline, sort into groups, and a map hotspot or a labelled image;
 - listening (a text-to-speech clip: pick or type what you heard) and a flashcard with spaced repetition;
 - crossword and word search, built by code.
@@ -67,6 +68,7 @@ Each role maps to models in `config/roles.md`, with fallbacks and budget caps. W
 | art-critic | Looks at each generated picture with a vision model and says pass or revise against its plan line; **not must-pass** (a rejected picture stays, marked), EGS-15 |
 | composer | Music per area (menu, each unit or group of units, boss, end, the castle and RPG areas) and mood, and the sound effects of the events; calm, instrumental, loops well; deterministic fallback plan (EGS-16) |
 | voice-director | Short narration in the source language, listening practice in the target language (every listening item's clip, and listening items derived from taught phrases that passed the fact-check) and a delivery style per language; deterministic fallback plan (EGS-17). Who speaks (Gemini within the daily free quota, VibeTTS, ComfyUI TTS) is the hub's allocation rule in code, not this role |
+| translator | Makes the other editions of a course: translates the text catalog of the source language (every string and typed-answer list), leaves the taught phrases of a language course alone, keeps keys, gap markers and placeholders. Step `editions`, after the voice and before the build (EGS-32) |
 | playtester | Plays the built game through the bot as simulated learners and reports flow, difficulty and dead ends |
 | accessibility- and child-safety-reviewer | Contrast, keyboard play, reading level; child safety for kids' courses. **Must pass** |
 | publisher | Scores against the threshold and builds the game |
@@ -85,6 +87,9 @@ The design system (EGS-05) lives in `src/design/` and is shared by the studio an
 | `castle` | MindMaze | dressed stone, torch amber, ember | Cinzel (titles) over Alegreya | doors that swing open; the torch glow flickers (opacity only) |
 | `parchment` | encyclopedia | vellum, sepia ink, brass, oxblood | EB Garamond | a page turns |
 | `pixel` | RPG | night blue, gold, grass green, stepped corners and hard shadows | Pixelify Sans | `steps()` only, `image-rendering: pixelated` |
+| `menu` | the start screen of every mode (EGS-25) | a bright game lobby: cool daylight, a dotted floor, white mode tiles with a coloured pictogram chip, indigo Start, teal second voice | Young Serif over Atkinson Hyperlegible Next | the tiles settle in once, the chosen tile lifts; both off under `prefers-reduced-motion` |
+
+**One start screen, per-screen themes (EGS-25).** The title and the mode picker are one component (`src/player/kit/start.ts`) in the `menu` theme for every mode; each mode keeps its own theme in every in-game screen. The rule: the title uses `menu`, play uses the mode's theme (`applyScreenTheme`). A mode shows its art on its first in-game screen, never on the title.
 
 A shell picks its look by id: `themeForShell('mindmaze')` (or the theme named in `shells.config[shell].theme`) returns the `ThemeInfo` (label, scheme, fonts, a `swatch` of five colours and the display and body families, so the studio can paint a Library cover or a theme picker without loading the CSS). The shell then imports `<id>.css` and puts `data-edu-theme="<id>"` and the class `edu-stage` on its root element; it never defines colours of its own. The player bundle loads the chalkboard only (`player.css`: about 200 KB with the Kalam and Atkinson fonts inlined as base64, one file that works over `file://`); the studio loads all four.
 
@@ -100,7 +105,7 @@ A shell picks its look by id: `themeForShell('mindmaze')` (or the theme named in
 
 - **Data folder** `~/EduGames`: `config/`, `agents/`, `prompts/<role>/<task>.md`, `courses/<slug>/`, `jobs/`, `logs/`.
 - **Engine core** (copied from VN Studio): jobs are markdown files that move through `jobs/{queued,running,done,failed}`; the scheduler registers a handler per task; `engine.lock` keeps one engine per data folder; providers are openai-compatible servers, Anthropic, Gemini and `client`; every MCP tool is `def(name, description, schema, run)`.
-- **Course contract** (`src/shared/course.ts`, EGS-02): `course/pack.json` is the template (ids, objectives, the prerequisite graph, items with answer keys, shells, assets, cues); `course/text/<lang>.json` is the only translatable text, so Book Translator can translate it. Answer keys are language-neutral where possible: indexes, ids, numbers.
+- **Course contract** (`src/shared/course.ts`, EGS-02): `course/pack.json` is the template (ids, objectives, the prerequisite graph, items with answer keys, shells, assets, cues); `course/text/<lang>.json` is the only translatable text, so the pipeline's `editions` step (the `translator` role, EGS-32) or Book Translator (by hand) can translate it. Answer keys are language-neutral where possible: indexes, ids, numbers.
 - **Pipeline** (EGS-08): brief, research, curriculum, articles, items, fact-check, explain, game design, story, art, music, assemble, audience reviews, voice, build, lint, playtest, publish. Art is real since EGS-15 (`art_plan`, `art_generate`, `art_review`), music since EGS-16 (`music_plan`, `music_generate`) and voice since EGS-17 (`voice_plan`, `voice_generate`: after the audience reviews so the clips speak the final text, then the pack is re-linked before the build).
 - **Media** (EGS-15): a course's media settings are `course.md` `media`; its assets are `course/assets.json` plus `course/assets/<id>/v<n>.<ext>`, with ids that come from what they illustrate; `assemble` links them into the pack (`assets[]`, `article.asset`, `item.asset`, `shells.config[*].art`). A picture that cannot be made is a labelled placeholder (lint `PLACEHOLDER_ASSET`, a warning), never a failed run. Google Flow is used only when a course asks.
 - **Audio** (EGS-16): music plays by area (`music:<area>` cues, one track at a time with a short fade) and sound effects on events (`correct`, `wrong`, `combo`, `level-up`, `boss`); the sounds are assets `mus-<area>` and `sfx-<event>` in the same manifest; the loop points of a Chiptune track are in `pack.extensions.audio.loops`. Sound is never the only carrier of meaning (design rule 8: text sits beside every sound), and the player has a mute and a "reduce audio" toggle (no music, quieter effects). Flow Music (credits) is never a default.

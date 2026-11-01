@@ -19,7 +19,7 @@ export function makeStubShell(id: string, theme: string): Shell {
       const titleState = newTitleState()
       const title = (): void => {
         s.finished = false
-        s.render('title', titleScreen(s, { tagline: id, onStart: () => unit(0) }, title, titleState))
+        s.render('title', titleScreen(s, { onStart: () => unit(0) }, title, titleState))
       }
       const units = s.units()
       const unit = (n: number): void => {

@@ -49,10 +49,6 @@
   margin-bottom: var(--edu-space-2);
 }
 
-.edu-stage .title-screen .screen-title {
-  font-size: var(--edu-text-4xl);
-}
-
 .edu-stage .screen-title:focus {
   outline: none;
 }
@@ -104,21 +100,7 @@
   background: var(--edu-bg-2);
 }
 
-/* ---- title ---- */
-
-.edu-stage .title-screen {
-  display: grid;
-  justify-items: center;
-  gap: var(--edu-space-3);
-  text-align: center;
-  padding: var(--edu-space-4) 0;
-}
-
-.edu-stage .title-screen .screen-title {
-  margin-bottom: 0;
-  max-width: 18ch;
-  text-wrap: balance;
-}
+/* ---- title: the shared start screen is styled in kit/kit.css and the menu theme (EGS-25) ---- */
 
 .edu-stage .lang-picker {
   display: flex;
