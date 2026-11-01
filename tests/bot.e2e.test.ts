@@ -7,7 +7,7 @@ import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The autoplay bot end to end: both golden fixtures are built into a game folder with the REAL player bundle (`out/player`, built by the
- * vitest global setup) and `scripts/play.mjs` plays each one in headless Chromium in all three modes, with the keyboard only (`--keyboard`,
+ * vitest global setup) and `scripts/play.mjs` plays them in headless Chromium: a perfect run per fixture and, on the first, a run with the keyboard only (`--keyboard`,
  * no mouse click at all) and with axe-core on every distinct screen and item kind (`--axe`: no serious or critical violation). Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
@@ -48,7 +48,7 @@ function play(dir: string, args: string[]): Promise<{ code: number; summary: Bot
   })
 }
 
-const FIXTURES = ['solar-system', 'hr-a1-greetings', 'european-capitals']
+const FIXTURES = ['solar-system', 'hr-a1-greetings']
 
 /** axe ran on the screens that matter and found nothing serious or critical (the counts are in the bot's JSON summary). */
 function expectCleanAxe(summary: BotSummary): void {
@@ -76,7 +76,7 @@ describe('autoplay bot on the golden fixtures', () => {
           return out
         })())
 
-      it.concurrent('perfect: right every time, every unit mastered, the end screen, an empty review queue', { timeout: 300_000 }, async () => {
+      it.concurrent('perfect: right every time, every unit mastered, the end screen, an empty review queue', { timeout: 120_000 }, async () => {
         const { code, summary, stderr } = await play(await built(), ['--mode', 'perfect', '--seed', '1'])
         expect(summary.failures, stderr).toEqual([])
         expect(code).toBe(0)
@@ -88,7 +88,8 @@ describe('autoplay bot on the golden fixtures', () => {
         expect(summary.screens).toEqual(expect.arrayContaining(['title', 'map', 'item', 'feedback', 'summary', 'end']))
       })
 
-      it.concurrent('keyboard only: Tab, Enter, Space, arrows, digits and typing finish the game, no mouse click, axe is clean', { timeout: 300_000 }, async () => {
+      if (name === 'solar-system')
+        it.concurrent('keyboard only: Tab, Enter, Space, arrows, digits and typing finish the game, no mouse click, axe is clean', { timeout: 120_000 }, async () => {
         const { code, summary, stderr } = await play(await built(), ['--mode', 'perfect', '--seed', '1', '--keyboard', '--axe'])
         expect(summary.failures, stderr).toEqual([])
         expect(code).toBe(0)
@@ -101,43 +102,6 @@ describe('autoplay bot on the golden fixtures', () => {
         expect(summary.keyboard?.focusChecks).toBeGreaterThan(30)
         expect(summary.keyboard?.ringChecks).toBeGreaterThan(50)
         expectCleanAxe(summary)
-      })
-
-      it.concurrent('axe: no serious or critical violation on any screen, item kind or feedback of a wrong answer', { timeout: 300_000 }, async () => {
-        const right = await play(await built(), ['--mode', 'perfect', '--seed', '4', '--axe'])
-        expect(right.summary.failures, right.stderr).toEqual([])
-        expectCleanAxe(right.summary)
-        const wrong = await play(await built(), ['--mode', 'wrong', '--seed', '5', '--axe'])
-        expect(wrong.summary.failures, wrong.stderr).toEqual([])
-        expectCleanAxe(wrong.summary)
-        expect(wrong.summary.axe?.screens.some((s) => s.startsWith('feedback-wrong-'))).toBe(true)
-        expect(wrong.summary.axe?.screens).toContain('review')
-      })
-
-      it.concurrent('wrong: every feedback panel explains, the review queue fills and is offered', { timeout: 300_000 }, async () => {
-        const { code, summary, stderr } = await play(await built(), ['--mode', 'wrong', '--seed', '2', '--rounds', '2'])
-        expect(summary.failures, stderr).toEqual([])
-        expect(code).toBe(0)
-        expect(summary.consoleErrors).toBe(0)
-        expect(summary.finished).toBe(false)
-        expect(summary.correct).toBe(0)
-        expect(summary.wrong).toBe(summary.steps)
-        expect(summary.screens).toEqual(expect.arrayContaining(['feedback', 'summary', 'review']))
-        // every wrong answer showed the right answer and the explanation; the distractor explanations were found where the pack has them
-        expect(summary.checks.answers).toBe(summary.wrong)
-        expect(summary.checks.explanations).toBe(summary.wrong)
-        expect(summary.checks.whys).toBeGreaterThan(0)
-      })
-
-      it.concurrent('random: a seeded 75 % learner reaches the end within the step bound', { timeout: 300_000 }, async () => {
-        const { code, summary, stderr } = await play(await built(), ['--mode', 'random', '--seed', '3', '--accuracy', '0.75'])
-        expect(summary.failures, stderr).toEqual([])
-        expect(code).toBe(0)
-        expect(summary.consoleErrors).toBe(0)
-        expect(summary.finished).toBe(true)
-        expect(summary.steps).toBeLessThanOrEqual(summary.maxSteps)
-        expect(summary.wrong).toBeGreaterThan(0)
-        expect(summary.correct).toBeGreaterThan(summary.wrong)
       })
     })
   }

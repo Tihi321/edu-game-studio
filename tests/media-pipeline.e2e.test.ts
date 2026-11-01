@@ -5,7 +5,7 @@ import { runPlaytest } from '../src/engine/edu/playtest'
 import { courseFile, json, makePipelineEnv, run, toolsOf } from './pipeline-helpers'
 import type { PipelineEnv } from './pipeline-helpers'
 
-/** The real autoplay bot on the language course with every asset kind (Chromium), moved out of tests/voice-pipeline.test.ts (EGS-40). */
+/** The real autoplay bot on the language course with every asset kind (pictures, music, sound effects, voice; Chromium). One case for all media (EGS-45; the art and music variants were subsets). */
 const SLUG = 'croatian-greetings'
 const BRIEF_LANG = { topic: 'Croatian greetings', audience: 'adults', age: 30, sourceLang: 'en', targetLang: 'hr', cefr: 'A1', units: 2, story: 'none', shells: ['quiz-arena', 'rpg'], media: { voice: { narration: true } } }
 const HR_CLIPS = ['voice-hr-item-u1-q1-opt-a', 'voice-hr-item-u1-q2-listen-transcript', 'voice-hr-item-u2-q1-opt-a', 'voice-hr-item-u2-q2-listen-transcript']

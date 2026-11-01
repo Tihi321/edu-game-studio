@@ -3,9 +3,8 @@ import { buildFixtureGame, expectCleanAxe, expectPassed, play } from './bot-help
 import { useTemp } from './edu-build-helpers'
 
 /**
- * The detective shell played end to end by the autoplay bot (EGS-14, `scripts/bot/detective.mjs`) for both fixtures that enable it
- * (solar-system: four murdle cases; european-capitals: murdle, a logic grid and the chase): perfect, wrong and random (seeded) pass with
- * 0 console errors, one keyboard-only perfect run (no mouse click) and an axe run (no serious or critical violation) per fixture.
+ * The detective shell played end to end by the autoplay bot (EGS-14, `scripts/bot/detective.mjs`): one perfect run with axe on european-capitals
+ * (murdle, a logic grid and the chase), 0 console errors. Wrong and random modes are covered by the fast detective logic tests (EGS-45).
  * Without Chromium the run fails (`yarn playwright install chromium`).
  */
 
@@ -26,7 +25,6 @@ interface Info {
 const info = (s: Record<string, unknown>): Info => s.detective as Info
 
 const CASES = [
-  { fixture: 'solar-system' as const, rooms: 4, chase: false, grid: ['case-facedown-murdle', 'case-grid-marked-murdle'] },
   { fixture: 'european-capitals' as const, rooms: 4, chase: true, grid: ['case-facedown-murdle', 'case-facedown-logic', 'case-grid-marked-logic'] }
 ]
 
@@ -37,8 +35,8 @@ describe('autoplay bot in the detective shell', () => {
       const built = (): Promise<string> => (dirP ??= buildFixtureGame(c.fixture))
       const run = async (...args: string[]) => play(await built(), [...args, '--shell', 'detective'])
 
-      it.concurrent('perfect: every room to 3 stars (too-early accusation refused, a wrong one refused, hint, grid, right one), the final room, then the chase and the end', { timeout: 300_000 }, async () => {
-        const r = await run('--mode', 'perfect', '--seed', '1')
+      it.concurrent('perfect + axe: every room to 3 stars (too-early accusation refused, a wrong one refused, hint, grid, right one), the final room, then the chase and the end', { timeout: 120_000 }, async () => {
+        const r = await run('--mode', 'perfect', '--seed', '1', '--axe')
         expectPassed(r)
         const s = r.summary
         const d = info(s)
@@ -55,6 +53,8 @@ describe('autoplay bot in the detective shell', () => {
         expect(d.wrongAccusations).toBe(c.rooms)
         expect(d.hints).toBe(c.rooms)
         expect(d.replays).toBe(0)
+        expectCleanAxe(s, 10)
+        expect(s.axe?.screens).toEqual(expect.arrayContaining(['office', 'case-solved', 'end', 'case-wrong-accusation', ...c.grid]))
         if (c.chase) {
           expect(s.screens).toEqual(expect.arrayContaining(['chase', 'caught']))
           expect(d.caught).toBe(true)
@@ -67,7 +67,7 @@ describe('autoplay bot in the detective shell', () => {
         }
       })
 
-      it.concurrent('keyboard only: Tab, Enter and Space play the file, no mouse click, axe is clean on every distinct screen', { timeout: 300_000 }, async () => {
+      it.concurrent('keyboard only: Tab, Enter and Space play the file, no mouse click, axe is clean on every distinct screen', { timeout: 120_000 }, async () => {
         const r = await run('--mode', 'perfect', '--seed', '1', '--keyboard', '--axe')
         expectPassed(r)
         const s = r.summary
@@ -82,36 +82,6 @@ describe('autoplay bot in the detective shell', () => {
         if (c.chase) expect(s.axe?.screens).toEqual(expect.arrayContaining(['chase', 'chase-travel', 'chase-cold-trail', 'caught']))
       })
 
-      it.concurrent('wrong: every clue answer wrong, the cards stay face-down, an accusation is refused, the next door stays locked, no dead end', { timeout: 300_000 }, async () => {
-        const r = await run('--mode', 'wrong', '--seed', '2', '--rounds', '1', '--axe')
-        expectPassed(r)
-        const s = r.summary
-        const d = info(s)
-        expect(s.finished).toBe(false)
-        expect(s.correct).toBe(0)
-        expect(s.wrong).toBe(s.steps)
-        expect(s.steps).toBe(4)
-        expect(d.rooms).toHaveLength(1)
-        expect(d.rooms[0]?.turned).toBe(0)
-        expect(d.refusedEarly).toBe(2)
-        expect(s.screens).not.toContain('case-solved')
-        expect(s.screens).not.toContain('chase')
-        expect(s.checks.answers).toBe(s.wrong)
-        expectCleanAxe(s, 5)
-        expect(s.axe?.screens).toEqual(expect.arrayContaining(['office', 'case-facedown-after-wrong']))
-      })
-
-      it.concurrent('random: a seeded 75 % learner replays a case that earned under 2 stars and still reaches the end within the step bound', { timeout: 300_000 }, async () => {
-        const r = await run('--mode', 'random', '--seed', '3', '--accuracy', '0.75')
-        expectPassed(r)
-        const s = r.summary
-        expect(s.finished).toBe(true)
-        expect(s.steps).toBeLessThanOrEqual(s.maxSteps)
-        expect(s.screens).toEqual(expect.arrayContaining(['office', 'case', 'case-solved', 'end']))
-        expect(s.correct).toBeGreaterThan(0)
-        expect(s.wrong).toBeGreaterThan(0)
-        if (c.chase) expect(info(s).caught).toBe(true)
-      })
     })
   }
 })

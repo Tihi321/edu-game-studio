@@ -71,7 +71,7 @@ describe('resume, retry and restart', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  }, 15_000)
 })
 
 describe('the MCP side', () => {
@@ -116,7 +116,7 @@ describe('the MCP side', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  }, 15_000)
 
   it('restart from a stage starts run n+1: the outputs from that stage on are redone (new job ids), the ones before are kept', async () => {
     const env = await makePipelineEnv()
@@ -140,7 +140,7 @@ describe('the MCP side', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  }, 15_000)
 })
 
 async function buildToolsCall(engine: Engine, name: string, args: Record<string, unknown>) {

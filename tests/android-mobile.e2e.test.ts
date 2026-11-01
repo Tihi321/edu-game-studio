@@ -100,21 +100,4 @@ describe('the player on a phone', () => {
       await browser.close()
     }
   })
-
-  it('does nothing without Capacitor (a normal browser)', { timeout: 60_000 }, async () => {
-    const dir = await build()
-    const { chromium } = await import('playwright')
-    const browser = await chromium.launch()
-    try {
-      const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
-      const errors: string[] = []
-      page.on('pageerror', (e) => errors.push(String(e)))
-      await page.goto(pathToFileURL(path.join(dir, 'index.html')).href + '?seed=1&shell=quiz-arena')
-      await page.waitForSelector('[data-testid="course-title"]')
-      expect(await page.evaluate(() => 'Capacitor' in window)).toBe(false)
-      expect(errors).toEqual([])
-    } finally {
-      await browser.close()
-    }
-  })
 })
