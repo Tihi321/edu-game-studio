@@ -13,6 +13,9 @@ The fact base. Each line is one fact with its id in square brackets, then the nu
 The numbered sources:
 {{sources}}
 
+Language rules (a language course only; empty otherwise; check the German forms, articles, plurals and spelling of the content against them, and treat a rule broken as a problem):
+{{language_rules}}
+
 Checks already done by a script (the refs named here have a problem and go back for a rewrite whatever you say):
 {{coverage}}
 

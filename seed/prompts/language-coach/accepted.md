@@ -7,6 +7,9 @@ Widen the accepted answers of the typed questions of a language course, so a lea
 
 Course: "{{title}}". The instructions are in {{language}}; the language that is taught is {{target_language}} (CEFR {{cefr}}).
 
+Language rules (a language course only; empty otherwise; use the part on accepted answers):
+{{language_rules}}
+
 The typed answers. Each has a `ref` and the canonical answer the writer gave (always first in `accepted`), with the question for context:
 {{items}}
 
