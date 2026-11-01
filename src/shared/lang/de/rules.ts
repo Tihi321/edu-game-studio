@@ -14,6 +14,7 @@ Cases (never teach a case above the level)
 - B1: genitive only as fixed phrases (wegen, trotz) and the relative pronouns.
 Verbs
 - A conjugation answer is the verb form without the pronoun ("gehe"). Compound tenses and separable verbs include every word the learner types ("bin gegangen", "werde gehen", "würde gehen", "stehe auf"). A reflexive pronoun is part of the answer ("freue mich").
+- Konjunktiv II of sein, haben, werden and the modals is the special form (wäre, wärst, hätte, hättest, würde, könnte), never "würde sein" or "würde haben"; every other verb uses "würde" plus the infinitive or its own form (gäbe, ginge).
 - Imperative persons are only du, ihr and Sie; the Sie form includes the pronoun ("gehen Sie"). er covers er / sie / es, sie is the plural, Sie is the formal address.
 - Verb position: second place in a main clause; at the end after weil, dass, ob; the separable prefix at the end ("ich stehe um sieben Uhr auf"); Perfekt as auxiliary in second place and the participle at the end. Say which auxiliary (haben or sein) a verb takes.
 - Stem-changing verbs (du fährst, er isst, er liest) get the tag "irregular". Reflexive verbs from A2. Modal verb plus infinitive from A1.

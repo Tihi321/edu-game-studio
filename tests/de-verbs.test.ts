@@ -94,8 +94,25 @@ const GOLDEN: [string, DeTense, string, string][] = [
   ['gehen', 'konjunktiv2', 'ich', 'ginge'],
   ['kommen', 'konjunktiv2', 'er', 'käme'],
   ['machen', 'konjunktiv2', 'ich', 'würde machen'],
-  ['wissen', 'konjunktiv2', 'du', 'wüsstest']
+  ['wissen', 'konjunktiv2', 'du', 'wüsstest'],
+  ['sein', 'konjunktiv2', 'du', 'wärst'],
+  ['erheben', 'praeteritum', 'er', 'erhob'],
+  ['erheben', 'perfekt', 'ich', 'habe erhoben'],
+  ['fördern', 'perfekt', 'er', 'hat gefördert'],
+  ['fördern', 'praesens', 'du', 'förderst'],
+  ['unterstützen', 'perfekt', 'wir', 'haben unterstützt'],
+  ['unterstützen', 'praesens', 'du', 'unterstützt'],
+  ['verkürzen', 'praeteritum', 'ich', 'verkürzte'],
+  ['verkürzen', 'perfekt', 'sie', 'haben verkürzt']
 ]
+
+describe('German verb table: Konjunktiv II variants', () => {
+  it('accepts wärst and wärest for du, and no würde + sein / haben', () => {
+    expect(form('sein', 'konjunktiv2', 'du')).toEqual(['wärst', 'wärest'])
+    expect(form('haben', 'konjunktiv2', 'du')).toEqual(['hättest'])
+    expect(form('sein', 'konjunktiv2', 'ihr')).toEqual(['wärt', 'wäret'])
+  })
+})
 
 describe('German verb table: golden forms', () => {
   it('has at least 40 golden forms', () => expect(GOLDEN.length).toBeGreaterThanOrEqual(40))
@@ -145,7 +162,7 @@ describe('German verb table: coverage and invariants', () => {
       const base = v.sep ? v.inf.slice(v.sep.length) : v.inf
       if (v.sep) expect(v.partizip2.startsWith(v.sep), v.inf).toBe(true)
       const rest = v.sep ? v.partizip2.slice(v.sep.length) : v.partizip2
-      const noGe = (/^(be|ver|er|ent|zer|emp|miss)/.test(base) && base !== 'beißen') || /ieren$/.test(base) || v.inf === 'übernachten'
+      const noGe = (/^(be|ver|er|ent|zer|emp|miss)/.test(base) && base !== 'beißen') || /ieren$/.test(base) || v.inf === 'übernachten' || v.inf === 'unterstützen'
       expect(rest.startsWith('ge') && !['gefallen', 'gewinnen', 'gehören'].includes(base), `${v.inf}: ${v.partizip2}`).toBe(!noGe && !['gefallen', 'gewinnen', 'gehören'].includes(base))
     }
   })

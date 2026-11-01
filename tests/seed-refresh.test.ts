@@ -29,7 +29,7 @@ describe('planSeedFile (the decision)', () => {
   })
   it('hashes ignore line endings, and the earlier seed versions are the skeleton roles.md, providers.md and studios.md (EGS-06, EGS-07)', () => {
     expect(seedHash('a\r\nb\r\n')).toBe(seedHash('a\nb\n'))
-    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['agents/language-coach-ines-markovic.md', 'config/formats.md', 'config/languages.md', 'config/providers.md', 'config/roles.md', 'config/studios.md', 'config/voice.md', 'prompts/curriculum-designer/curriculum.md', 'prompts/explainer/explain.md', 'prompts/fact-checker/fact_check.md', 'prompts/item-writer/items.md', 'prompts/item-writer/items_revise.md', 'prompts/language-coach/accepted.md', 'prompts/language-coach/scope.md', 'prompts/misconception-designer/distractors.md', 'prompts/subject-expert/articles_revise.md', 'prompts/voice-director/plan.md'])
+    expect(Object.keys(SEED_HISTORY).sort()).toEqual(['agents/language-coach-ines-markovic.md', 'config/formats.md', 'config/languages.md', 'config/providers.md', 'config/roles.md', 'config/studios.md', 'config/voice.md', 'prompts/curriculum-designer/curriculum.md', 'prompts/explainer/explain.md', 'prompts/fact-checker/fact_check.md', 'prompts/game-designer/design.md', 'prompts/item-writer/items.md', 'prompts/item-writer/items_revise.md', 'prompts/language-coach/accepted.md', 'prompts/language-coach/scope.md', 'prompts/misconception-designer/distractors.md', 'prompts/subject-expert/articles_revise.md', 'prompts/voice-director/plan.md'])
   })
 })
 

@@ -195,6 +195,8 @@ export const DE_VERBS: readonly DeVerb[] = [
   S('reiten', 'B1', 'geritten', 'ritt', { aux: 'sein' }),
   S('pfeifen', 'B1', 'gepfiffen', 'pfiff'),
   S('zwingen', 'B1', 'gezwungen', 'zwang'),
+  S('erheben', 'B1', 'erhoben', 'erhob'),
+  W('fördern', 'B1'), W('unterstützen', 'B1', { p2: 'unterstützt' }), W('verkürzen', 'B1'),
 
   // --- A1 / A2 regular
   W('machen', 'A1'), W('wohnen', 'A1'), W('lernen', 'A1'), W('spielen', 'A1'), W('kaufen', 'A1'), W('arbeiten', 'A1'), W('kochen', 'A1'),
@@ -310,6 +312,7 @@ function k2Forms(v: DeVerb, slot: Slot): string[] {
   const k = v.k2
   if (!k || v.sep) return []
   if (k === 'wäre' && slot === 'ihr') return ['wärt', 'wäret']
+  if (k === 'wäre' && slot === 'du') return ['wärst', 'wärest']
   const f = slot === 'ich' || slot === 'er' ? k : slot === 'du' ? `${k}st` : slot === 'ihr' ? `${k}t` : `${k}n`
   return [f]
 }
