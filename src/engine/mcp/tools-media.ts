@@ -88,7 +88,7 @@ export function mediaTools(svc: EduService, def: ToolDef): Tool[] {
         if (!e.enabled) throw new Error(voiceOff(e.media.voice.enabled))
         if (a.fallback) {
           const r = await svc.voice.planFromText(a.slug)
-          return { clips: r.plan.clips.length, listening: r.plan.clips.filter((c) => c.role === 'listening').length, narration: r.plan.clips.filter((c) => c.role === 'narration').length, derivedItems: r.plan.derived.map((d) => d.id), added: r.added, kept: r.kept, source: r.plan.source, voices: r.plan.voices, ...(await relinked(a.slug)), next: 'edu_voice_generate {slug} speaks the clips' }
+          return { clips: r.plan.clips.length, listening: r.plan.clips.filter((c) => c.role === 'listening').length, narration: r.plan.clips.filter((c) => c.role === 'narration').length, passages: r.plan.clips.filter((c) => c.role === 'passage').length, passageCharacters: r.plan.clips.filter((c) => c.role === 'passage').reduce((n, c) => n + c.text.length, 0), derivedItems: r.plan.derived.map((d) => d.id), added: r.added, kept: r.kept, source: r.plan.source, voices: r.plan.voices, ...(await relinked(a.slug)), next: 'edu_voice_generate {slug} speaks the clips' }
         }
         const job = await svc.media.queue(a.slug, 'asset_voice_plan', 'voice-director', {}, 'plan the narration and the listening audio')
         return { jobs: [job], next: 'edu_wait {slug} until the plan is done, then edu_voice_generate {slug}' }

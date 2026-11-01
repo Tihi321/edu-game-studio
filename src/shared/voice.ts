@@ -43,7 +43,51 @@ export function shortenForSpeech(text: string, max = NARRATION_MAX_CHARS): strin
   return `${cut.replace(/\s+\S*$/, '').trim()}...`
 }
 
-export type VoiceClipRole = 'listening' | 'narration'
+/** What a passage clip speaks at most (EGS-38): a paragraph longer than this is split at a sentence, so each clip stays short. */
+export const PASSAGE_MAX_CHARS = 450
+
+/** The asset id of a passage clip: paragraph `n` (1-based) of an article; the 2nd, 3rd ... piece of a long paragraph has a `-<k>` suffix. */
+export const passageClipId = (article: string, paragraph: number, part = 1): string => `art-${article}-p${paragraph}${part > 1 ? `-${part}` : ''}`
+
+/** One spoken piece of a reading: the paragraph it belongs to (1-based), its piece number inside a split paragraph (1-based) and its text. */
+export interface PassageChunk {
+  paragraph: number
+  part: number
+  text: string
+}
+
+/** The paragraphs of an article body (blank lines dropped, as the reader shows them), each cut at sentence ends into pieces of at most `max` characters. Deterministic. */
+export function passageChunks(body: string, max = PASSAGE_MAX_CHARS): PassageChunk[] {
+  const out: PassageChunk[] = []
+  const paragraphs = body
+    .split(/\n+/)
+    .map((p) => p.replace(/\s+/g, ' ').replace(/\s*\[f?\d+\]/g, '').trim())
+    .filter(Boolean)
+  paragraphs.forEach((p, i) => {
+    const sentences = p.match(/[^.!?]+[.!?]+["»“”)]*\s*|[^.!?]+$/g) ?? [p]
+    const pieces: string[] = []
+    let cur = ''
+    for (const s of sentences) {
+      if (cur && (cur + s).length > max) {
+        pieces.push(cur.trim())
+        cur = ''
+      }
+      cur += s
+    }
+    if (cur.trim()) pieces.push(cur.trim())
+    pieces.forEach((text, k) => out.push({ paragraph: i + 1, part: k + 1, text }))
+  })
+  return out
+}
+
+/** The text a clip speaks, from the current catalog text of its key: narration is cut at a sentence, a passage clip is its paragraph piece, the rest as it is. */
+export function spokenText(clip: { role: VoiceClipRole; paragraph?: number; part?: number }, text: string, narrationMax = NARRATION_MAX_CHARS): string {
+  if (clip.role === 'narration') return shortenForSpeech(text, narrationMax)
+  if (clip.role === 'passage') return passageChunks(text).find((c) => c.paragraph === clip.paragraph && c.part === (clip.part ?? 1))?.text ?? ''
+  return text
+}
+
+export type VoiceClipRole = 'listening' | 'narration' | 'passage'
 
 /** One clip of the plan. */
 export interface VoiceClipPlan {
@@ -53,6 +97,9 @@ export interface VoiceClipPlan {
   /** The catalog key whose text is spoken. */
   key: string
   role: VoiceClipRole
+  /** A passage clip (EGS-38): the paragraph of the article body (1-based) and the piece of it when the paragraph was split. */
+  paragraph?: number
+  part?: number
   /** The text at planning time; generation reads the catalog again (a text changed since is spoken as it is now). */
   text: string
   /** The sentence a learner who cannot hear it reads (the catalog key `asset.<id>.alt`), in the source language. */

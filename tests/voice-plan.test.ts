@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { PROMPT_VARS } from '../src/engine/edu/authoring'
 import { applyMedia } from '../src/engine/edu/media-link'
 import { voiceMergeOf } from '../src/engine/edu/media'
+import { allocateVoice } from '../src/engine/voice/allocate'
+import type { VoiceAvailability } from '../src/engine/voice/allocate'
+import { passageLangs } from '../src/engine/voice/run'
 import { buildVoicePlan, buildVoiceSource, checkVoicePlan, deriveListening, fallbackStyle, fallbackVoiceLines, limitsOf, mergeVoicePlan, voicePlanSchema, voicePromptVars } from '../src/engine/edu/voice'
 import type { VoiceSource } from '../src/engine/edu/voice'
 import { parseCourseMedia } from '../src/shared/media'
 import type { AssetManifest } from '../src/shared/media'
-import { derivedListeningId, isDerivedItem, shortenForSpeech, voiceClipId } from '../src/shared/voice'
+import { derivedListeningId, isDerivedItem, shortenForSpeech, spokenText, voiceClipId } from '../src/shared/voice'
 
 /**
  * The voice-director's contract (EGS-17), without a model: what it is shown, the checks of its answer, the deterministic fallback, the plan file, the
@@ -281,5 +284,74 @@ describe('narration default (EGS-33)', () => {
   it('the taught German style says Hochdeutsch', () => {
     expect(fallbackStyle({ kids: false }, 'de', true)).toMatch(/Hochdeutsch/)
     expect(fallbackStyle({ kids: false }, 'hr', true)).not.toMatch(/Hochdeutsch/)
+  })
+})
+
+describe('listening passages (EGS-38)', () => {
+  const de = 'Erster Absatz. Er hat zwei Sätze.\n\nZweiter Absatz ist da. ' + 'Ein langer Satz folgt hier. '.repeat(30)
+  const mk = (voice: Record<string, unknown> = {}) => {
+    const pack: Json = {
+      sourceLang: 'hr',
+      targetLang: 'de',
+      subject: 'Deutsch B2',
+      audience: 'adults',
+      units: [{ id: 'u1', title: 'unit.u1.title' }],
+      objectives: [{ id: 'o1', unit: 'u1' }],
+      items: [],
+      encyclopedia: { articles: [{ id: 'a1', unit: 'u1', title: 'art.a1.title', body: 'art.a1.body' }] },
+      assets: [],
+      cues: [],
+      extensions: {}
+    }
+    const catalogs: VoiceSource['catalogs'] = { hr: { strings: { 'unit.u1.title': 'Jedinica' } }, de: { strings: { 'art.a1.title': 'Titel', 'art.a1.body': de } } }
+    const src = buildVoiceSource(pack, catalogs, { title: 'Deutsch', languageName: (c) => (c === 'de' ? 'German' : 'Croatian') })
+    return { src, plan: buildVoicePlan(fallbackVoiceLines(src, limitsOf(media(voice), true)), src, { media: media(voice), by: 'fallback' }) }
+  }
+
+  it('is off by default: no passage clip', () => {
+    expect(mk().plan.clips.filter((c) => c.role === 'passage')).toEqual([])
+    expect(parseCourseMedia({}).voice.passages).toBe(false)
+  })
+
+  it('plans one German clip per paragraph, a long paragraph split at sentences, with stable ids art-<article>-p<n>', () => {
+    const { plan } = mk({ passages: true })
+    const clips = plan.clips.filter((c) => c.role === 'passage')
+    expect(clips[0]).toMatchObject({ id: 'art-a1-p1', lang: 'de', key: 'art.a1.body', paragraph: 1, part: 1, text: 'Erster Absatz. Er hat zwei Sätze.' })
+    expect(clips[1]!.id).toBe('art-a1-p2')
+    expect(clips.slice(2).every((c, i) => c.id === `art-a1-p2-${i + 2}` && c.paragraph === 2)).toBe(true)
+    expect(clips.map((c) => c.id)).toEqual(['art-a1-p1', 'art-a1-p2', 'art-a1-p2-2'])
+    expect(clips.every((c) => c.text.length <= 450 && c.lang === 'de')).toBe(true)
+    expect(plan.voices.de).toMatchObject({ vibetts: 'supertonic:M2' })
+    expect(mk({ passages: true }).plan.clips.map((c) => c.id)).toEqual(plan.clips.map((c) => c.id)) // stable
+  })
+
+  it('a unit-less narration or listening plan is untouched, and a source-language course (no targetLang) has no passages', () => {
+    const { pack, catalogs } = course()
+    expect(buildVoicePlan(fallbackVoiceLines(buildVoiceSource({ ...pack, targetLang: undefined }, catalogs, { title: 't', languageName: names }), limitsOf(media({ passages: true }))), buildVoiceSource({ ...pack, targetLang: undefined }, catalogs, { title: 't', languageName: names }), { media: media({ passages: true }), by: 'fallback' }).clips.filter((c) => c.role === 'passage')).toEqual([])
+  })
+
+  it('a changed paragraph changes only its own text (so only its hash); the others are skipped by the hash index', () => {
+    const before = spokenText({ role: 'passage', paragraph: 1, part: 1 }, de)
+    const edited = de.replace('Zweiter Absatz ist da.', 'Zweiter Absatz wurde geändert.')
+    expect(spokenText({ role: 'passage', paragraph: 1, part: 1 }, edited)).toBe(before)
+    expect(spokenText({ role: 'passage', paragraph: 2, part: 1 }, edited)).not.toBe(spokenText({ role: 'passage', paragraph: 2, part: 1 }, de))
+    expect(spokenText({ role: 'passage', paragraph: 9, part: 1 }, de)).toBe('') // a paragraph that is gone: nothing to speak
+  })
+
+  it('passage clips never go to Gemini, even when the quota would fit; other languages still follow the rule', () => {
+    const avail: VoiceAvailability = { gemini: { up: true }, vibetts: { up: true, reads: () => true }, comfy: { up: true, reads: () => true } }
+    const r = allocateVoice({ need: { de: 3, hr: 2 }, provider: 'auto', quota: { limit: 10, used: 0 }, avail, localOnly: passageLangs([{ lang: 'de', role: 'passage' }]) })
+    expect(r.de).toMatchObject({ provider: 'vibetts', chain: ['vibetts', 'comfy'] })
+    expect(r.hr!.provider).toBe('gemini')
+  })
+
+  it('the merge into the pack leaves passage clips out of narration and listening, and a missing clip is a placeholder asset like any voice clip', () => {
+    const { plan } = mk({ passages: true })
+    const linked = new Set(plan.clips.map((c) => c.id))
+    const m = voiceMergeOf(plan, linked)
+    expect(m.narration).toEqual({})
+    expect(m.listening).toEqual({})
+    const manifest = mergeVoicePlan({ version: 1, assets: [] } as unknown as AssetManifest, plan)
+    expect(manifest.assets.filter((a) => a.id.startsWith('art-a1-p')).every((a) => a.kind === 'voice' && a.voice?.role === 'passage')).toBe(true)
   })
 })
