@@ -105,7 +105,7 @@ describe('ui strings', () => {
   })
   it('a catalog overrides a single string with ui.<key>; unknown languages fall back to English', () => {
     expect(makeUi('en', { strings: { 'ui.start': 'Go!' } })('start')).toBe('Go!')
-    expect(makeUi('de')('start')).toBe('Start')
+    expect(makeUi('xx')('start')).toBe('Start')
     expect(makeUi('hr')('question', { i: 2, n: 7 })).toBe('Pitanje 2 od 7')
   })
 })
