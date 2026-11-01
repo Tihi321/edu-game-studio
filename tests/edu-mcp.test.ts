@@ -370,3 +370,19 @@ describe('the course tools: create and import', () => {
     expect((await call('edu_get_course', { slug: '../evil' })).ok).toBe(false)
   })
 })
+
+describe('the pipeline tools: refusals', () => {
+  it('edu_create_course takes a brief (slug from the topic), edu_run_pipeline refuses what it cannot run', async () => {
+    const brief = { topic: 'The Roman Empire', audience: 'teenagers', age: 14, sourceLang: 'en', units: 2, story: 'none' }
+    expect((await must('edu_create_course', { brief })).slug).toBe('the-roman-empire')
+    expect((await call('edu_create_course', { brief })).text).toMatch(/already exists/)
+    expect((await call('edu_create_course', { slug: 'x' })).text).toMatch(/give a brief, or slug, title/)
+    expect((await call('edu_run_pipeline', {})).text).toMatch(/give a slug.*or a brief/)
+    expect((await call('edu_run_pipeline', { slug: 'nope' })).text).toMatch(/no course "nope"/)
+    expect((await call('edu_run_pipeline', { brief: { ...brief, model: 'nobody/none' } })).text).toMatch(/unknown model "nobody\/none"/)
+    expect((await call('edu_run_pipeline', { brief: { ...brief, format: 'epic' } })).text).toMatch(/no course format "epic"/)
+    expect((await call('edu_run_pipeline', { slug: 'the-roman-empire', restart: true, from: 'dessert' })).text).toMatch(/unknown stage "dessert"/)
+    const byHand = await makeCourse()
+    expect((await call('edu_run_pipeline', { slug: byHand })).text).toMatch(/has no brief/)
+  })
+})
