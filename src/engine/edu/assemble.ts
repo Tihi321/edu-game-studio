@@ -31,6 +31,8 @@ export interface AssembleInput {
   /** A language course: the language that is taught. */
   targetLang?: string
   cefr?: string
+  /** Verbs per verb unit of the format (recorded in `extensions.language`). */
+  verbsPerUnit?: number
   /** The run number and the brief, recorded in `extensions.pipeline`. */
   run: number
   brief?: unknown
@@ -192,6 +194,8 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
       beats: f.unitBeats.map((b) => ({ unit: b.unit, text: put(src, `story.beat.${b.unit}`, b.beat) }))
     }
   }
+  const verbUnits = input.curriculum.units.filter((u) => u.verb).map((u) => u.id)
+  if (tgt && verbUnits.length) extensions.language = { verbUnits, verbsPerUnit: input.verbsPerUnit ?? 6 }
   const d = input.design
   const shells = d
     ? { enabled: d.enabled, config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }

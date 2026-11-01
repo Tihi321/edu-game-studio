@@ -124,7 +124,7 @@ const bloom = z.enum(BLOOM_LEVELS, { error: `bloom must be one of ${BLOOM_LEVELS
 export const curriculumSchema = lenient(
   z.object({
     units: z
-      .array(z.object({ id: ident, title: text('a unit title'), summary: text('a unit summary'), requires: ids('requires').default([]) }))
+      .array(z.object({ id: ident, title: text('a unit title'), summary: text('a unit summary'), requires: ids('requires').default([]), verb: z.boolean().optional() }))
       .min(1, 'give at least one unit'),
     objectives: z
       .array(z.object({ id: ident, unit: ident, bloom, text: text('an objective text'), facts: ids('facts').min(1, 'every objective must rest on at least one fact id from the fact base (facts: ["f1"])') }))
@@ -142,6 +142,8 @@ export interface CurriculumContext {
   objectivesPerUnit?: number
   /** The text of every fact by id (`Fact.fact`): with it an objective is also checked against what its facts say (see `OBJECTIVE_CUES`). */
   factTexts?: Record<string, string>
+  /** A language format with verb units: exactly this many units must be marked `verb: true` (EGS-29). */
+  verbUnits?: number
 }
 
 /**
@@ -173,6 +175,10 @@ export function checkCurriculum(c: Curriculum, o: CurriculumContext): Problem[] 
     if (n === 0) out.push(problem(u.id, 'this unit has no objective', 'every unit needs at least one objective'))
     else if (o.objectivesPerUnit !== undefined && n !== o.objectivesPerUnit) out.push(problem(u.id, `${n} objective(s), each unit has exactly ${o.objectivesPerUnit}`, `give exactly ${o.objectivesPerUnit}`))
   }
+  if (o.verbUnits !== undefined) {
+    const n = c.units.filter((u) => u.verb).length
+    if (n !== o.verbUnits) out.push(problem('', `${n} unit(s) marked as verb units, the course has exactly ${o.verbUnits}`, `set "verb": true on exactly ${o.verbUnits} unit(s) and leave it out of the others`))
+  }
   const cycle = findUnitCycle(c.units.map((u) => ({ id: u.id, title: u.title, requires: u.requires.filter((r) => known.has(r)) })))
   if (cycle) out.push(problem('', `the prerequisites form a cycle: ${cycle.join(' -> ')}`, 'a unit may only require units before it'))
   if (!c.units.some((u) => u.requires.length === 0)) out.push(problem('', 'every unit has a prerequisite, so nobody can start', 'the first unit requires nothing'))
@@ -202,7 +208,7 @@ export function objectiveLines(objectives: Curriculum['objectives'], unit?: stri
 
 /** The units as prompt lines: `- u1: Title (requires: none). Summary`. */
 export function unitLines(units: Curriculum['units']): string {
-  return units.map((u) => `- ${u.id}: ${u.title} (requires: ${u.requires.join(', ') || 'none'}). ${u.summary}`).join('\n')
+  return units.map((u) => `- ${u.id}: ${u.title} (requires: ${u.requires.join(', ') || 'none'}). ${u.summary}${u.verb ? ' [VERB UNIT]' : ''}`).join('\n')
 }
 
 // ---- language-coach: scope, accepted ----
@@ -212,7 +218,9 @@ export const scopeSchema = lenient(
     units: z.array(
       z.object({
         unit: ident,
-        vocabulary: z.array(z.object({ term: text('a term'), gloss: text('a gloss') })).min(1, 'each unit needs vocabulary'),
+        vocabulary: z.array(z.object({ term: text('a term'), gloss: text('a gloss') })).default([]),
+        /** A verb unit: the verbs it drills, each with the tense and the CEFR level it is met at (EGS-29). */
+        verbs: z.array(z.object({ inf: text('an infinitive'), tense: text('a tense'), level: text('a level') })).default([]),
         grammar: z.array(z.string()).default([])
       })
     ).min(1)
@@ -220,10 +228,17 @@ export const scopeSchema = lenient(
 )
 export type Scope = z.output<typeof scopeSchema>
 
-export function checkScope(s: Scope, unitIds: Iterable<string>): Problem[] {
+export function checkScope(s: Scope, unitIds: Iterable<string>, verbUnitIds: Iterable<string> = []): Problem[] {
   const known = new Set(unitIds)
+  const verbUnits = new Set(verbUnitIds)
   const out: Problem[] = []
   for (const u of s.units) if (!known.has(u.unit)) out.push(problem(u.unit, 'no such unit', `use one of: ${[...known].join(', ')}`))
+  for (const u of s.units) {
+    if (!known.has(u.unit)) continue
+    if (verbUnits.has(u.unit)) {
+      if (u.verbs.length === 0) out.push(problem(u.unit, 'a verb unit has no verbs', 'give verbs: [{ inf, tense, level }] for this unit'))
+    } else if (u.vocabulary.length === 0) out.push(problem(u.unit, 'the unit has no vocabulary', 'give 8 to 14 vocabulary entries'))
+  }
   for (const k of known) if (!s.units.some((u) => u.unit === k)) out.push(problem(k, 'the unit has no scope', 'give vocabulary for every unit'))
   return out
 }
@@ -741,8 +756,8 @@ export type PublishOutput = z.output<typeof publishSchema>
  */
 export const PROMPT_VARS = {
   'director/plan_brief': ['topic', 'audience', 'age', 'level', 'language', 'units', 'questions_per_unit', 'format_label', 'notes'],
-  'curriculum-designer/curriculum': ['title', 'summary', 'audience', 'age', 'level', 'language', 'units', 'objectives_per_unit', 'unit_plan', 'factbase', 'notes'],
-  'language-coach/scope': ['title', 'audience', 'cefr', 'language', 'target_language', 'units', 'objectives', 'factbase'],
+  'curriculum-designer/curriculum': ['title', 'summary', 'audience', 'age', 'level', 'language', 'units', 'objectives_per_unit', 'unit_plan', 'factbase', 'notes', 'verb_units_note'],
+  'language-coach/scope': ['title', 'audience', 'cefr', 'language', 'target_language', 'units', 'objectives', 'factbase', 'verb_units_note'],
   'language-coach/accepted': ['title', 'cefr', 'language', 'target_language', 'items'],
   'subject-expert/articles': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'unit_title', 'unit_summary', 'objectives', 'factbase', 'articles_per_unit', 'article_id_prefix', 'other_articles', 'scope'],
   'subject-expert/articles_revise': ['title', 'audience', 'age', 'level', 'language', 'unit_id', 'factbase', 'articles', 'problems'],
