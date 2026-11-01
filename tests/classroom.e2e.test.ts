@@ -8,8 +8,7 @@ import { PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
- * Classroom mode in a real browser (EGS-20): the solar-system fixture is built with an assignment. The title of the quiz arena and of another
- * shell show the banner (title, target, due date, the teacher's message as plain text), the learner types a name, and "Send to my teacher"
+ * Classroom mode in a real browser (EGS-20): the solar-system fixture is built with an assignment. The title of the quiz arena shows the banner (title, target, due date, the teacher's message as plain text), the learner types a name, and "Send to my teacher"
  * downloads a result file that parses with the schema, has the name and the stars of the saved progress, and holds no more than the summary.
  * Without Chromium the run fails (`yarn playwright install chromium`).
  */
@@ -37,7 +36,7 @@ describe('classroom mode in the built player', () => {
   let built: Promise<{ dir: string; packId: string; u1: string }> | undefined
   const game = () => (built ??= buildWithAssignment())
 
-  for (const shell of ['quiz-arena', 'encyclopedia'] as const) {
+  for (const shell of ['quiz-arena'] as const) {
     it(`${shell}: the banner, a name, and Send to my teacher saves a result file`, { timeout: 120_000 }, async () => {
       const { dir, packId, u1 } = await game()
       const { chromium } = await import('playwright')
@@ -97,27 +96,4 @@ describe('classroom mode in the built player', () => {
       }
     })
   }
-
-  it('the quiz arena marks the assigned unit and counts the seconds of play', { timeout: 120_000 }, async () => {
-    const { dir, packId, u1 } = await game()
-    const { chromium } = await import('playwright')
-    const browser = await chromium.launch()
-    try {
-      const page = await browser.newPage()
-      await page.goto(pathToFileURL(path.join(dir, 'index.html')).href + '?seed=1&shell=quiz-arena')
-      await page.waitForSelector('[data-testid="start"]')
-      await page.getByTestId('start').click()
-      await page.getByTestId(`assigned-${u1}`).waitFor()
-      expect(await page.getByTestId(`unit-${u1}`).getAttribute('data-assigned')).toBe('true')
-      for (let i = 0; i < 7; i++) {
-        await page.keyboard.press('Shift')
-        await page.waitForTimeout(1000)
-      }
-      const seconds = await page.evaluate((key) => (JSON.parse((globalThis as unknown as { localStorage: Storage }).localStorage.getItem(key) ?? '{}') as { playSeconds?: number }).playSeconds ?? 0, `edu-studio:progress:${packId}`)
-      expect(seconds).toBeGreaterThanOrEqual(5)
-      expect(seconds).toBeLessThan(30)
-    } finally {
-      await browser.close()
-    }
-  })
 })

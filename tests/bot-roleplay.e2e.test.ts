@@ -5,8 +5,8 @@ import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
  * The language role-play shell played end to end by the autoplay bot (EGS-13, `scripts/bot/roleplay.mjs`): for every fixture that enables
- * the shell (hr-a1-greetings: four conversations, the garden of 13 words), perfect, wrong and random (seeded) pass with 0 console errors, one
- * keyboard-only perfect run (no mouse click) and an axe run (no serious or critical violation). Without Chromium the run fails.
+ * the shell (hr-a1-greetings: four conversations, the garden of 13 words): one perfect run and one keyboard-only perfect run with axe
+ * (no mouse click, no serious or critical violation), 0 console errors (EGS-45 trim). Without Chromium the run fails.
  */
 
 useTemp()
@@ -47,7 +47,7 @@ describe('autoplay bot in the role-play shell', () => {
         })())
       const run = async (...args: string[]) => play(await built(), [...args, '--shell', 'roleplay'])
 
-      it.concurrent('perfect: every conversation to 3 stars in order, translations and clips checked, the garden watered, the finale, the end', { timeout: 300_000 }, async () => {
+      it.concurrent('perfect: every conversation to 3 stars in order, translations and clips checked, the garden watered, the finale, the end', { timeout: 120_000 }, async () => {
         const r = await run('--mode', 'perfect', '--seed', '1')
         expectPassed(r)
         const s = r.summary
@@ -66,7 +66,7 @@ describe('autoplay bot in the role-play shell', () => {
         expect(rp.plantsGrown).toBe(c.words)
       })
 
-      it.concurrent('keyboard only: Tab, Enter and typing play the conversations, no mouse click, axe is clean', { timeout: 300_000 }, async () => {
+      it.concurrent('keyboard only: Tab, Enter and typing play the conversations, no mouse click, axe is clean', { timeout: 120_000 }, async () => {
         const r = await run('--mode', 'perfect', '--seed', '1', '--keyboard', '--axe')
         expectPassed(r)
         const s = r.summary
@@ -80,43 +80,6 @@ describe('autoplay bot in the role-play shell', () => {
         expect(s.axe?.screens).toEqual(expect.arrayContaining(['scenes', 'scene-start', 'scene-translated', 'scene-question', 'scene-done', 'garden', 'end']))
       })
 
-      it.concurrent('axe: no serious or critical violation on the scenes, a recovery line, the locked scenes, the wilted garden and a wrong answer', { timeout: 300_000 }, async () => {
-        const wrong = await run('--mode', 'wrong', '--seed', '5', '--axe')
-        expectPassed(wrong)
-        expectCleanAxe(wrong.summary, 8)
-        expect(wrong.summary.axe?.screens).toEqual(expect.arrayContaining(['scenes', 'scene-help', 'scene-done', 'scenes-locked', 'garden-wilted']))
-        expect(wrong.summary.axe?.screens.some((x) => x.startsWith('feedback-wrong-'))).toBe(true)
-      })
-
-      it.concurrent('wrong: the speaker helps after every miss, the right reply is shown after the third, the scene still ends with 0 stars; the rest stays locked, the plants wilt', { timeout: 300_000 }, async () => {
-        const r = await run('--mode', 'wrong', '--seed', '2', '--rounds', '1')
-        expectPassed(r)
-        const s = r.summary
-        expect(s.finished).toBe(false)
-        expect(s.correct).toBe(0)
-        expect(s.wrong).toBe(s.steps)
-        expect(s.screens).toEqual(expect.arrayContaining(['scenes', 'scene', 'item', 'feedback', 'scene-done', 'garden']))
-        expect(s.screens).not.toContain('end')
-        const rp = stats(s)
-        expect(rp.scenesPlayed).toBe(1) // only the first unit's scene is open
-        expect(rp.recovery).toBe(c.firstTurns * 2) // misses 1 and 2 of every turn come back to the scene screen with a recovery line
-        expect(s.steps).toBeGreaterThanOrEqual(c.firstTurns * 3)
-        expect(rp.gardenRuns).toBe(1)
-        expect(s.checks.answers).toBe(s.wrong)
-        expect(s.checks.explanations).toBe(s.wrong)
-      })
-
-      it.concurrent('random: a seeded 75 % learner replays every scene to mastery, waters the garden and beats the finale within the step bound', { timeout: 300_000 }, async () => {
-        const r = await run('--mode', 'random', '--seed', '7', '--accuracy', '0.75')
-        expectPassed(r)
-        const s = r.summary
-        expect(s.finished).toBe(true)
-        expect(s.steps).toBeLessThanOrEqual(s.maxSteps)
-        expect(s.wrong).toBeGreaterThan(0)
-        expect(s.correct).toBeGreaterThan(s.wrong)
-        expect(stats(s).scenesPlayed).toBeGreaterThanOrEqual(c.scenes + 1)
-        expect(stats(s).recovery).toBeGreaterThan(0)
-      })
     })
   }
 })

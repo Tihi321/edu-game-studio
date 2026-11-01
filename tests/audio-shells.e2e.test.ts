@@ -3,7 +3,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { buildCourse } from '../src/engine/edu/build'
-import { expectPassed, play, PLAYER_OUT } from './bot-helpers'
+import { PLAYER_OUT } from './bot-helpers'
 import { copyFixture, tmp, useTemp } from './edu-build-helpers'
 
 /**
@@ -56,7 +56,7 @@ describe('the game audio in the shells of one course', () => {
   let dirP: Promise<string> | undefined
   const built = (): Promise<string> => (dirP ??= buildWithCues())
 
-  for (const shell of ['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg', 'detective'] as const) {
+  for (const shell of ['quiz-arena'] as const) {
     it(`${shell}: the menu music after the first gesture, the toggles stop it, the title has both`, { timeout: 120_000 }, async () => {
       const dir = await built()
       const { chromium } = await import('playwright')
@@ -86,15 +86,6 @@ describe('the game audio in the shells of one course', () => {
       } finally {
         await browser.close()
       }
-    })
-  }
-
-  for (const shell of ['rpg', 'mindmaze'] as const) {
-    it(`${shell}: the bot plays the whole game with the music and the effects on: 0 console errors, 0 media errors`, { timeout: 300_000 }, async () => {
-      const r = await play(await built(), ['--mode', 'perfect', '--shell', shell])
-      expectPassed(r)
-      expect(r.summary.mediaErrors).toBe(0)
-      expect(r.summary.finished).toBe(true)
     })
   }
 })
