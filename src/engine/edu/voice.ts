@@ -208,8 +208,11 @@ export interface VoiceLimits {
 /** The default most narration clips: a few per course (each is one Gemini request or one local call). */
 export const MAX_NARRATION = 12
 
-export function limitsOf(media: Pick<CourseMedia, 'voice'>): VoiceLimits {
-  return { narration: media.voice.narration, listening: media.voice.listening, maxNarration: MAX_NARRATION, perUnit: media.voice.listeningPerUnit }
+/** Narration is on unless the course says otherwise; a language course (it has a `targetLang`) defaults to off (EGS-33). */
+export const narrationOn = (media: Pick<CourseMedia, 'voice'>, languageCourse: boolean): boolean => media.voice.narration ?? !languageCourse
+
+export function limitsOf(media: Pick<CourseMedia, 'voice'>, languageCourse = false): VoiceLimits {
+  return { narration: narrationOn(media, languageCourse), listening: media.voice.listening, maxNarration: MAX_NARRATION, perUnit: media.voice.listeningPerUnit }
 }
 
 const problem = (ref: string, issue: string, fix?: string): Problem => ({ ref, issue, ...(fix ? { fix } : {}), severity: 'major' })
@@ -248,6 +251,7 @@ export function checkVoicePlan(plan: VoicePlanOutput, src: VoiceSource, limits: 
 
 /** The delivery style when no model chose: warm and slow for children and for the taught language, clear and even otherwise. */
 export function fallbackStyle(src: Pick<VoiceSource, 'kids'>, lang: string, taught: boolean): string {
+  if (taught && lang === 'de') return 'clear standard German (Hochdeutsch, no dialect), natural and a little slow, with careful pronunciation, as a language teacher would say it'
   if (taught) return 'clear, natural and a little slow, with careful pronunciation, as a language teacher would say it'
   return src.kids ? 'a warm, friendly teacher speaking clearly and a little slowly' : `a calm, clear narrator at an even pace (${lang})`
 }
@@ -306,7 +310,7 @@ export const narrationAlt = (lang: string, title: string): string => `${wordsFor
  * `<item>-listen`), so a second plan keeps the clips already made.
  */
 export function buildVoicePlan(lines: VoiceLine, src: VoiceSource, o: { media: Pick<CourseMedia, 'voice'>; by: 'model' | 'fallback'; note?: string; maxChars?: number; at?: string }): VoicePlanFile {
-  const limits = limitsOf(o.media)
+  const limits = limitsOf(o.media, !!src.targetLang)
   const warnings: string[] = []
   const clips = new Map<string, VoiceClipPlan>()
   const addClip = (c: VoiceClipPlan): void => {
@@ -430,7 +434,7 @@ const clip = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n -
 
 /** The variables of `prompts/voice-director/plan.md`. */
 export function voicePromptVars(src: VoiceSource, media: Pick<CourseMedia, 'voice'>): Record<string, string | number> {
-  const limits = limitsOf(media)
+  const limits = limitsOf(media, !!src.targetLang)
   const byUnit = (id: string): string => src.units.find((u) => u.id === id)?.title ?? id
   return {
     title: src.title,

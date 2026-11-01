@@ -9,7 +9,7 @@ import { dropPlaceholder, writePlaceholder } from '../assets/placeholder'
 import type { ComfyClient } from '../comfy/client'
 import type { FlowClient } from '../studios/flow'
 import type { VibeTtsClient, VibeVoices } from '../studios/vibetts'
-import { allocateVoice } from './allocate'
+import { allocateVoice, voiceReads } from './allocate'
 import type { VoiceAvailability } from './allocate'
 import type { VoiceConfig } from './config'
 import type { GeminiQuota } from './quota'
@@ -84,7 +84,7 @@ export function effectiveVoice(media: Pick<CourseMedia, 'voice'>, plan: Pick<Voi
 
 /** The VibeTTS voice for a language: the configured one when it reads the language, else VibeTTS's own for it, else the first voice that reads it. */
 export function vibeVoiceFor(v: VibeVoices, lang: string, configured: string): string | undefined {
-  const reads = v.voices.filter((x) => x.languages.includes(lang))
+  const reads = v.voices.filter((x) => voiceReads(x, lang))
   if (reads.length === 0) return undefined
   if (configured && reads.some((x) => x.id === configured)) return configured
   const own = v.languageVoices[lang]
@@ -128,7 +128,7 @@ async function probe(inp: VoiceRunInput, langs: string[]): Promise<{ avail: Voic
   }
   const avail: VoiceAvailability = {
     gemini,
-    vibetts: { up: !!vibe, reads: (l) => !!vibe && vibe.voices.some((v) => v.languages.includes(l)), ...(vibe ? {} : { reason: vibeWhy }) },
+    vibetts: { up: !!vibe, reads: (l) => !!vibe && vibe.voices.some((v) => voiceReads(v, l)), ...(vibe ? {} : { reason: vibeWhy }) },
     comfy: { up: true, reads: (l) => engines.has(l), ...(comfyWhy.length ? { reason: comfyWhy[0] } : {}) }
   }
   return { avail, vibe, engines, notes }

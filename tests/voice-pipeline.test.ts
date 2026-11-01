@@ -20,7 +20,7 @@ import type { PipelineEnv } from './pipeline-helpers'
  */
 
 const SLUG = 'croatian-greetings'
-const BRIEF_LANG = { topic: 'Croatian greetings', audience: 'adults', age: 30, sourceLang: 'en', targetLang: 'hr', cefr: 'A1', units: 2, story: 'none', shells: ['quiz-arena', 'rpg'] }
+const BRIEF_LANG = { topic: 'Croatian greetings', audience: 'adults', age: 30, sourceLang: 'en', targetLang: 'hr', cefr: 'A1', units: 2, story: 'none', shells: ['quiz-arena', 'rpg'], media: { voice: { narration: true } } }
 const HR_CLIPS = ['voice-hr-item-u1-q1-opt-a', 'voice-hr-item-u1-q2-listen-transcript', 'voice-hr-item-u2-q1-opt-a', 'voice-hr-item-u2-q2-listen-transcript']
 const EN_CLIPS = ['voice-en-unit-u1-summary', 'voice-en-unit-u2-summary']
 const DERIVED = ['u1-q1-listen', 'u1-q2-listen', 'u2-q1-listen', 'u2-q2-listen']
@@ -208,7 +208,7 @@ describe('a language course with every asset kind', () => {
       env.flow.up = false
       env.vibetts.down = true
       env.comfy.down = true
-      await run(env, { ...BRIEF_LANG, media: { art: { enabled: false }, music: { enabled: false } } }, 150_000)
+      await run(env, { ...BRIEF_LANG, media: { voice: { narration: true }, art: { enabled: false }, music: { enabled: false } } }, 150_000)
       const st = (await toolsOf(env).call('edu_status', { slug: SLUG })).data.pipeline as { stage: string; steps: { step: string; status: string; note?: string }[] }
       expect(st.stage).toBe('published')
       expect(st.steps.find((s) => s.step === 'voice_generate:all')!.note).toMatch(/^0 clip\(s\) spoken, 6 placeholder\(s\) stand in/)
@@ -391,8 +391,10 @@ describe('the voice tools', () => {
       expect(prov.vibetts).toMatchObject({ up: true, supertonicInstalled: true, languageVoices: { hr: 'supertonic:F1' } })
       expect(prov.vibetts.voices.map((v) => v.id)).toContain('am_michael')
       expect(prov.vibetts.languages.map((l) => l.code)).toEqual(['en', 'hr', 'de'])
+      expect(s0.data.providers).toMatchObject({ readsDe: { vibetts: true } }) // EGS-33: German readiness per provider
       expect(s0.data.engines).toBeDefined() // the local ComfyUI engines are still listed
 
+      await call('edu_media_settings', { slug, set: { voice: { narration: true } } }) // narration is off by default for a language course (EGS-33)
       // the plan from the course text: no model
       const plan = await call('edu_voice_plan', { slug, fallback: true })
       expect(plan.ok, plan.text).toBe(true)

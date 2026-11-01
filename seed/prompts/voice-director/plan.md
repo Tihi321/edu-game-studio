@@ -24,6 +24,8 @@ What to write:
 - `narration`: the texts to narrate, by their exact key from the list above, each with an optional short `alt` (one sentence in {{language}} for a learner who cannot hear it). Leave the list empty when there is nothing above to narrate.
 - `derive`: the items to make a listening exercise from, by their exact id from the list above, each with an optional `prompt` (the instruction line in {{language}}, for example "Listen to the recording and type what you hear."). Spread them over the units; leave the list empty when there are no candidates.
 
+For German (`de`) as the taught language the `style` must say: standard German (Hochdeutsch), no dialect, one phrase per clip, the article spoken with its noun ("der Hund", not "Hund"). Never name a Gemini voice for German; the local voices speak it.
+
 Keep every key and id exactly as written above.
 
 Reply with one JSON object and nothing else:
