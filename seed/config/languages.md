@@ -4,7 +4,7 @@ languages: []
 ---
 # Languages
 
-The languages a course can be in. The built-in table has 37 (the ones Book Translator knows, plus a few more); run `edu_languages` to see them. Player menu strings exist for Croatian so far (`src/shared/ui-strings.ts`); the other languages keep the English menus until the player runtime (EGS-03) extends the table. Add a language here, or change a built-in one, by listing it under `languages:` in the frontmatter above. An entry for a built-in code is merged into the built-in one (only the fields you give change).
+The languages a course can be in. The built-in table has 37 (the ones Book Translator knows, plus a few more); run `edu_languages` to see them. Player menu strings exist for Croatian and German (`src/shared/ui-strings.ts`, `src/player/i18n.ts`); the other languages keep the English menus until the player runtime (EGS-03) extends the table. Add a language here, or change a built-in one, by listing it under `languages:` in the frontmatter above. An entry for a built-in code is merged into the built-in one (only the fields you give change).
 
 Each entry:
 

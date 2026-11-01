@@ -41,11 +41,11 @@ describe('the language table', () => {
 })
 
 describe('UI strings of the built-in languages', () => {
-  it('only Croatian has a table so far, and English never has one', () => {
-    expect(Object.keys(UI_STRINGS)).toEqual(['hr'])
+  it('only Croatian and German have a table, and English never has one', () => {
+    expect(Object.keys(UI_STRINGS)).toEqual(['hr', 'de'])
     expect(languageInfo('hr')?.ui).toBeTruthy()
     expect(languageInfo('en')?.ui).toBeUndefined()
-    expect(languageInfo('de')?.ui).toBeUndefined()
+    expect(languageInfo('fr')?.ui).toBeUndefined()
   })
   it('keeps the placeholders of the English text and has no empty translation', () => {
     for (const [src, dst] of Object.entries(UI_STRINGS.hr!)) {

@@ -1,7 +1,7 @@
 import type { ShellStrings } from '../../kit/strings'
 
 /**
- * The role-play shell's own words (English and Croatian). A course overrides any of them with the catalog key `ui.<key>`.
+ * The role-play shell's own words (English, Croatian and German). A course overrides any of them with the catalog key `ui.<key>`.
  * `{name}` and friends are filled from the variables the caller passes.
  */
 const EN = {
@@ -173,4 +173,88 @@ const HR: Partial<Record<keyof typeof EN, string>> = {
 }
 
 export type RpKey = keyof typeof EN
-export const RP_STRINGS: ShellStrings<RpKey> = { en: EN, hr: HR }
+const DE: Partial<Record<RpKey, string>> = {
+  'rp.tagline': 'Eine Postkarte aus einem Café an der Adria',
+  'rp.title.level': 'Stufe {level}',
+  'rp.title.about': 'Meistere drei Gespräche und halte dann die Wörter in deinem Garten lebendig.',
+  'rp.scenes.title': 'Gespräche',
+  'rp.scenes.sub': 'Wähle eine Szene. Antworte in der Sprache, die du lernst: auswählen oder tippen.',
+  'rp.scenes.stars': '{n} von {total} Sternen',
+  'rp.scenes.locked': 'Beende zuerst die früheren Szenen (2 Sterne).',
+  'rp.scenes.finale': 'Das Finale mischt alles, was du gelernt hast.',
+  'rp.scenes.finale.locked': 'Öffne jede Szene mit 2 Sternen, um das Finale zu spielen.',
+  'rp.scenes.garden': 'Vokabelgarten',
+  'rp.scene.turns': '{n} Runden',
+  'rp.scene.open': 'Spielen',
+  'rp.scene.back': 'Zurück zu den Szenen',
+  'rp.scene.setting': 'Schauplatz',
+  'rp.next': 'Nächste Zeile',
+  'rp.turn': 'Du bist dran',
+  'rp.lead': 'Du bist dran, {i} von {n}',
+  'rp.water.lead': 'Gießen {i} von {n}',
+  'rp.garden.planted': '{n} von {total} Wörtern gepflanzt',
+  'rp.cont': 'Das Gespräch fortsetzen',
+  'rp.retry': 'Noch einmal versuchen',
+  'rp.finish': 'Die Szene beenden',
+  'rp.log': 'Das bisherige Gespräch',
+  'rp.translate': 'Übersetzen',
+  'rp.translate.hide': 'Übersetzung ausblenden',
+  'rp.play': 'Diese Zeile abspielen',
+  'rp.listen': 'Zuhören',
+  'rp.hidden': 'Höre dir den Clip an: Die Worte erscheinen nach deiner Antwort.',
+  'rp.said': '{name} sagt:',
+  'rp.you': 'Du',
+  'rp.again': '{name} sagt es noch einmal, langsam:',
+  'rp.again.second': '{name} versucht es noch einmal, noch langsamer:',
+  'rp.again.plain': 'Wie bitte? Noch einmal, langsam.',
+  'rp.model': 'Du könntest sagen:',
+  'rp.model.shown': 'Das Gespräch geht weiter. Deine Worte sind zum Wiederholen gespeichert.',
+  'rp.effect.right': '{name} versteht dich und das Gespräch geht weiter.',
+  'rp.effect.wrong': '{name} hat dich nicht ganz verstanden. Die Zeile kommt noch einmal.',
+  'rp.effect.shown': '{name} zeigt dir, was du sagen kannst, und das Gespräch geht weiter.',
+  'rp.effect.grew': 'Die Pflanze für „{word}“ ist gewachsen: {from} zu {to}.',
+  'rp.effect.planted': 'Die Pflanze für „{word}“ steht im Garten.',
+  'rp.effect.wilted': 'Die Pflanze für „{word}“ welkt. Gieße sie bald wieder.',
+  'rp.effect.same': 'Die Pflanze für „{word}“ bleibt: {stage}.',
+  'rp.hud.last': 'Das Letzte, was zu dir gesagt wurde',
+  'rp.hud.plant': 'Die Pflanze, die du gießt',
+  'rp.done.title': 'Szene beendet',
+  'rp.done.finale': 'Finale beendet',
+  'rp.done.accuracy': '{n} % gleich beim ersten Mal richtig',
+  'rp.done.words': 'Neue Wörter in deinem Garten',
+  'rp.done.nowords': 'Diesmal keine neuen Wörter.',
+  'rp.done.unlocked': 'Geöffnet: {scenes}',
+  'rp.done.need': 'Zwei Sterne öffnen die nächste Szene. Spiele diese noch einmal.',
+  'rp.done.boss.fail': 'Noch nicht: Ein Stern besiegt das Finale. Spiele es noch einmal.',
+  'rp.done.replay': 'Die Szene noch einmal spielen',
+  'rp.done.garden': 'Den Garten besuchen',
+  'rp.done.finish': 'Den Kurs abschließen',
+  'rp.garden.title': 'Vokabelgarten',
+  'rp.garden.sub': 'Eine Pflanze für jedes Wort, dem du begegnet bist. Pflanzen wachsen, wenn du dich an das Wort erinnerst, und welken, wenn du es vergisst.',
+  'rp.garden.stats': '{seed} Samen, {sprout} Sprossen, {bud} Knospen, {bloom} in Blüte, {wilted} welk',
+  'rp.garden.empty': 'Der Garten ist leer. Beende eine Szene, und ihre Wörter werden hier gepflanzt.',
+  'rp.garden.packet': '{n} weitere Wörter sind noch in der Samentüte. Beende Szenen, um sie zu pflanzen.',
+  'rp.garden.met': 'Gehört in der Szene „{scene}“, in der {name} sagte: „{line}“',
+  'rp.garden.used': 'Verwendet in der Szene „{scene}“, nachdem {name} gesagt hatte: „{line}“',
+  'rp.garden.next': 'Nächstes Gießen: {when}',
+  'rp.garden.next.due': 'jetzt',
+  'rp.garden.next.days': 'in {n} Tagen',
+  'rp.garden.next.day': 'morgen',
+  'rp.water': 'Die Pflanzen gießen ({n})',
+  'rp.water.none': 'Im Moment gibt es nichts zu gießen',
+  'rp.water.done': 'Gegossen: {right} von {n} erinnert. Komm wieder, wenn die Pflanzen wieder durstig sind.',
+  'rp.water.empty': 'Alle Pflanzen sind vorerst zufrieden.',
+  'rp.garden.back': 'Zurück zu den Szenen',
+  'rp.stage.seed': 'Samen',
+  'rp.stage.sprout': 'Spross',
+  'rp.stage.bud': 'Knospe',
+  'rp.stage.bloom': 'Blüte',
+  'rp.stage.wilted': 'welk',
+  'rp.stage.label': 'Stufe: {stage}',
+  'rp.plant.alt': 'Eine Topfpflanze: {stage}',
+  'rp.end.title': 'Du kannst ein Gespräch führen!',
+  'rp.end.sub': 'Du hast jede Szene gemeistert und das Finale geschafft. Gieße den Garten weiter.',
+  'rp.end.words': '{n} Wörter im Garten, {bloom} in Blüte'
+}
+
+export const RP_STRINGS: ShellStrings<RpKey> = { en: EN, hr: HR, de: DE }
