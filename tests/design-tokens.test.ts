@@ -65,12 +65,12 @@ const themeCss = (id: string): string => read('src', 'design', 'themes', `${id}.
 const slots = slotNames()
 const themeVars = (id: string): Map<string, string> => declarations(themeCss(id), `[data-edu-theme='${id}']`)
 
-describe.each(THEMES.map((t) => [t.id] as const))('theme %s', (id) => {
-  const vars = themeVars(id)
-  const v = (name: string): string => vars.get(name) as string
-
+describe('every theme', () => {
   it('loads and fills every colour and font slot', () => {
-    for (const name of [...slots.colours, ...slots.fonts]) expect(vars.has(name), `${id} misses ${name}`).toBe(true)
+    for (const { id } of THEMES) {
+      const vars = themeVars(id)
+      for (const name of [...slots.colours, ...slots.fonts]) expect(vars.has(name), `${id} misses ${name}`).toBe(true)
+    }
   })
 
   // text >= 4.5:1 (WCAG 1.4.3), non-text parts >= 3:1 (1.4.11)
@@ -107,9 +107,12 @@ describe.each(THEMES.map((t) => [t.id] as const))('theme %s', (id) => {
     ['--edu-accent', '--edu-bg']
   ]
   it('palette contrast: text 4.5:1, series ink 4.5:1, non-text parts 3:1', () => {
+    for (const { id } of THEMES) {
+    const vars = themeVars(id)
+    const v = (name: string): string => vars.get(name) as string
     for (const [fg, bg] of text) expect(contrast(v(fg), v(bg)), `${id}: ${fg} ${v(fg)} on ${bg} ${v(bg)}`).toBeGreaterThanOrEqual(4.5)
     for (const sName of slots.series) expect(contrast(v('--edu-series-ink'), v(sName)), `${id}: ${sName}`).toBeGreaterThanOrEqual(4.5)
     for (const [fg, bg] of ui) expect(contrast(v(fg), v(bg)), `${id}: ${fg} on ${bg}`).toBeGreaterThanOrEqual(3)
+    }
   })
-
 })

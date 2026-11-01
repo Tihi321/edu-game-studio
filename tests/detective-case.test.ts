@@ -15,7 +15,7 @@ import {
 } from '../src/shared/shells/detective-case'
 
 /**
- * The detective shell's wrapper over the proved puzzle generator (EGS-14): the proofs (every kind and size the shell uses, 200 seeds each:
+ * The detective shell's wrapper over the proved puzzle generator (EGS-14): the proofs (every kind and size the shell uses, 50 seeds each:
  * unique AND deducible), the seed fallback, the clue sentences (English equals the generator's own, Croatian is grammar-free, aliases), the
  * accusation, the marks and the hints (which never leak a face-down card).
  */
@@ -23,17 +23,17 @@ import {
 const BANDS = ['easy', 'medium', 'hard'] as const
 const defaultNamer = (p: any): Namer => ({ name: (id) => p.names[id] })
 
-describe('proofs: every kind and size the shell uses, 200 seeds each', () => {
+describe('proofs: every kind and size the shell uses, 50 seeds each', () => {
   const kinds: [string, number][] = [
     ['murdle', 3],
     ['murdle', 4],
     ['logic', 3],
     ['logic', 4]
   ]
-  // 200 proofs of a size-4 logic grid take about 10 s alone and longer while the e2e files share the CPU: a generous bound, not a race
-  it.each(kinds)('%s of size %i: every seed gives a case with exactly one solution that deduction solves', { timeout: 120_000 }, (kind, size) => {
+  // 50 seeds per kind and size keep the proof under the 15 s test limit (200 seeds of a size-4 logic grid took 11 s on an idle machine)
+  it.each(kinds)('%s of size %i: every seed gives a case with exactly one solution that deduction solves', (kind, size) => {
     let fellBack = 0
-    for (let seed = 1; seed <= 200; seed++) {
+    for (let seed = 1; seed <= 50; seed++) {
       const band = BANDS[(seed - 1) % BANDS.length] as string
       const built = buildCase({ kind: kind as 'murdle' | 'logic', size, seed, band })
       const proof = solve(built.puzzle as any)

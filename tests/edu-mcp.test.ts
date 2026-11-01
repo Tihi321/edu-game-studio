@@ -178,7 +178,9 @@ describe('the course tools: the happy path', () => {
 })
 
 describe('the course tools: edits are validated and refused', () => {
-  it('refuses a duplicate unit id, an unknown prerequisite and a cycle-free-but-broken reference, and writes nothing', async () => {
+  it('edits are validated and refused: duplicates, merge patches, kind mismatches, item updates, concurrent writes', async () => {
+  // refuses a duplicate unit id, an unknown prerequisite and a cycle-free-but-broken reference, and writes nothing
+  {
     const slug = await makeCourse()
     const before = await readFile(path.join(courseDir(slug), 'pack.json'), 'utf8')
     const dup = await call('edu_course_edit', { slug, patch: { units: [{ id: 'u1', title: 'unit.u1.title', requires: [] }, { id: 'u1', title: 'unit.u1.title', requires: [] }] } })
@@ -198,9 +200,10 @@ describe('the course tools: edits are validated and refused', () => {
       expect(r.ok, JSON.stringify(patch)).toBe(false)
       expect(r.text).toMatch(/cannot be edited/)
     }
-  })
+  }
 
-  it('merge-patches objects, deletes with null and replaces arrays', async () => {
+  // merge-patches objects, deletes with null and replaces arrays
+  {
     const slug = await makeCourse()
     await must('edu_course_edit', { slug, patch: { shells: { config: { 'quiz-arena': { rounds: 3 } } }, matching: { typos: false }, cefr: 'B1' } })
     let pack = (await must('edu_get_course', { slug })).pack as { shells: { enabled: string[]; config: Record<string, unknown> }; matching: { diacritics: string; typos: boolean }; cefr?: string }
@@ -211,9 +214,10 @@ describe('the course tools: edits are validated and refused', () => {
     pack = (await must('edu_get_course', { slug })).pack as typeof pack
     expect(pack.cefr).toBeUndefined()
     expect(pack.shells.enabled).toEqual(['quiz-arena', 'encyclopedia'])
-  })
+  }
 
-  it('refuses an item that does not fit its kind, an unknown objective or kind, and a duplicate id', async () => {
+  // refuses an item that does not fit its kind, an unknown objective or kind, and a duplicate id
+  {
     const slug = await makeCourse()
     const noAnswer = await call('edu_item_add', { slug, item: { ...MCQ, answer: undefined }, text: MCQ_TEXT })
     expect(noAnswer.ok).toBe(false)
@@ -241,9 +245,10 @@ describe('the course tools: edits are validated and refused', () => {
     expect(badKey.ok).toBe(false)
     expect(badKey.text).toMatch(/not valid/)
     expect(Object.keys(((await must('edu_get_course', { slug, lang: 'en' })).text as { en: { strings: object } }).en.strings)).not.toContain('bad key!')
-  })
+  }
 
-  it('updates an item with a merge patch (and its text), refuses an id change, and removes it', async () => {
+  // updates an item with a merge patch (and its text), refuses an id change, and removes it
+  {
     const slug = await makeCourse()
     await must('edu_item_add', { slug, item: MCQ, text: MCQ_TEXT })
     const up = await must('edu_item_update', { slug, id: 'q-mcq', patch: { answer: 'b', difficulty: 4 }, text: { en: { strings: { 'q-mcq.expl': 'Five, in this version.' } } } })
@@ -266,9 +271,10 @@ describe('the course tools: edits are validated and refused', () => {
     const en = ((await must('edu_get_course', { slug, lang: 'en' })).text as { en: { strings: Record<string, string>; accepted?: Record<string, string[]> } }).en
     expect(Object.keys(en.strings)).not.toContain('x.a')
     expect(Object.keys(en.accepted ?? {})).not.toContain('x.b')
-  })
+  }
 
-  it('keeps every write when calls arrive at the same time', async () => {
+  // keeps every write when calls arrive at the same time
+  {
     const slug = await makeCourse()
     const ids = ['p1', 'p2', 'p3', 'p4', 'p5']
     await Promise.all(
@@ -282,11 +288,14 @@ describe('the course tools: edits are validated and refused', () => {
     )
     expect((await readPack(slug)).items.map((i) => i.id).sort()).toEqual(ids)
     expect((await must('edu_validate', { slug })).ok).toBe(true)
+  }
   })
 })
 
 describe('the course tools: create and import', () => {
-  it('refuses a second course with the same slug, a bad slug and a source language that is not an edition; creates a language course', async () => {
+  it('create and import: refusals, folder shapes, broken courses, unknown courses', async () => {
+  // refuses a second course with the same slug, a bad slug and a source language that is not an edition; creates a language course
+  {
     const slug = await makeCourse()
     expect((await call('edu_create_course', { slug, title: 'Again', languages: ['en'], sourceLang: 'en', subject: 's', audience: 'a' })).text).toMatch(/already exists/)
     expect((await call('edu_create_course', { slug: 'Bad Slug', title: 't', languages: ['en'], sourceLang: 'en', subject: 's', audience: 'a' })).ok).toBe(false)
@@ -297,9 +306,10 @@ describe('the course tools: create and import', () => {
     expect(Object.keys(got.text as object).sort()).toEqual(['en', 'hr'])
     expect((got.pack as { targetLang: string }).targetLang).toBe('hr')
     expect((await must('edu_validate', { slug: lang })).ok).toBe(true)
-  })
+  }
 
-  it('imports a course folder (both folder shapes), refuses to overwrite, and gives it another slug', async () => {
+  // imports a course folder (both folder shapes), refuses to overwrite, and gives it another slug
+  {
     const src = path.join(FIXTURES, 'solar-system')
     const imp = await must('edu_import_course', { folder: src, slug: 'imported-solar' })
     expect(imp).toMatchObject({ slug: 'imported-solar', validation: { ok: true, problems: [] } })
@@ -317,9 +327,10 @@ describe('the course tools: create and import', () => {
     // the imported course builds and lints clean
     expect(await must('edu_build', { slug: 'imported-solar' })).toMatchObject({ ok: true })
     expect(await must('edu_lint', { slug: 'imported-solar' })).toMatchObject({ ok: true, errors: 0 })
-  })
+  }
 
-  it('validate, build and lint say what is wrong with a broken course', async () => {
+  // validate, build and lint say what is wrong with a broken course
+  {
     await must('edu_import_course', { folder: path.join(FIXTURES, 'broken'), slug: 'broken' })
     const v = await must('edu_validate', { slug: 'broken' })
     expect(v.ok).toBe(false)
@@ -334,15 +345,17 @@ describe('the course tools: create and import', () => {
     const forced = await must('edu_lint', { slug: 'broken' })
     expect(forced.ok).toBe(false)
     expect(forced.errors).toBeGreaterThan(10)
-  })
+  }
 
-  it('unknown courses are errors', async () => {
+  // unknown courses are errors
+  {
     for (const [tool, args] of [['edu_get_course', {}], ['edu_validate', {}], ['edu_build', {}], ['edu_lint', {}], ['edu_item_add', { item: MCQ }], ['edu_course_edit', { patch: { subject: 'x' } }]] as const) {
       const r = await call(tool, { slug: 'nope', ...args })
       expect(r.ok, tool).toBe(false)
       expect(r.text, tool).toMatch(/no course "nope"/)
     }
     expect((await call('edu_get_course', { slug: '../evil' })).ok).toBe(false)
+  }
   })
 })
 

@@ -30,28 +30,24 @@ import { FIXTURE_NAMES, FIXTURES, ctxFor, loadFixture, type LoadedFixture } from
 const clone = <T>(v: T): T => structuredClone(v)
 
 describe('golden fixtures', () => {
-  for (const name of FIXTURE_NAMES) {
-    it(`${name} validates with 0 problems (files, schema, references, text, puzzles)`, async () => {
+  it('every fixture validates with 0 problems (files, schema, references, text, puzzles)', async () => {
+    for (const name of FIXTURE_NAMES) {
       const res = await validateCourseFolder(path.join(FIXTURES, name))
-      expect(res.problems).toEqual([])
+      expect(res.problems, name).toEqual([])
       expect(res.ok).toBe(true)
       expect(res.pack?.id).toBe(name)
-    })
-  }
+    }
+  })
 
-  for (const name of FIXTURE_NAMES) {
-    it(`${name}: every objective is asked in at least two forms and every item belongs to one`, async () => {
+  it('every objective is asked in two forms; every item is solved by its own key in every edition; every distractor has a why and every string is in the catalog', async () => {
+    for (const name of FIXTURE_NAMES) {
       const f = await loadFixture(name)
       for (const o of f.pack.objectives) {
         const forms = new Set(itemsOf(f.pack, o.id).map((i) => formOf(i)))
-        expect(forms.size, `${o.id} has forms ${[...forms].join(', ')}`).toBeGreaterThanOrEqual(2)
+        expect(forms.size, `${name} ${o.id} has forms ${[...forms].join(', ')}`).toBeGreaterThanOrEqual(2)
         expect(objectivesOf(f.pack, o.unit)).toContain(o)
       }
       for (const i of f.pack.items) expect(unitOfItem(f.pack, i)).toBeDefined()
-    })
-
-    it(`${name}: every item is solved by its own key in every edition, and a wrong answer fails`, async () => {
-      const f = await loadFixture(name)
       for (const lang of f.pack.languages) {
         const ctx = ctxFor(f, lang)
         for (const item of f.pack.items) {
@@ -62,10 +58,6 @@ describe('golden fixtures', () => {
           expect(answerKeyOf(item)).toBeDefined()
         }
       }
-    })
-
-    it(`${name}: every distractor has its own explanation and every string is in the catalog`, async () => {
-      const f = await loadFixture(name)
       for (const item of f.pack.items) {
         const def = getItemKind(item.kind)!
         for (const d of def.distractors?.(item) ?? []) expect(d.why, `${item.id} ${d.path}`).toBeTruthy()
@@ -76,10 +68,12 @@ describe('golden fixtures', () => {
           }
         }
       }
-    })
-  }
+    }
+  })
 
-  it('solar-system: a wrong answer is not accepted for the typed, cloze and listening items', async () => {
+  it('a wrong answer is not accepted (solar-system typed, cloze, listening); strict accents and synonyms (hr-a1-greetings)', async () => {
+  // solar-system: a wrong answer is not accepted for the typed, cloze and listening items
+  {
     const f = await loadFixture('solar-system')
     const ctx = ctxFor(f, 'hr')
     const byId = (id: string) => f.pack.items.find((i) => i.id === id)!
@@ -91,9 +85,10 @@ describe('golden fixtures', () => {
     expect(checkItem(byId('q-sun-beeps'), 'a', ctx).correct).toBe(false)
     expect(checkItem(byId('q-order-hotspot'), { x: 285, y: 150 }, ctx).correct).toBe(true)
     expect(checkItem(byId('q-order-hotspot'), { x: 235, y: 150 }, ctx).correct).toBe(false)
-  })
+  }
 
-  it('hr-a1-greetings: strict accents on an item, a warning elsewhere, and synonyms', async () => {
+  // hr-a1-greetings: strict accents on an item, a warning elsewhere, and synonyms
+  {
     const f = await loadFixture('hr-a1-greetings')
     const ctx = ctxFor(f, 'en')
     const byId = (id: string) => f.pack.items.find((i) => i.id === id)!
@@ -113,6 +108,7 @@ describe('golden fixtures', () => {
     // the word search finds Croatian words on a folded grid
     const ws = byId('g-greet-ws')
     expect(checkItem(ws, solveItem(ws, ctx), ctx).correct).toBe(true)
+  }
   })
 })
 
@@ -147,7 +143,9 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
   const item = (pack: Record<string, any>, id: string): Record<string, any> => pack.items.find((i: { id: string }) => i.id === id) // eslint-disable-line @typescript-eslint/no-explicit-any
   const has = (ps: Problem[], code: string, pathPart?: string): boolean => ps.some((p) => p.code === code && (!pathPart || p.path.includes(pathPart)))
 
-  it('SCHEMA: wrong types, a missing field and an unknown key, with a path', async () => {
+  it('SCHEMA, UNKNOWN_KIND, UNKNOWN_* references, DUPLICATE_ID', async () => {
+  // SCHEMA: wrong types, a missing field and an unknown key, with a path
+  {
     const { pack, cats } = await fresh()
     // a base field wrong: the pack schema stops there and says where
     const base = clone(pack)
@@ -165,13 +163,15 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     expect(top.problems[0]).toMatchObject({ code: 'SCHEMA', path: 'units' })
     expect(validateCourse(null, {}).problems[0]!.code).toBe('SCHEMA')
     expect(validateCourse(pack, { en: { lang: 'en' } }).problems.some((p) => p.code === 'SCHEMA' && p.path.startsWith('text[en]'))).toBe(true)
-  })
-  it('UNKNOWN_KIND', async () => {
+  }
+  // UNKNOWN_KIND
+  {
     const { pack, cats } = await fresh()
     item(pack, 'q-order-mcq').kind = 'hologram'
     expect(has(validateCourse(pack, cats).problems, 'UNKNOWN_KIND', '.kind')).toBe(true)
-  })
-  it('UNKNOWN_OBJECTIVE, UNKNOWN_UNIT, UNKNOWN_ASSET, UNKNOWN_FACT, UNKNOWN_ARTICLE', async () => {
+  }
+  // UNKNOWN_OBJECTIVE, UNKNOWN_UNIT, UNKNOWN_ASSET, UNKNOWN_FACT, UNKNOWN_ARTICLE
+  {
     const { pack, cats } = await fresh()
     item(pack, 'q-order-mcq').objective = 'obj-ghost'
     pack.objectives[0].unit = 'u-ghost'
@@ -185,8 +185,9 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     for (const code of ['UNKNOWN_OBJECTIVE', 'UNKNOWN_UNIT', 'UNKNOWN_ASSET', 'UNKNOWN_FACT', 'UNKNOWN_ARTICLE']) expect(has(ps, code), code).toBe(true)
     expect(ps.filter((p) => p.code === 'UNKNOWN_UNIT').map((p) => p.path)).toEqual(expect.arrayContaining(['objectives[0].unit', 'units[1].requires[0]']))
     expect(has(ps, 'UNKNOWN_ASSET', 'cues[0].asset')).toBe(true)
-  })
-  it('DUPLICATE_ID: items, units, options', async () => {
+  }
+  // DUPLICATE_ID: items, units, options
+  {
     const { pack, cats } = await fresh()
     pack.items[1].id = pack.items[0].id
     pack.units[1].id = pack.units[0].id
@@ -195,8 +196,11 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     expect(has(ps, 'DUPLICATE_ID', 'items[1].id')).toBe(true)
     expect(has(ps, 'DUPLICATE_ID', 'units[1].id')).toBe(true)
     expect(ps.some((p) => p.code === 'DUPLICATE_ID' && p.path.includes('options'))).toBe(true)
+  }
   })
-  it('MISSING_TEXT: a string gone from one edition, and an accepted list gone', async () => {
+  it('MISSING_TEXT, MISSING_WHY, UNKNOWN_OPTION / GROUP / REGION', async () => {
+  // MISSING_TEXT: a string gone from one edition, and an accepted list gone
+  {
     const { pack, cats } = await fresh()
     delete cats.hr.strings['q-order-mcq.prompt']
     delete cats.en.accepted['q-giants-typed.answer']
@@ -208,8 +212,9 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     // pack-level keys too
     delete cats.en.strings['ss.unit.sun.title']
     expect(has(validateCourse(pack, cats).problems, 'MISSING_TEXT', 'units[0].title')).toBe(true)
-  })
-  it('MISSING_WHY: a distractor without its misconception explanation', async () => {
+  }
+  // MISSING_WHY: a distractor without its misconception explanation
+  {
     const { pack, cats } = await fresh()
     delete item(pack, 'q-order-mcq').options[1].why
     delete item(pack, 'q-giants-multi').options[2].why
@@ -217,8 +222,9 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     const ps = validateCourse(pack, cats).problems.filter((p) => p.code === 'MISSING_WHY')
     expect(ps).toHaveLength(3)
     expect(ps[0]!.path).toMatch(/options\[1\]\.why$/)
-  })
-  it('UNKNOWN_OPTION / UNKNOWN_GROUP / UNKNOWN_REGION: answer keys that point nowhere', async () => {
+  }
+  // UNKNOWN_OPTION / UNKNOWN_GROUP / UNKNOWN_REGION: answer keys that point nowhere
+  {
     const { pack, cats } = await fresh()
     item(pack, 'q-order-mcq').answer = 'zz'
     item(pack, 'q-giants-multi').answers = ['rings', 'zz']
@@ -230,26 +236,32 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     expect(ps.filter((p) => p.code === 'UNKNOWN_OPTION').length).toBe(4)
     expect(has(ps, 'UNKNOWN_GROUP')).toBe(true)
     expect(has(ps, 'UNKNOWN_REGION')).toBe(true)
+  }
   })
-  it('MISSING_GAP_MARKER: a cloze text that lost its gap in one language', async () => {
+  it('MISSING_GAP_MARKER, PUZZLE_UNPLACED, language and catalog problems', async () => {
+  // MISSING_GAP_MARKER: a cloze text that lost its gap in one language
+  {
     const { pack, cats } = await fresh()
     cats.hr.strings['q-sun-cloze.text'] = 'Svjetlosti sa Sunca treba oko osam minuta.'
     const p = validateCourse(pack, cats).problems.find((x) => x.code === 'MISSING_GAP_MARKER')
     expect(p?.message).toMatch(/"hr"/)
-  })
-  it('PUZZLE_UNPLACED: a crossword word that crosses nothing in one language', async () => {
+  }
+  // PUZZLE_UNPLACED: a crossword word that crosses nothing in one language
+  {
     const { pack, cats } = await fresh()
     cats.hr.accepted['ss.word.earth'] = ['Qwx']
     const ps = validateCourse(pack, cats).problems
     expect(ps.some((p) => p.code === 'PUZZLE_UNPLACED' && p.message.includes('"hr"'))).toBe(true)
-  })
-  it('language and catalog problems', async () => {
+  }
+  // language and catalog problems
+  {
     const { pack, cats } = await fresh()
     const noHr = { en: cats.en }
     expect(has(validateCourse(pack, noHr).problems, 'MISSING_CATALOG', 'text[hr]')).toBe(true)
     expect(has(validateCourse(pack, { ...cats, de: { schema: 1, lang: 'de', strings: {} } }).problems, 'UNKNOWN_LANGUAGE', 'text[de]')).toBe(true)
     expect(has(validateCourse(pack, { ...cats, hr: { ...cats.hr, lang: 'en' } }).problems, 'CATALOG_LANG')).toBe(true)
     expect(has(validateCourse({ ...pack, sourceLang: 'de' }, cats).problems, 'SOURCE_LANG_NOT_LISTED')).toBe(true)
+  }
   })
 })
 

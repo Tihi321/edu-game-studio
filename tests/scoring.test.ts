@@ -13,20 +13,26 @@ const r = (role: string, verdict: 'pass' | 'revise', scores: Record<string, numb
 const quality = (o: Record<string, unknown> = {}) => qualitySchema.parse({ kind: 'quality', ...o })
 
 describe('the review contract', () => {
-  it('the seeded quality defaults: threshold 7, two rounds, must-pass fact-checker and the audience reviewers', () => {
+  it('the seeded quality defaults and every reviewer role has its dimensions', () => {
+  // the seeded quality defaults: threshold 7, two rounds, must-pass fact-checker and the audience reviewers
+  {
     expect(quality()).toMatchObject({ threshold: 7, max_rounds: 2, revise_below: 7, must_pass: ['fact-checker', 'accessibility-reviewer', 'child-safety-reviewer'], weights: {} })
-  })
+  }
 
-  it('every reviewer role has its dimensions; the misconception-designer is not a reviewer', () => {
+  // every reviewer role has its dimensions; the misconception-designer is not a reviewer
+  {
     expect(dimensionsFor('fact-checker')).toEqual(['accuracy'])
     expect(dimensionsFor('accessibility-reviewer')).toEqual(['accessibility', 'readability'])
     expect(dimensionsFor('child-safety-reviewer')).toEqual(['age_fit'])
     expect(dimensionsFor('playtester')).toEqual(['flow', 'difficulty'])
     expect(dimensionsFor('misconception-designer')).toEqual(['quality'])
     expect(scoresExample('accessibility-reviewer')).toBe('{"accessibility": 8, "readability": 8}')
+  }
   })
 
-  it('reviewSchema takes what models write: any case, scores as text or out of range, findings as lines or objects, missing fields', () => {
+  it('reviewSchema takes what models write; a reviewer role requires its own dimensions', () => {
+  // reviewSchema takes what models write: any case, scores as text or out of range, findings as lines or objects, missing fields
+  {
     const out = reviewSchema.parse({
       verdict: ' REVISE ',
       scores: { 'Age Fit': '6', accuracy: 11, bad: 'x', low: 0 },
@@ -42,9 +48,10 @@ describe('the review contract', () => {
     expect(reviewSchema.safeParse({ verdict: 'maybe' }).success).toBe(false)
     expect(reviewSchema.safeParse('text').success).toBe(false)
     expect(normalizeReviewJson('text')).toBe('text')
-  })
+  }
 
-  it('a reviewer role\'s schema requires its own dimensions, and it has a JSON schema for the provider', () => {
+  // a reviewer role\'s schema requires its own dimensions, and it has a JSON schema for the provider
+  {
     const s = reviewSchemaFor('accessibility-reviewer')
     expect(s.safeParse({ verdict: 'pass', scores: { accessibility: 8, readability: 9 }, notes: 'ok', problems: [] }).success).toBe(true)
     const missing = s.safeParse({ verdict: 'pass', scores: { accessibility: 8 } })
@@ -55,22 +62,26 @@ describe('the review contract', () => {
     expect(js.properties.scores!.required).toEqual(['accessibility', 'readability'])
     expect(js.required).toEqual(expect.arrayContaining(['verdict', 'scores']))
     expect(() => jsonSchemaOf(reviewSchema)).not.toThrow()
+  }
   })
 })
 
 describe('scoring: weights, revise rules, must-pass gates and the threshold', () => {
   const q = quality({ threshold: 7, weights: { accuracy: 2, readability: 1, accessibility: 1, age_fit: 1 } })
 
-  it('weightedScore averages each dimension over the reviewers, then weighs the averages', () => {
+  it('weightedScore averages per dimension; decide against the threshold and a must-pass revise', () => {
+  // weightedScore averages each dimension over the reviewers, then weighs the averages
+  {
     const reviews = [r('fact-checker', 'pass', { accuracy: 8 }), r('accessibility-reviewer', 'pass', { accessibility: 6, readability: 6 }), r('child-safety-reviewer', 'pass', { age_fit: 10 }), r('playtester', 'pass', { accuracy: 6 })]
     const w = weightedScore(reviews, q.weights)
     expect(w.byDimension).toEqual({ accuracy: 7, accessibility: 6, readability: 6, age_fit: 10 })
     expect(w.score).toBeCloseTo((7 * 2 + 6 + 6 + 10) / 5, 2)
     expect(weightedScore([], {})).toEqual({ score: 0, byDimension: {} })
     expect(weightedScore([r('x', 'pass', { novel: 4 })], {}).score).toBe(4) // a dimension without a weight counts 1
-  })
+  }
 
-  it('decide: publishes above the threshold, rejects below it, and a must-pass reviewer that says revise rejects whatever the scores', () => {
+  // decide: publishes above the threshold, rejects below it, and a must-pass reviewer that says revise rejects whatever the scores
+  {
     const good = [r('fact-checker', 'pass', { accuracy: 9 }), r('accessibility-reviewer', 'pass', { accessibility: 8, readability: 8 }), r('child-safety-reviewer', 'pass', { age_fit: 9 })]
     expect(decide(good, q)).toMatchObject({ publish: true, reasons: [] })
     const low = decide([r('fact-checker', 'pass', { accuracy: 5 })], q)
@@ -81,9 +92,12 @@ describe('scoring: weights, revise rules, must-pass gates and the threshold', ()
     expect(gate.reasons[0]).toMatch(/must-pass gate failed: child-safety-reviewer says revise. a scary scene/)
     // a reviewer that is not must-pass does not block by its verdict alone
     expect(decide([...good, r('playtester', 'revise', { flow: 9, difficulty: 9 })], q).publish).toBe(true)
+  }
   })
 
-  it('decide: a hard gate that is not ok rejects too, with its reason, next to the other reasons', () => {
+  it('decide: a hard gate rejects with its reason; countsAsRevise; notesProblem', () => {
+  // decide: a hard gate that is not ok rejects too, with its reason, next to the other reasons
+  {
     const good = [r('fact-checker', 'pass', { accuracy: 9 })]
     const d = decide(good, q, [{ name: 'lint', ok: false, reason: '3 errors: ITEM_NO_KEY at q1' }, { name: 'bot', ok: true }, { name: 'bot-failure', ok: false }])
     expect(d.publish).toBe(false)
@@ -92,9 +106,10 @@ describe('scoring: weights, revise rules, must-pass gates and the threshold', ()
     // a gate and a must-pass failure and a low score each give their own reason
     const all = decide([r('fact-checker', 'revise', { accuracy: 2 })], q, [{ name: 'lint', ok: false }])
     expect(all.reasons).toHaveLength(3)
-  })
+  }
 
-  it('countsAsRevise: a non-must-pass revise counts only with a score below revise_below; must-pass always counts; a revise without scores counts', () => {
+  // countsAsRevise: a non-must-pass revise counts only with a score below revise_below; must-pass always counts; a revise without scores counts
+  {
     const qq = quality({ revise_below: 7 })
     expect(countsAsRevise(r('playtester', 'pass', { flow: 2 }), qq)).toBe(false)
     expect(countsAsRevise(r('playtester', 'revise', { flow: 9, difficulty: 8 }), qq)).toBe(false) // "revise" with only good scores is a pass
@@ -103,9 +118,10 @@ describe('scoring: weights, revise rules, must-pass gates and the threshold', ()
     expect(countsAsRevise(r('fact-checker', 'revise', { accuracy: 10 }), qq)).toBe(true)
     expect(countsAsRevise(r('playtester', 'revise', {}), qq)).toBe(true)
     expect(reviewsThatRevise([r('fact-checker', 'pass', { accuracy: 9 }), r('playtester', 'revise', { flow: 3 }), r('playtester', 'revise', { flow: 9 })], qq).map((x) => x.scores)).toEqual([{ flow: 3 }])
-  })
+  }
 
-  it('notesProblem: a revise that promises items and gives none is refused; a pass is never checked', () => {
+  // notesProblem: a revise that promises items and gives none is refused; a pass is never checked
+  {
     expect(notesProblem('revise', 'Three concrete fixes below.', [])).toMatch(/too short/)
     expect(notesProblem('revise', 'The check found a few problems in the later items, as follows', [])).toMatch(/promise a list/)
     expect(notesProblem('revise', 'The check found three fixes, described here in a paragraph of its own with no list at all.', [])).toMatch(/promise 3 items but give 0/)
@@ -115,6 +131,7 @@ describe('scoring: weights, revise rules, must-pass gates and the threshold', ()
     expect(notesProblem('revise', 'The article cites a fact that says something else, and the item', [])).toMatch(/middle of a sentence/)
     expect(notesProblem('revise', 'The article cites a fact that says something else, and the item', [{}])).toBeNull()
     expect(notesProblem('pass', 'Fine', [])).toBeNull()
+  }
   })
 })
 

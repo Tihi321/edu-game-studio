@@ -9,24 +9,19 @@ import { RPG_STRINGS } from '../src/player/shells/rpg/strings'
 const LANGS = ['hr', 'de']
 
 describe('player strings are complete in en, hr and de', () => {
-  it('lists the languages', () => {
+  it('the player table and every shell table have every key in every language', () => {
     expect(UI_LANGUAGES).toEqual(expect.arrayContaining(['en', 'hr', 'de']))
-  })
-  for (const lang of LANGS) {
-    it(`the player table ${lang} has every UiKey`, () => {
-      const missing = UI_KEYS.filter((k) => !UI_TABLES[lang]?.[k])
-      expect(missing).toEqual([])
-      expect(Object.keys(UI_TABLES[lang] ?? {}).filter((k) => !(UI_KEYS as string[]).includes(k))).toEqual([])
-    })
-  }
-  const shells = { detective: DET, encyclopedia: ENC_STRINGS, mindmaze: MAZE_STRINGS, roleplay: RP_STRINGS, rpg: RPG_STRINGS } as const
-  for (const [id, tables] of Object.entries(shells)) {
     for (const lang of LANGS) {
-      it(`shell ${id} has every key in ${lang}`, () => {
-        const table = (tables as Record<string, Record<string, string> | undefined>)[lang] ?? {}
-        const missing = Object.keys(tables.en).filter((k) => !table[k])
-        expect(missing).toEqual([])
-      })
+      const missing = UI_KEYS.filter((k) => !UI_TABLES[lang]?.[k])
+      expect(missing, `player table ${lang}`).toEqual([])
+      expect(Object.keys(UI_TABLES[lang] ?? {}).filter((k) => !(UI_KEYS as string[]).includes(k))).toEqual([])
     }
-  }
+    const shells = { detective: DET, encyclopedia: ENC_STRINGS, mindmaze: MAZE_STRINGS, roleplay: RP_STRINGS, rpg: RPG_STRINGS } as const
+    for (const [id, tables] of Object.entries(shells)) {
+      for (const lang of LANGS) {
+        const table = (tables as Record<string, Record<string, string> | undefined>)[lang] ?? {}
+        expect(Object.keys(tables.en).filter((k) => !table[k]), `shell ${id} in ${lang}`).toEqual([])
+      }
+    }
+  })
 })

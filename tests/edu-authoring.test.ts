@@ -52,13 +52,16 @@ const refs = (ps: { ref: string }[]) => ps.map((p) => p.ref)
 describe('director: plan_brief', () => {
   const plan = { title: 'Roman Basics', summary: 'Learn how Rome rose and fell.', units: [{ title: 'The fall', focus: 'How it ended.' }, { title: 'The height', focus: 'The republic and the arena.' }], research: [{ question: 'When did the Western Roman Empire end?', unit: 1 }, { question: 'Who led the Roman Republic?', unit: 2 }] }
 
-  it('a good plan passes; null fields and a missing list are told apart', () => {
+  it('plan_brief: a good plan passes; checkPlan limits', () => {
+  // a good plan passes; null fields and a missing list are told apart
+  {
     expect(planSchema.safeParse(plan).success).toBe(true)
     expect(issues(planSchema.safeParse({ ...plan, units: 'two' }))[0]).toMatch(/units must be a list/)
     expect(issues(planSchema.safeParse({ ...plan, research: [{ question: 'short', unit: 1 }] }))[0]).toMatch(/a research question is a full question/)
-  })
+  }
 
-  it('checkPlan: the number of units, 1 to 3 questions per unit, a real unit number', () => {
+  // checkPlan: the number of units, 1 to 3 questions per unit, a real unit number
+  {
     const p = planSchema.parse(plan)
     expect(checkPlan(p, { units: 2 })).toEqual([])
     expect(checkPlan(p, { units: 3 }).map((x) => x.issue)).toEqual([expect.stringMatching(/2 unit\(s\), the course has exactly 3/)])
@@ -67,6 +70,7 @@ describe('director: plan_brief', () => {
     const many = planSchema.parse({ ...plan, research: [...plan.research, ...Array.from({ length: 3 }, (_, i) => ({ question: `Another question number ${i}?`, unit: 1 })), { question: 'A question for no unit at all?', unit: 7 }] })
     const out = checkPlan(many, { units: 2 })
     expect(out.map((x) => x.issue)).toEqual(expect.arrayContaining([expect.stringMatching(/4 research questions, at most 3/), expect.stringMatching(/names unit 7/)]))
+  }
   })
 })
 
@@ -140,7 +144,9 @@ describe('language-coach: scope and accepted', () => {
 describe('item-writer: items', () => {
   const bad = (over: Record<string, unknown>, base = ITEMS[0]!) => issues(authoredItemSchema.safeParse({ ...base, ...over }))
 
-  it('each kind\'s schema rejects a wrong shape with a readable message', () => {
+  it('item-writer: schemas reject wrong shapes, checkItems, mergeRevision', () => {
+  // each kind\'s schema rejects a wrong shape with a readable message
+  {
     expect(bad({ kind: 'riddle' })[0]).toMatch(/every item needs a kind: mcq, true-false/)
     expect(bad({ answer: 'z' })[0]).toBe('answer: answer "z" is not one of the option ids (a, b, c, d)')
     expect(bad({ options: [{ id: 'a', text: 'x' }, { id: 'a', text: 'y' }] })[0]).toMatch(/the option id "a" is used twice/)
@@ -164,9 +170,10 @@ describe('item-writer: items', () => {
     expect(bad({ pairs: [{ id: 'p1', left: 'a', right: 'b' }] }, ITEMS[5]!)[0]).toMatch(/at least 2 pairs/)
     expect(bad({ items: [{ id: 's1', text: 'a' }] }, ITEMS[6]!)[0]).toMatch(/at least 2 items/)
     expect(bad({ back: '' }, ITEMS[4]!)[0]).toMatch(/the back of the card must not be empty/)
-  })
+  }
 
-  it('checkItems: ids, objective, unit, facts, kind, forms per objective, duplicate and key-like options, the why of a wrong option', () => {
+  // checkItems: ids, objective, unit, facts, kind, forms per objective, duplicate and key-like options, the why of a wrong option
+  {
     const ok = itemsSchema.parse({ items: ITEMS }).items
     const check = (items: AuthoredItem[], o: Partial<Parameters<typeof checkItems>[1]> = {}) => formatProblems(checkItems(items, { objectives, factIds, allowedKinds: kinds, ...o }))
     expect(check([ITEMS[0]!, ITEMS[0]!])).toMatch(/q1: this item id is used twice/)
@@ -191,14 +198,16 @@ describe('item-writer: items', () => {
     expect(check(draftItems([ITEMS[0]!]), { requireWhy: true })).toMatch(/the wrong option "b" has no why/)
     const bankDup: AuthoredItem = { ...ITEMS[3]!, gaps: [{ id: 'g1', accepted: ['Curia', 'the Curia'], bank: ['Curia', 'the curia', 'Forum'] }] } as AuthoredItem
     expect(check([bankDup])).toMatch(/the bank word "the curia" of gap "g1" is also an accepted answer/)
-  })
+  }
 
-  it('mergeRevision: only the flagged items change, a flagged item that is not returned is a problem, the order stays', () => {
+  // mergeRevision: only the flagged items change, a flagged item that is not returned is a problem, the order stays
+  {
     const revised = [{ ...ITEMS[0]!, prompt: 'Changed prompt?' }, { ...ITEMS[1]!, prompt: 'Not flagged, ignored.' }] as AuthoredItem[]
     const r = mergeRevision(ITEMS.slice(0, 3), revised, ['q1', 'q3'])
     expect(r.merged.map((i) => [i.id, i.prompt.slice(0, 10)])).toEqual([['q1', 'Changed pr'], ['q2', 'Odoacer re'], ['q3', 'Type the y']])
     expect(r.replaced).toEqual(['q1'])
     expect(formatProblems(r.problems)).toBe('- q3: it was flagged but not returned (return the corrected version of every flagged entry)')
+  }
   })
 })
 
@@ -276,7 +285,9 @@ describe('askRole: the repair round for what a schema or a check finds', () => {
     return runInJob(env, 'director', (ctx) => askRole(ctx, { dataDir: env.dir, role: 'director', task: 'plan_brief', vars: { topic: 'Rome', audience: 'Teens', age: '14', level: 'beginner', language: 'English', units: 1, questions_per_unit: 3, format_label: 'Quick course', notes: 'none' }, schema: planSchema, check }))
   }
 
-  it('a check problem is sent back with its words, and the corrected answer is used', async () => {
+  it('askRole: a check problem is repaired once; one that stays fails the job with the problems listed', async () => {
+  // a check problem is sent back with its words, and the corrected answer is used
+  {
     const env = await makeEduEnv()
     try {
       let calls = 0
@@ -297,9 +308,10 @@ describe('askRole: the repair round for what a schema or a check finds', () => {
     } finally {
       await env.cleanup()
     }
-  })
+  }
 
-  it('a problem that is still there after the repair round fails the job with the problems listed; a good answer costs one call', async () => {
+  // a problem that is still there after the repair round fails the job with the problems listed; a good answer costs one call
+  {
     const env = await makeEduEnv()
     try {
       let calls = 0
@@ -323,13 +335,16 @@ describe('askRole: the repair round for what a schema or a check finds', () => {
     } finally {
       await env.cleanup()
     }
+  }
   })
 })
 
 describe('the seeded prompts and agents of the content team', () => {
   const promptFile = (key: string) => path.join(seedDir, 'prompts', ...key.split('/')) + '.md'
 
-  it('every prompt exists, uses exactly the variables its handler passes, and ends with the JSON shape', () => {
+  it('the seeded prompts: variables, JSON shape, the German rules for de only and the conjugation example', () => {
+  // every prompt exists, uses exactly the variables its handler passes, and ends with the JSON shape
+  {
     for (const [key, vars] of Object.entries(PROMPT_VARS)) {
       expect(fs.existsSync(promptFile(key)), key).toBe(true)
       const doc = parseMd(fs.readFileSync(promptFile(key), 'utf8'))
@@ -342,9 +357,10 @@ describe('the seeded prompts and agents of the content team', () => {
       expect(lines[lines.length - 1], `${key}: the last line is the JSON shape`).toMatch(/^\{"/)
       expect(out, key).toMatch(/Reply with one JSON object/)
     }
-  })
+  }
 
-  it('EGS-30: the writer prompts carry the German rules (and the item-writer the conjugation shape) for de only', () => {
+  // EGS-30: the writer prompts carry the German rules (and the item-writer the conjugation shape) for de only
+  {
     const roleKeys = ['item-writer/items', 'item-writer/items_revise', 'language-coach/scope', 'language-coach/accepted', 'misconception-designer/distractors', 'explainer/explain', 'fact-checker/fact_check']
     for (const key of roleKeys) {
       const body = parseMd(fs.readFileSync(promptFile(key), 'utf8')).body
@@ -361,12 +377,14 @@ describe('the seeded prompts and agents of the content team', () => {
         expect(other, `${key} ${lang}`).not.toContain('conjugation')
       }
     }
-  })
+  }
 
-  it('EGS-30: the conjugation example of the rules is a valid authored item', () => {
+  // EGS-30: the conjugation example of the rules is a valid authored item
+  {
     const shape = languageRulesText('de', true).split('- Example: ')[1]!
     const parsed = authoredItemSchema.safeParse(JSON.parse(shape))
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true)
+  }
   })
 
 })

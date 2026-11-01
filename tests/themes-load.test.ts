@@ -6,37 +6,46 @@ const themesDir = path.resolve(__dirname, '..', 'themes')
 const NAMES = ['classic-dark', 'noir', 'parchment', 'pixel-retro', 'storybook']
 
 describe('theme files', () => {
-  it('all built-in themes load and validate', () => {
+  it('built-in themes load and validate; findTheme by name', () => {
+  // all built-in themes load and validate
+  {
     const { themes, errors } = listThemes(themesDir)
     expect(errors).toEqual([])
     expect(themes.map((t) => t.theme.name)).toEqual(NAMES)
-  })
+  }
 
-  it('findTheme by name', () => {
+  // findTheme by name
+  {
     expect(findTheme('noir', themesDir)?.theme.label).toBe('Noir')
     expect(findTheme('nope', themesDir)).toBeNull()
+  }
   })
 })
 
 describe('theme schema', () => {
   const minimal = { name: 'mine', label: 'Mine', colors: { accent: '#112233', hover: '#223344', muted: '#334455' } }
 
-  it('fills the defaults', () => {
+  it('schema: defaults, rejected values, a missing file', () => {
+  // fills the defaults
+  {
     const t = themeSchema.parse(minimal)
     expect(t.fonts.text).toBe('DejaVuSans.ttf')
     expect(t.sizes.text).toBe(33)
     expect(t.textbox.opacity).toBe(0.7)
     expect(t.transitions.dissolve).toBe(0.6)
-  })
+  }
 
-  it('rejects a bad colour, a bad name and a bad opacity', () => {
+  // rejects a bad colour, a bad name and a bad opacity
+  {
     expect(() => themeSchema.parse({ ...minimal, colors: { ...minimal.colors, accent: 'red' } })).toThrow()
     expect(() => themeSchema.parse({ ...minimal, name: 'Has Space' })).toThrow()
     expect(() => themeSchema.parse({ ...minimal, textbox: { opacity: 2 } })).toThrow()
-  })
+  }
 
-  it('loadTheme reports a missing file', () => {
+  // loadTheme reports a missing file
+  {
     expect(() => loadTheme(path.join(themesDir, 'does-not-exist'))).toThrow()
+  }
   })
 })
 

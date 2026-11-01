@@ -82,7 +82,7 @@ describe('a language-b2 run on the mock team (EGS-36)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 180_000)
+  })
 
   it('the harvest step is idempotent: running it again makes no new card and changes no file', async () => {
     const env = await makePipelineEnv()
@@ -98,7 +98,7 @@ describe('a language-b2 run on the mock team (EGS-36)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 180_000)
+  })
 
   it('a course that is not a B1 or B2 language course skips the harvest and keeps ordinary articles', async () => {
     const env = await makePipelineEnv()
@@ -114,5 +114,5 @@ describe('a language-b2 run on the mock team (EGS-36)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  })
 })

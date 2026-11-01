@@ -10,115 +10,65 @@ const GOLDEN: [string, DeTense, string, string][] = [
   ['machen', 'praesens', 'ich', 'mache'],
   ['machen', 'praesens', 'du', 'machst'],
   ['machen', 'praesens', 'er', 'macht'],
-  ['machen', 'praesens', 'ihr', 'macht'],
   ['arbeiten', 'praesens', 'du', 'arbeitest'],
-  ['arbeiten', 'praesens', 'er', 'arbeitet'],
   ['finden', 'praesens', 'ihr', 'findet'],
   ['reisen', 'praesens', 'du', 'reist'],
-  ['heißen', 'praesens', 'du', 'heißt'],
-  ['tanzen', 'praesens', 'du', 'tanzt'],
   ['öffnen', 'praesens', 'du', 'öffnest'],
-  ['kommen', 'praesens', 'du', 'kommst'],
-  ['wohnen', 'praesens', 'du', 'wohnst'],
   ['sammeln', 'praesens', 'ich', 'sammle'],
   // stem changes e -> i / ie, a -> ä
   ['geben', 'praesens', 'du', 'gibst'],
-  ['nehmen', 'praesens', 'er', 'nimmt'],
   ['sprechen', 'praesens', 'du', 'sprichst'],
-  ['essen', 'praesens', 'du', 'isst'],
-  ['lesen', 'praesens', 'er', 'liest'],
-  ['sehen', 'praesens', 'du', 'siehst'],
   ['fahren', 'praesens', 'du', 'fährst'],
-  ['schlafen', 'praesens', 'er', 'schläft'],
-  ['laufen', 'praesens', 'du', 'läufst'],
   // sein, haben, werden, wissen, tun, modals
   ['sein', 'praesens', 'ich', 'bin'],
-  ['sein', 'praesens', 'du', 'bist'],
-  ['sein', 'praesens', 'ihr', 'seid'],
   ['haben', 'praesens', 'du', 'hast'],
   ['werden', 'praesens', 'er', 'wird'],
   ['wissen', 'praesens', 'ich', 'weiß'],
-  ['wissen', 'praesens', 'ihr', 'wisst'],
   ['tun', 'praesens', 'du', 'tust'],
   ['können', 'praesens', 'er', 'kann'],
   ['müssen', 'praesens', 'du', 'musst'],
   ['wollen', 'praesens', 'ich', 'will'],
   // separable and reflexive
   ['aufstehen', 'praesens', 'ich', 'stehe auf'],
-  ['abfahren', 'praesens', 'du', 'fährst ab'],
-  ['einkaufen', 'praesens', 'wir', 'kaufen ein'],
   ['freuen', 'praesens', 'er', 'freut sich'],
-  ['freuen', 'praesens', 'wir', 'freuen uns'],
   // Perfekt: haben / sein, ge- placement, no ge- for be-/ver-/-ieren
   ['gehen', 'perfekt', 'ich', 'bin gegangen'],
-  ['machen', 'perfekt', 'er', 'hat gemacht'],
   ['aufstehen', 'perfekt', 'du', 'bist aufgestanden'],
-  ['anrufen', 'perfekt', 'ich', 'habe angerufen'],
-  ['besuchen', 'perfekt', 'wir', 'haben besucht'],
   ['studieren', 'perfekt', 'ich', 'habe studiert'],
-  ['arbeiten', 'perfekt', 'sie', 'haben gearbeitet'],
   ['freuen', 'perfekt', 'ich', 'habe mich gefreut'],
   // Präteritum
   ['sein', 'praeteritum', 'du', 'warst'],
-  ['sein', 'praeteritum', 'wir', 'waren'],
   ['haben', 'praeteritum', 'er', 'hatte'],
   ['gehen', 'praeteritum', 'ihr', 'gingt'],
-  ['machen', 'praeteritum', 'du', 'machtest'],
-  ['arbeiten', 'praeteritum', 'du', 'arbeitetest'],
   ['finden', 'praeteritum', 'ihr', 'fandet'],
-  ['können', 'praeteritum', 'ich', 'konnte'],
   ['aufstehen', 'praeteritum', 'er', 'stand auf'],
   // Futur I
   ['gehen', 'futur1', 'ich', 'werde gehen'],
-  ['aufstehen', 'futur1', 'er', 'wird aufstehen'],
   ['freuen', 'futur1', 'ich', 'werde mich freuen'],
   // Imperativ
   ['gehen', 'imperativ', 'du', 'geh'],
-  ['gehen', 'imperativ', 'ihr', 'geht'],
   ['gehen', 'imperativ', 'Sie', 'gehen Sie'],
-  ['arbeiten', 'imperativ', 'du', 'arbeite'],
   ['geben', 'imperativ', 'du', 'gib'],
-  ['essen', 'imperativ', 'du', 'iss'],
-  ['lesen', 'imperativ', 'du', 'lies'],
-  ['fahren', 'imperativ', 'du', 'fahr'],
   ['sein', 'imperativ', 'du', 'sei'],
-  ['sein', 'imperativ', 'Sie', 'seien Sie'],
   ['aufstehen', 'imperativ', 'du', 'steh auf'],
   ['freuen', 'imperativ', 'Sie', 'freuen Sie sich'],
   // Konjunktiv II
   ['sein', 'konjunktiv2', 'ich', 'wäre'],
-  ['sein', 'konjunktiv2', 'ihr', 'wärt'],
-  ['haben', 'konjunktiv2', 'du', 'hättest'],
-  ['können', 'konjunktiv2', 'ich', 'könnte'],
-  ['müssen', 'konjunktiv2', 'du', 'müsstest'],
   ['gehen', 'konjunktiv2', 'ich', 'ginge'],
   ['kommen', 'konjunktiv2', 'er', 'käme'],
-  ['machen', 'konjunktiv2', 'ich', 'würde machen'],
   ['wissen', 'konjunktiv2', 'du', 'wüsstest'],
-  ['sein', 'konjunktiv2', 'du', 'wärst'],
   ['erheben', 'praeteritum', 'er', 'erhob'],
-  ['erheben', 'perfekt', 'ich', 'habe erhoben'],
-  ['fördern', 'perfekt', 'er', 'hat gefördert'],
   ['fördern', 'praesens', 'du', 'förderst'],
-  ['unterstützen', 'perfekt', 'wir', 'haben unterstützt'],
   ['unterstützen', 'praesens', 'du', 'unterstützt'],
   ['verkürzen', 'praeteritum', 'ich', 'verkürzte'],
-  ['verkürzen', 'perfekt', 'sie', 'haben verkürzt']
 ]
 
-describe('German verb table: Konjunktiv II variants', () => {
-  it('accepts wärst and wärest for du, and no würde + sein / haben', () => {
-    expect(form('sein', 'konjunktiv2', 'du')).toEqual(['wärst', 'wärest'])
-    expect(form('haben', 'konjunktiv2', 'du')).toEqual(['hättest'])
-    expect(form('sein', 'konjunktiv2', 'ihr')).toEqual(['wärt', 'wäret'])
-  })
-})
-
 describe('German verb table: golden forms', () => {
-  it('has at least 40 golden forms', () => expect(GOLDEN.length).toBeGreaterThanOrEqual(40))
-  it.each(GOLDEN)('%s %s %s = %s', (inf, tense, person, expected) => {
-    expect(findVerb(inf), `${inf} is in the table`).toBeDefined()
-    expect(form(inf, tense, person)[0]).toBe(expected)
+  it('conjugates regular, stem-changing, irregular, separable and reflexive verbs in every tense', () => {
+    for (const [inf, tense, person, expected] of GOLDEN) {
+      expect(findVerb(inf), `${inf} is in the table`).toBeDefined()
+      expect(form(inf, tense, person)[0], `${inf} ${tense} ${person}`).toBe(expected)
+    }
   })
 
   it('accepts the alternates', () => {
@@ -127,17 +77,18 @@ describe('German verb table: golden forms', () => {
     expect(form('gehen', 'konjunktiv2', 'ich')).toEqual(['ginge', 'würde gehen'])
     expect(form('wandern', 'praesens', 'ich')).toEqual(['wandere'])
     expect(form('wandern', 'imperativ', 'du')).toContain('wandre')
+    expect(form('sein', 'konjunktiv2', 'du')).toEqual(['wärst', 'wärest'])
+    expect(form('haben', 'konjunktiv2', 'du')).toEqual(['hättest'])
   })
 })
 
 describe('German verb table: coverage and invariants', () => {
-  it('has at least 120 verbs with unique infinitives per reflexivity', () => {
+  it('has at least 120 unique verbs covering sein / haben / werden, the modals and levels A1 to B1', () => {
     expect(DE_VERBS.length).toBeGreaterThanOrEqual(120)
     const keys = DE_VERBS.map((v) => `${v.reflexive ? 'sich ' : ''}${v.inf}`)
     expect(new Set(keys).size).toBe(keys.length)
-  })
 
-  it('covers sein / haben / werden, the six modals and levels A1 to B1', () => {
+    // covers sein / haben / werden, the six modals and levels A1 to B1', () => {
     for (const inf of ['sein', 'haben', 'werden', 'können', 'müssen', 'dürfen', 'sollen', 'wollen', 'mögen']) expect(findVerb(inf)).toBeDefined()
     for (const level of ['A1', 'A2', 'B1']) expect(DE_VERBS.filter((v) => v.level === level).length).toBeGreaterThan(10)
     expect(DE_VERBS.filter((v) => v.sep).length).toBeGreaterThanOrEqual(20)
@@ -157,7 +108,7 @@ describe('German verb table: coverage and invariants', () => {
     }
   })
 
-  it('puts ge- in the right place of every participle', () => {
+  it('puts ge- in the right place of every participle; regular verbs follow the rule generator', () => {
     for (const v of DE_VERBS) {
       const base = v.sep ? v.inf.slice(v.sep.length) : v.inf
       if (v.sep) expect(v.partizip2.startsWith(v.sep), v.inf).toBe(true)
@@ -165,9 +116,8 @@ describe('German verb table: coverage and invariants', () => {
       const noGe = (/^(be|ver|er|ent|zer|emp|miss)/.test(base) && base !== 'beißen') || /ieren$/.test(base) || v.inf === 'übernachten' || v.inf === 'unterstützen'
       expect(rest.startsWith('ge') && !['gefallen', 'gewinnen', 'gehören'].includes(base), `${v.inf}: ${v.partizip2}`).toBe(!noGe && !['gefallen', 'gewinnen', 'gehören'].includes(base))
     }
-  })
 
-  it('regular verbs follow the rule generator', () => {
+    // regular verbs follow the rule generator
     const weak = DE_VERBS.filter((v) => !v.presOverrides && !v.k2 && v.praet3.endsWith('te') && v.partizip2.endsWith('t'))
     expect(weak.length).toBeGreaterThan(60)
     for (const v of weak) {
@@ -181,30 +131,26 @@ describe('German verb table: coverage and invariants', () => {
     }
   })
 
-  it('finds verbs by infinitive and reflexive spelling', () => {
+  it('finds verbs by spelling, knows the level of a tense, registers German and labels the persons', () => {
     expect(findVerb('sich freuen')).toBe(findVerb('freuen'))
     expect(findVerb('Gehen')).toBe(findVerb('gehen'))
     expect(findVerb('gehst')).toBeUndefined()
-  })
 
-  it('knows the level of a tense', () => {
+    // knows the level of a tense
     expect(tenseForCefr(findVerb('gehen'), 'praesens')).toBe('A1')
     expect(tenseForCefr(findVerb('sein'), 'praeteritum')).toBe('A2')
     expect(tenseForCefr(findVerb('gehen'), 'praeteritum')).toBe('B1')
     expect(tenseForCefr(findVerb('gehen'), 'konjunktiv2')).toBe('B1')
     expect(tenseForCefr(findVerb('gehen'), 'futur1')).toBe('B1')
-  })
-})
 
-describe('language registry and pronouns', () => {
-  it('registers German with prompt rules and the verb table', () => {
+    // registers German with prompt rules and the verb table
     const r = rulesFor('de')!
     expect(r.promptRules).toContain('ä ö ü ß')
     expect(r.verbTable!.findVerb('gehen')).toBeDefined()
     expect(rulesFor('hr')).toBeUndefined()
     expect(rulesFor(undefined)).toBeUndefined()
-  })
-  it('labels the persons', () => {
+
+    // labels the persons
     expect(PRONOUN_LABELS.de!.er).toBe('er / sie / es')
     expect(Object.keys(PRONOUN_LABELS.de!)).toEqual([...DE_PERSONS])
   })

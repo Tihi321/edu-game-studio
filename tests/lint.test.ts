@@ -532,7 +532,15 @@ const ELSEWHERE: Record<string, string> = {
 }
 
 describe('lint: one case per code', () => {
-  for (const [code, fn] of Object.entries(CASES)) it(code, fn, 60_000)
+  it('every lint code fires on its own broken game', async () => {
+    for (const [code, fn] of Object.entries(CASES)) {
+      try {
+        await fn()
+      } catch (e) {
+        throw new Error(`${code}: ${e instanceof Error ? e.message : String(e)}`, { cause: e })
+      }
+    }
+  })
 })
 
 describe('lint: the golden fixtures are clean', () => {

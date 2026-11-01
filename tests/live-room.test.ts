@@ -26,7 +26,9 @@ const join = (r: LiveRoom, name: string): string => {
 }
 
 describe('the room phases', () => {
-  it('goes lobby -> question -> reveal -> leaderboard -> question -> reveal -> leaderboard -> podium -> closed', () => {
+  it('the room phases: a full game, joins and answers refused after the deadline', () => {
+  // goes lobby -> question -> reveal -> leaderboard -> question -> reveal -> leaderboard -> podium -> closed
+  {
     const { r } = room(2)
     expect(r.phase).toBe('lobby')
     expect(r.start()).toEqual({ ok: false, error: 'empty' })
@@ -53,9 +55,10 @@ describe('the room phases', () => {
     r.close()
     expect(r.phase).toBe('closed')
     expect(r.join('Late')).toEqual({ ok: false, error: 'closed' })
-  })
+  }
 
-  it('refuses a join after the start and a late answer after the deadline, and ends the question by itself', () => {
+  // refuses a join after the start and a late answer after the deadline, and ends the question by itself
+  {
     const { r, clock } = room(1)
     const a = join(r, 'Ana')
     const b = join(r, 'Bo')
@@ -78,11 +81,14 @@ describe('the room phases', () => {
     expect(all.phase).toBe('question')
     all.answer(d, { option: 'b' })
     expect(all.phase).toBe('reveal')
+  }
   })
 })
 
 describe('answers and points', () => {
-  it('counts only the first answer of a player, and a malformed one may be retried', async () => {
+  it('answers: the first one counts, speed and streak scoring', async () => {
+  // counts only the first answer of a player, and a malformed one may be retried
+  {
     const { r } = room(1)
     const a = join(r, 'Ana')
     r.start()
@@ -101,9 +107,10 @@ describe('answers and points', () => {
     expect(q.grade({ options: q.correctIds })?.correct).toBe(true)
     expect(q.grade({ options: [...q.correctIds, q.options.find((o) => !q.correctIds.includes(o.id))!.id] })?.correct).toBe(false)
     expect(q.grade({ options: [] })).toBeNull()
-  })
+  }
 
-  it('scores by speed, adds the streak bonus on the second right answer, and breaks the streak on a wrong or missing one', () => {
+  // scores by speed, adds the streak bonus on the second right answer, and breaks the streak on a wrong or missing one
+  {
     expect([pointsFor(20_000, 20_000, 0), pointsFor(10_000, 20_000, 0), pointsFor(0, 20_000, 0), pointsFor(20_000, 20_000, 9)]).toEqual([1000, 750, 500, 1200])
     const t = room(1)
     join(t.r, 'Zed')
@@ -138,11 +145,14 @@ describe('answers and points', () => {
     r.answer(fast, { option: 'a' })
     r.endQuestion()
     expect(r.view(fast).you?.score).toBe(1000 + 1050 + 1100)
+  }
   })
 })
 
 describe('what a player is allowed to see', () => {
-  it('has no key, explanation or item id in the question view and has them in the reveal', () => {
+  it('what a player sees: the question view and reveal, the roster and podium', () => {
+  // has no key, explanation or item id in the question view and has them in the reveal
+  {
     const { r } = room(1)
     const a = join(r, 'Ana')
     r.start()
@@ -156,9 +166,10 @@ describe('what a player is allowed to see', () => {
     const rev = r.view(a).reveal
     expect(rev?.correctIds).toEqual(['a'])
     expect(rev?.explanation).toBe('Because q1')
-  })
+  }
 
-  it('shows the lobby roster, the top 5 plus your own row, and the top 3 of the podium', () => {
+  // shows the lobby roster, the top 5 plus your own row, and the top 3 of the podium
+  {
     const { r } = room(1)
     const ids = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((n) => join(r, n))
     expect(r.view(ids[0]).players).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
@@ -179,6 +190,7 @@ describe('what a player is allowed to see', () => {
     const pod = r.view(ids[6])
     expect(pod.phase).toBe('podium')
     expect(pod.podium?.rows.map((x) => x.nickname)).toEqual(['A', 'B', 'C', 'G'])
+  }
   })
 })
 

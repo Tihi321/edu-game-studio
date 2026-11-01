@@ -24,19 +24,23 @@ describe('passageOf: extensions.passage', () => {
 
 describe('glossify: the glossed words of a text', () => {
   const par = (s: string) => [{ text: s }]
-  it('cuts a paragraph at the first mention of each term', () => {
+  it('glossify: first mention, longest term wins, whole word then stem', () => {
+  // cuts a paragraph at the first mention of each term
+  {
     const out = glossify([par('Wer pendeln muss, spart Zeit. Wer nicht pendeln muss, auch.')], [word('p', 'pendeln')])
     expect(out[0]?.map((s) => [s.text, s.gloss?.id ?? null])).toEqual([
       ['Wer ', null],
       ['pendeln', 'p'],
       [' muss, spart Zeit. Wer nicht pendeln muss, auch.', null]
     ])
-  })
-  it('the longest term wins where two overlap, and a term is marked once in the whole text', () => {
+  }
+  // the longest term wins where two overlap, and a term is marked once in the whole text
+  {
     const out = glossify([par('Die Führungskräfte lernen.'), par('Eine Kraft und die Führungskräfte.')], [word('k', 'Kraft'), word('f', 'Führungskräfte')])
     expect(out.flat().filter((s) => s.gloss).map((s) => [s.text, s.gloss?.id])).toEqual([['Führungskräfte', 'f'], ['Kraft', 'k']])
-  })
-  it('prefers a whole word, falls back to a stem inside a longer word, and ignores a term that is not there', () => {
+  }
+  // prefers a whole word, falls back to a stem inside a longer word, and ignores a term that is not there
+  {
     const whole = glossify([par('Das Gerichtsurteil. Ein Gericht kocht.')], [word('g', 'Gericht')])
     expect(whole[0]?.filter((s) => s.gloss).map((s) => s.text)).toEqual(['Gericht'])
     expect(whole[0]?.[0]?.text).toBe('Das Gerichtsurteil. Ein ')
@@ -44,20 +48,24 @@ describe('glossify: the glossed words of a text', () => {
     expect(stem[0]?.filter((s) => s.gloss).map((s) => s.text)).toEqual(['Erschöpfung'])
     const none = glossify([par('Nichts davon.')], [word('x', 'Mittelweg'), word('y', '  ')])
     expect(none[0]).toEqual([{ text: 'Nichts davon.' }])
+  }
   })
 })
 
 describe('the reader data', () => {
   const arts = new Set(['a1', 'a2'])
   const keys = new Set([glossKey('a1', 'g1'), glossKey('a2', 'g2')])
-  it('keeps the position (clamped), the chapters read and the words out of the deck; drops ids the course no longer has', () => {
+  it('the reader data keeps the position and moves, marks and switches words', () => {
+  // keeps the position (clamped), the chapters read and the words out of the deck; drops ids the course no longer has
+  {
     const d = readData({ found: [], read: [], reader: { chapter: 'a2', scroll: 7, done: ['a1', 'gone'] }, glossOff: [glossKey('a1', 'g1'), 'a9/zz', 4] }, new Set(), arts, keys)
     expect(d.reader).toEqual({ chapter: 'a2', scroll: 1, done: ['a1'] })
     expect(d.glossOff).toEqual(['a1/g1'])
     expect(readData({ reader: { chapter: 'gone', scroll: 'x' } }, new Set(), arts, keys).reader).toEqual({ scroll: 0, done: [] })
     expect(readData({ glossOff: ['a9/zz'] }, new Set(), arts, keys).glossOff).toBeUndefined()
-  })
-  it('moves, marks a chapter read once, and switches a word out of the deck and back', () => {
+  }
+  // moves, marks a chapter read once, and switches a word out of the deck and back
+  {
     let d = emptyData()
     d = withReaderAt(d, 'a1', 0.5)
     expect(d.reader).toEqual({ chapter: 'a1', scroll: 0.5, done: [] })
@@ -72,6 +80,7 @@ describe('the reader data', () => {
     expect(withGlossDeck(d, 'a1/g1', false)).toBe(d)
     d = withGlossDeck(d, 'a1/g1', true)
     expect('glossOff' in d).toBe(false)
+  }
   })
 })
 

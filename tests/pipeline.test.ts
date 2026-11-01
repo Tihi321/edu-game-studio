@@ -140,7 +140,7 @@ describe('the whole pipeline on the mock team', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  })
 
   it('a course for children has the child-safety review, and the audience age is in every prompt', async () => {
     const env = await makePipelineEnv()
@@ -152,7 +152,7 @@ describe('the whole pipeline on the mock team', () => {
     } finally {
       await env.cleanup()
     }
-  }, 60_000)
+  })
 
   it('a language course: scope and accepted answers, taught answers in the target-language catalog', async () => {
     const env = await makePipelineEnv()
@@ -175,7 +175,7 @@ describe('the whole pipeline on the mock team', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  })
 })
 
 describe('revise loops and gates', () => {
@@ -200,7 +200,7 @@ describe('revise loops and gates', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  })
 
   it('a must-pass reviewer that always says revise stops the publish after max_rounds: stage blocked, publish never ran, the reasons name the role, the director explains', async () => {
     const env = await makePipelineEnv({ factCheck: (unit) => (unit === 'u2' ? 'revise' : 'pass') })
@@ -221,7 +221,7 @@ describe('revise loops and gates', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  })
 
   it('an audience review that says revise goes through polish and assemble again; round 2 passes and the polished text is in the course', async () => {
     const env = await makePipelineEnv({ review: (role, round) => (round === 1 ? 'revise' : 'pass') })
@@ -241,6 +241,6 @@ describe('revise loops and gates', () => {
     } finally {
       await env.cleanup()
     }
-  }, 90_000)
+  })
 })
 

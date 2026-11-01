@@ -59,7 +59,9 @@ describe('rounds', () => {
     }
   })
 
-  it('a miss comes back after other questions, at most MAX_RETRIES times, and does not count for the accuracy', async () => {
+  it('a miss comes back after other questions and a right retry ends the loop', async () => {
+  // a miss comes back after other questions, at most MAX_RETRIES times, and does not count for the accuracy
+  {
     const f = await loadFixture('solar-system')
     const rs0 = startRound(f.pack, 'unit', { unitId: f.pack.units[0]!.id })
     let firstId = ''
@@ -76,9 +78,10 @@ describe('rounds', () => {
     const first = rs.results.filter((r) => !r.retry)
     expect(roundAccuracy(rs)).toBeCloseTo(first.reduce((s, r) => s + r.score, 0) / first.length)
     expect(roundAccuracy(rs)).toBeLessThan(1)
-  })
+  }
 
-  it('a retry that is answered right ends the loop', async () => {
+  // a retry that is answered right ends the loop
+  {
     const f = await loadFixture('solar-system')
     const seen = new Set<string>()
     const { rs } = play(f, startRound(f.pack, 'unit', { unitId: f.pack.units[0]!.id }), (item) => {
@@ -91,6 +94,7 @@ describe('rounds', () => {
     expect(rs.results.filter((r) => r.retry).every((r) => r.correct)).toBe(true)
     expect(rs.session.pending).toEqual([])
     expect(roundAccuracy(rs)).toBeLessThan(0.2)
+  }
   })
 
   it('boss: items from every unit, never two of the same unit in a row while others are left', async () => {
@@ -136,7 +140,9 @@ describe('rounds', () => {
 })
 
 describe('grades and the timer', () => {
-  it('maps an answer to a grade', () => {
+  it('grades map from answers and the timer never runs on typing, flashcards or puzzles', async () => {
+  // maps an answer to a grade
+  {
     const ok = { correct: true, score: 1, expected: null }
     expect(gradeOf({ kind: 'mcq' }, 'a', ok)).toBe('good')
     expect(gradeOf({ kind: 'mcq' }, 'a', { ...ok, correct: false, score: 0 })).toBe('again')
@@ -144,9 +150,10 @@ describe('grades and the timer', () => {
     expect(gradeOf({ kind: 'cloze' }, 'a', { ...ok, diacritics: true })).toBe('hard')
     expect(gradeOf({ kind: 'flashcard' }, 'easy', ok)).toBe('easy')
     expect(gradeOf({ kind: 'flashcard' }, 'again', { ...ok, correct: false })).toBe('again')
-  })
+  }
 
-  it('the timer never runs on typing, flashcards or puzzles', async () => {
+  // the timer never runs on typing, flashcards or puzzles
+  {
     const f = await loadFixture('hr-a1-greetings')
     const s = await loadFixture('solar-system')
     for (const item of [...f.pack.items, ...s.pack.items]) {
@@ -155,6 +162,7 @@ describe('grades and the timer', () => {
       const off = typing || ['flashcard', 'crossword', 'word-search'].includes(item.kind)
       expect(timerApplies(item), item.id).toBe(!off)
     }
+  }
   })
 })
 
@@ -172,7 +180,9 @@ describe('verb drill (EGS-31)', () => {
     expect(verbItems(solar.pack)).toEqual([])
   })
 
-  it('picks due cards before new ones, then the weakest', async () => {
+  it('verb drill: due cards first, a missed form returns, none without verb units', async () => {
+  // picks due cards before new ones, then the weakest
+  {
     const f = await loadFixture('de-verbs-a1')
     const cards = { 'c-gehen': seen('c-gehen', NOW - DAY), 'c-gehen-imp': seen('c-gehen-imp', NOW + 5 * DAY, 1.5), 'c-sein': seen('c-sein', NOW + 9 * DAY, 2.0) }
     expect(verbDueCount(f.pack, cards, NOW)).toBe(1)
@@ -184,9 +194,10 @@ describe('verb drill (EGS-31)', () => {
     expect(rs.size).toBe(3)
     const { order } = play(f, rs, () => true, 1, cards)
     expect(order).toEqual(['c-gehen', 'c-gehen-imp', 'c-sein'])
-  })
+  }
 
-  it('brings a missed form back and is deterministic', async () => {
+  // brings a missed form back and is deterministic
+  {
     const f = await loadFixture('de-verbs-a1')
     const run = () => play(f, startRound(f.pack, 'verbs', { now: NOW }), (item, n) => n !== 0, 7)
     const a = run()
@@ -194,11 +205,13 @@ describe('verb drill (EGS-31)', () => {
     expect(a.order.filter((id) => id === 'c-sein').length).toBeGreaterThan(1)
     expect(missedIds(a.rs)).toEqual(['c-sein'])
     expect(run().order).toEqual(a.order)
-  })
+  }
 
-  it('is empty (no button) for a course without verb units', async () => {
+  // is empty (no button) for a course without verb units
+  {
     const f = await loadFixture('de-verbs-a1')
     const rs = startRound({ ...f.pack, extensions: {} }, 'verbs', { now: NOW })
     expect(rs.size).toBe(0)
+  }
   })
 })

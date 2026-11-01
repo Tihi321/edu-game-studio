@@ -15,23 +15,27 @@ useTemp()
 const codes = (ps: { code: string }[]) => [...new Set(ps.map((p) => p.code))].sort()
 
 describe('assembleCourse: the roles\' outputs become the course contract', () => {
-  it('drops a link to an article that was never written (a planned id)', () => {
+  it('the roles outputs: an unwritten article link dropped, plan key names, citations, run record, explainer feedback, refused objective, language course', () => {
+  // drops a link to an article that was never written (a planned id)
+  {
     const input = assembleInput()
     const linked = { ...input, articles: input.articles.map((x, i) => (i === 0 ? { ...x, related: [input.articles[1]!.id, 'a-u9-1'] } : x)) }
     const { pack } = assembleCourse(linked)
     expect((pack.encyclopedia as { articles: { related: string[] }[] }).articles[0]!.related).toEqual([input.articles[1]!.id])
-  })
+  }
 
-  it('the fixture assembles into a pack and a catalog with no validation problem at all', () => {
+  // the fixture assembles into a pack and a catalog with no validation problem at all
+  {
     const { pack, catalogs } = assembleCourse(assembleInput())
     const res = validateCourse(pack, catalogs)
     expect(res.problems).toEqual([])
     expect(res.ok).toBe(true)
     expect(Object.keys(catalogs)).toEqual(['en'])
     expect(pack).toMatchObject({ schema: 1, id: 'roman-basics', slug: 'roman-basics', sourceLang: 'en', languages: ['en'], subject: 'Ancient Rome', audience: 'Teenagers' })
-  })
+  }
 
-  it('uses the key names of the plan, and every text of the roles is in the catalog', () => {
+  // uses the key names of the plan, and every text of the roles is in the catalog
+  {
     const { pack, catalogs } = assembleCourse(assembleInput())
     const s = catalogs.en!.strings
     expect(s['course.title']).toBe('Roman Basics')
@@ -48,9 +52,10 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
     const q1 = (pack.items as Record<string, unknown>[]).find((i) => i.id === 'q1') as { options: { id: string; why?: string }[]; answer: string; tags: string[]; extensions: { facts: string[] }; difficulty: number }
     expect(q1.options.map((o) => [o.id, !!o.why])).toEqual([['a', false], ['b', true], ['c', true], ['d', true]])
     expect(q1).toMatchObject({ answer: 'a', tags: ['unit:u1'], extensions: { facts: ['f1'] }, difficulty: 2 })
-  })
+  }
 
-  it('articles cite their facts: [f3] becomes the number of the article\'s own citation list, and the pack has the fact base', () => {
+  // articles cite their facts: [f3] becomes the number of the article\'s own citation list, and the pack has the fact base
+  {
     const { pack, catalogs } = assembleCourse(assembleInput())
     const arts = (pack.encyclopedia as { articles: { id: string; citations: string[]; related: string[]; unit: string; body: string }[] }).articles
     expect(arts.map((a) => [a.id, a.unit, a.citations, a.related])).toEqual([['a-fall', 'u1', ['f1', 'f2', 'f3'], ['a-rome']], ['a-rome', 'u2', ['f4', 'f5', 'f6'], ['a-fall']]])
@@ -61,9 +66,10 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
     expect(pack.factbase).toContainEqual({ id: 'f1', claim: 'fact.f1.claim', source: 'The end of the western empire', url: 'https://example.org/476' })
     expect(numberCitations('A [f5, f3] B [f3][f9] C [f7].', ['f3', 'f5'])).toBe('A [1, 2] B [1] C .')
     expect(citationsOf({ body: 'x [f2] y [f1, f2]' })).toEqual(['f2', 'f1'])
-  })
+  }
 
-  it('records the run and the brief, the design and the story; objectives carry their facts', () => {
+  // records the run and the brief, the design and the story; objectives carry their facts
+  {
     const { pack } = assembleCourse(assembleInput())
     expect(pack.extensions).toMatchObject({
       pipeline: { run: 1, generatedBy: 'edu-pipeline', brief: { topic: 'Ancient Rome' }, requestedShells: ['detective'] },
@@ -76,9 +82,10 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
     expect(bare.pack.shells).toEqual({ enabled: ['quiz-arena'], config: {} })
     expect((bare.pack.extensions as Record<string, unknown>).story).toBeUndefined()
     expect(validateCourse(bare.pack, bare.catalogs).problems).toEqual([])
-  })
+  }
 
-  it('applies the explainer\'s feedback, the coach\'s accepted answers and the polished strings', () => {
+  // applies the explainer\'s feedback, the coach\'s accepted answers and the polished strings
+  {
     const { pack, catalogs, itemKeys } = assembleCourse(
       assembleInput({
         explain: { items: [{ id: 'q1', explanation: 'It ended in 476, when Odoacer removed the last emperor.', hint: 'Think of the fifth century.', didYouKnow: 'Romulus Augustulus was a boy.', didYouKnowFact: 'f2' }] },
@@ -97,14 +104,16 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
     expect(validateCourse(pack, catalogs).problems).toEqual([])
     expect(itemKeys.q1).toEqual(expect.arrayContaining(['item.q1.prompt', 'item.q1.expl', 'item.q1.opt.a', 'item.q1.opt.b.why']))
     expect(itemKeys.q1).not.toContain('item.q3.prompt')
-  })
+  }
 
-  it('refuses an item whose objective is not in the curriculum', () => {
+  // refuses an item whose objective is not in the curriculum
+  {
     const bad: AuthoredItem[] = [{ ...ITEMS[2]!, objective: 'u9-o9' }]
     expect(() => assembleCourse(assembleInput({ items: bad }))).toThrow(/objective "u9-o9"/)
-  })
+  }
 
-  it('a language course: the taught answers are in the target-language catalog, the rest in the source one, and it validates', () => {
+  // a language course: the taught answers are in the target-language catalog, the rest in the source one, and it validates
+  {
     const items: AuthoredItem[] = [
       { id: 'l1', kind: 'typed', objective: 'u1-o1', prompt: 'How do you say "hello" in Croatian?', accepted: ['bok'], explanation: '"Bok" is the everyday greeting.', facts: ['f1'], taught: true },
       { id: 'l2', kind: 'mcq', objective: 'u1-o1', prompt: 'Which word means "thank you"?', options: [{ id: 'a', text: 'hvala' }, { id: 'b', text: 'molim', why: '"Molim" means "please".' }, { id: 'c', text: 'bok', why: '"Bok" means "hello".' }], answer: 'a', explanation: '"Hvala" means thank you.', facts: ['f1'], taught: true },
@@ -125,6 +134,7 @@ describe('assembleCourse: the roles\' outputs become the course contract', () =>
     expect(catalogs.en!.strings['item.l1.prompt']).toContain('Croatian')
     expect(catalogs.en!.strings['item.l2.opt.b.why']).toContain('please')
     expect(catalogs.hr!.strings['item.l1.prompt']).toBeUndefined()
+  }
   })
 })
 
@@ -190,7 +200,9 @@ describe('lint: ITEM_NO_FACT and ARTICLE_NO_CITATION for packs made by the pipel
   }
   const lint = (data: Game) => lintGameData(data as never, () => true)
 
-  it('an item without facts, an item with an unknown fact, an article without a citation and one that cites an unknown fact are errors', async () => {
+  it('an unsupported role output is refused; a pack with no pipeline extension is not held to it', async () => {
+  // an item without facts, an item with an unknown fact, an article without a citation and one that cites an unknown fact are errors
+  {
     const data = await built()
     expect(lint(data)).toEqual([])
     const broken = structuredClone(data)
@@ -206,13 +218,15 @@ describe('lint: ITEM_NO_FACT and ARTICLE_NO_CITATION for packs made by the pipel
     expect(msgs.some((m) => /ARTICLE_NO_CITATION encyclopedia.articles\[0\] .*"a-fall" cites no fact/.test(m))).toBe(true)
     expect(msgs.some((m) => /ARTICLE_NO_CITATION .*"a-rome" cites the fact "f98"/.test(m))).toBe(true)
     expect(problems.filter((p) => p.code === 'ITEM_NO_FACT' || p.code === 'ARTICLE_NO_CITATION').every((p) => p.severity === 'error')).toBe(true)
-  })
+  }
 
-  it('a hand-made pack (no extensions.pipeline) is not held to it', async () => {
+  // a hand-made pack (no extensions.pipeline) is not held to it
+  {
     const data = await built()
     delete data.pack.extensions.pipeline
     data.pack.items[0]!.extensions = {}
     data.pack.encyclopedia.articles[0]!.citations = []
     expect(lint(data).filter((p) => p.code === 'ITEM_NO_FACT' || p.code === 'ARTICLE_NO_CITATION')).toEqual([])
+  }
   })
 })

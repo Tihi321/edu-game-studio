@@ -39,8 +39,8 @@ describe('walking: breadth-first search on the tiles', () => {
 })
 
 describe('the layouts', () => {
-  for (const name of FIXTURE_NAMES) {
-    it(`builds an automatic layout for ${name}: an area per unit in order, a foe per objective (at most four), every item asked by some foe, connected`, async () => {
+  it('builds an automatic layout for each: an area per unit in order, a foe per objective (at most four), every item asked by some foe, connected (each fixture)', async () => {
+    for (const name of FIXTURE_NAMES) {
       const f = await loadFixture(name)
       const layout = buildLayout(f.pack, undefined)
       expect(layout.authored).toBe(false)
@@ -61,8 +61,8 @@ describe('the layouts', () => {
       }
       // the same course always gets the same maps
       expect(buildLayout(f.pack, undefined).areas.map((a) => a.rows)).toEqual(layout.areas.map((a) => a.rows))
-    })
-  }
+    }
+  })
 
   it('uses the authored section of solar-system: three areas with the authored maps, foes and frame story', async () => {
     const f = await loadFixture('solar-system')
