@@ -1,7 +1,7 @@
 import type { ModelSummary } from '../../shared/protocol'
 
 /** The agent roles, as in `seed/config/roles.md` and `ROLES` of `src/shared/schemas.ts` (a test keeps the two lists equal). */
-export const KNOWN_ROLES = ['director', 'curriculum-designer', 'researcher', 'subject-expert', 'item-writer', 'misconception-designer', 'explainer', 'language-coach', 'fact-checker', 'game-designer', 'narrative-designer', 'art-director', 'art-critic', 'composer', 'voice-director', 'playtester', 'accessibility-reviewer', 'child-safety-reviewer', 'publisher'] as const
+export const KNOWN_ROLES = ['director', 'curriculum-designer', 'researcher', 'subject-expert', 'item-writer', 'misconception-designer', 'explainer', 'language-coach', 'fact-checker', 'game-designer', 'narrative-designer', 'art-director', 'art-critic', 'composer', 'voice-director', 'translator', 'playtester', 'accessibility-reviewer', 'child-safety-reviewer', 'publisher'] as const
 
 /** Roles that need a model with image input. */
 export const VISION_ROLES: ReadonlySet<string> = new Set(['art-critic'])

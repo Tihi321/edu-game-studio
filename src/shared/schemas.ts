@@ -368,6 +368,7 @@ export const ROLES = [
   'art-critic',
   'composer',
   'voice-director',
+  'translator',
   'playtester',
   'accessibility-reviewer',
   'child-safety-reviewer',

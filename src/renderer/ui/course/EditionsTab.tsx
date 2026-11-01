@@ -11,7 +11,7 @@ export function EditionsTab({ data }: { data: CourseLoadedView }) {
     <div className="tab-body" data-testid="tab-editions">
       <h2 className="sr-only">Editions of this course</h2>
       <p className="dim">
-        Every visible string of a course is a key in a text catalog, one file per language. An edition is a language the game can be played in; it needs every key. Book Translator makes new editions (EGS-18).
+        Every visible string of a course is a key in a text catalog, one file per language. An edition is a language the game can be played in; it needs every key. A pipeline run makes the editions of its brief with the translator role (EGS-32); Book Translator can make one by hand.
       </p>
       <ul className="editions" data-testid="edition-list">
         {coverage.map((c) => {
