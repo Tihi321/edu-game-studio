@@ -91,7 +91,8 @@ describe('the theme registry', () => {
       'parchment',
       'pixel',
       'postcard',
-      'noir'
+      'noir',
+      'menu'
     ])
     for (const t of THEMES) expect(existsSync(path.join(DESIGN, 'themes', `${t.id}.css`)), t.id).toBe(true)
   })

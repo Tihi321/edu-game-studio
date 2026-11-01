@@ -33,6 +33,7 @@ import { gradeOf, itemsOfUnit, pickNext, recordResult, roundAccuracy, startPool,
 import { buildSnapshot } from '../state'
 import type { AnyScreen, ItemContext, RoundKind, ShellDebugApi, ShellHost } from '../types'
 import { makeShellUi, type ShellStrings, type ShellUi } from './strings'
+import { applyScreenTheme } from './start'
 
 /**
  * The shell kit's session (EGS-10): everything a game shell shares with the others, so a shell only draws its world and decides what a
@@ -177,7 +178,7 @@ export class ShellSession<K extends string = string> {
   mount(): void {
     const root = this.host.root
     root.classList.add('edu-stage')
-    root.setAttribute('data-edu-theme', this.theme)
+    applyScreenTheme(root, 'title', this.theme)
     root.setAttribute('data-shell', this.shellId)
     document.addEventListener('keydown', this.onKey)
     this.playTimer.start()
@@ -491,6 +492,7 @@ export class ShellSession<K extends string = string> {
    */
   render(screen: AnyScreen, body: Child, extra: PublishExtra = {}, opts: { focus?: boolean } = {}): HTMLElement {
     const root = this.host.root
+    applyScreenTheme(root, screen, this.theme)
     clear(root)
     const main = h('main', { class: `board board-${screen}`, id: 'edu-main' }, body)
     const app = h(

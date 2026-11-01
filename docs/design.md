@@ -85,6 +85,9 @@ The design system (EGS-05) lives in `src/design/` and is shared by the studio an
 | `castle` | MindMaze | dressed stone, torch amber, ember | Cinzel (titles) over Alegreya | doors that swing open; the torch glow flickers (opacity only) |
 | `parchment` | encyclopedia | vellum, sepia ink, brass, oxblood | EB Garamond | a page turns |
 | `pixel` | RPG | night blue, gold, grass green, stepped corners and hard shadows | Pixelify Sans | `steps()` only, `image-rendering: pixelated` |
+| `menu` | the start screen of every mode (EGS-25) | a bright game lobby: cool daylight, a dotted floor, white mode tiles with a coloured pictogram chip, indigo Start, teal second voice | Young Serif over Atkinson Hyperlegible Next | the tiles settle in once, the chosen tile lifts; both off under `prefers-reduced-motion` |
+
+**One start screen, per-screen themes (EGS-25).** The title and the mode picker are one component (`src/player/kit/start.ts`) in the `menu` theme for every mode; each mode keeps its own theme in every in-game screen. The rule: the title uses `menu`, play uses the mode's theme (`applyScreenTheme`). A mode shows its art on its first in-game screen, never on the title.
 
 A shell picks its look by id: `themeForShell('mindmaze')` (or the theme named in `shells.config[shell].theme`) returns the `ThemeInfo` (label, scheme, fonts, a `swatch` of five colours and the display and body families, so the studio can paint a Library cover or a theme picker without loading the CSS). The shell then imports `<id>.css` and puts `data-edu-theme="<id>"` and the class `edu-stage` on its root element; it never defines colours of its own. The player bundle loads the chalkboard only (`player.css`: about 200 KB with the Kalam and Atkinson fonts inlined as base64, one file that works over `file://`); the studio loads all four.
 

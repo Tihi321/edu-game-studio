@@ -104,8 +104,7 @@
     inset 0 0 38px rgb(162 61 34 / 0.1);
 }
 
-/* a faint postmark in the top right corner of the title and the end card (the other screens keep that corner for their buttons) */
-[data-edu-theme='postcard'] .board-title::before,
+/* a faint postmark in the top right corner of the end card (the other screens keep that corner for their buttons) */
 [data-edu-theme='postcard'] .board-end::before,
 [data-edu-theme='postcard'] .board-scene-done::before {
   content: '';
@@ -119,8 +118,7 @@
   background: var(--postcard-postmark) center / contain no-repeat;
 }
 
-/* the title gets a wave under it */
-[data-edu-theme='postcard'] .title-screen .screen-title::after,
+/* the end card gets a wave under it */
 [data-edu-theme='postcard'] .end-screen .screen-title::after {
   content: '';
   display: block;

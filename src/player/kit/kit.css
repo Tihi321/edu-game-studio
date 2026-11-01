@@ -4,19 +4,115 @@
  * only, every selector under .edu-stage, so each theme dresses them.
  */
 
-.edu-stage .shell-picker {
+/* ---- the start screen (EGS-25): header, language, mode cards, settings, Start. Colours come from the --edu-* slots of the menu theme. ---- */
+
+.edu-stage .start-screen {
+  display: grid;
+  justify-items: center;
+  gap: var(--edu-space-4);
+  text-align: center;
+  padding: var(--edu-space-4) 0;
+}
+
+.edu-stage .start-head {
+  display: grid;
+  justify-items: center;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .start-screen .screen-title {
+  font-size: var(--edu-text-4xl);
+  margin: 0;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+
+.edu-stage .start-screen .eyebrow {
+  margin: 0;
+  font-family: var(--edu-font-body);
+  font-size: var(--edu-text-m);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .start-screen .audience {
+  margin: 0;
+  max-width: var(--edu-measure);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .mode-picker {
+  width: 100%;
+  display: grid;
+  gap: var(--edu-space-2);
+  justify-items: center;
+}
+
+.edu-stage .mode-picker-label {
+  margin: 0;
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+}
+
+.edu-stage .mode-grid {
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: var(--edu-space-2);
-  margin: var(--edu-space-2) 0;
+  gap: var(--edu-space-3);
 }
 
-.edu-stage .shell-picker-label {
+.edu-stage .mode-card {
+  position: relative;
+  flex: 1 1 15rem;
+  max-width: 20rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--edu-space-3);
+  min-height: 4.5rem;
+  padding: var(--edu-space-3) var(--edu-space-4);
+  text-align: left;
+  font: inherit;
+  color: var(--edu-text);
+  cursor: pointer;
+}
+
+.edu-stage .mode-pictogram {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+}
+
+.edu-stage .mode-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.edu-stage .mode-name {
+  font-family: var(--edu-font-display);
+  font-size: var(--edu-text-l);
+  font-weight: 400;
+}
+
+.edu-stage .mode-blurb {
   color: var(--edu-text-dim);
   font-size: var(--edu-text-s);
-  margin-right: var(--edu-space-1);
+  line-height: 1.35;
+}
+
+.edu-stage .mode-dot {
+  position: absolute;
+  top: var(--edu-space-3);
+  right: var(--edu-space-3);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.edu-stage .start-screen .actions {
+  margin-top: var(--edu-space-2);
 }
 
 .edu-stage .shell-hud {
