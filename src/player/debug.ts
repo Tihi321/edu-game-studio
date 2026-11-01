@@ -1,5 +1,5 @@
 import type { ClozeItem, CourseItem, CrosswordItem, HotspotItem, ListeningItem, MatchPairsItem, McqItem, MultiSelectItem, OrderItem, SortGroupsItem, TrueFalseItem } from '../shared/course'
-import { makeTextResolver, solveItem, type CheckContext } from '../shared/edu'
+import { makeCheckContext, makeTextResolver, solveItem, type CheckContext } from '../shared/edu'
 import type { GameData } from '../shared/game-data'
 import type { EduDebugApi, PlayerState } from './types'
 
@@ -69,7 +69,7 @@ export function createDebug(getState: () => PlayerState): EduDebugApi {
     const item = data?.pack.items.find((i) => i.id === itemId)
     if (!data || !item) return undefined
     const lang = getState().lang || data.defaultLang
-    return { item, ctx: { text: makeTextResolver(data.catalogs, lang, data.pack.targetLang), diacritics: data.pack.matching.diacritics, typos: data.pack.matching.typos } }
+    return { item, ctx: makeCheckContext({ pack: data.pack, text: makeTextResolver(data.catalogs, lang, data.pack.targetLang) }) }
   }
   return {
     solve(itemId) {

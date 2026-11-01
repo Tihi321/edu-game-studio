@@ -17,7 +17,7 @@ import type { MediaMerge } from './media-link'
  * `item.<id>.pair.<pid>.l|r`, `item.<id>.step.<sid>` (and `.when`), `item.<id>.group.<gid>`, `item.<id>.entry.<eid>` (and `.why`),
  * `item.<id>.back`, `art.<id>.title|body`, `fact.<id>.claim`, `story.*`.
  *
- * Languages: the pack has one edition, the source language (other editions come from Book Translator later). In a language course
+ * Languages: the pack has one edition, the source language (the pipeline's `editions` step, after the voice, adds the others to the pack and their catalogs). In a language course
  * (`targetLang` set) an item with `taught: true` has its answers (options, cloze text and gaps, typed answers, pair sides, steps, entries, back)
  * in the target-language catalog, which every edition falls back to; prompts, explanations, hints and whys stay in the source language.
  */

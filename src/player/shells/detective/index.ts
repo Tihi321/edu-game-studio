@@ -26,7 +26,7 @@ import { ask } from '../../kit/question'
 import { endScreen, newTitleState, titleScreen } from '../../kit/screens'
 import { ShellSession } from '../../kit/session'
 import type { Shell, ShellHost } from '../../types'
-import { doorSvg, folderSvg, magnifierSvg } from './art'
+import { doorSvg, magnifierSvg } from './art'
 import { corkBoard, type Cork } from './board'
 import { gridView } from './grid'
 import { chaseMap } from './map'
@@ -257,8 +257,7 @@ class Detective {
     const ses = this.session
     ses.finished = false
     this.room = null
-    const art = h('div', { class: 'det-title-art' }, h('div', { class: 'det-art' }, folderSvg()), h('p', { class: 'det-intro' }, this.s('det.intro')))
-    ses.render('title', titleScreen(ses, { tagline: this.s('det.tagline'), art, onStart: () => this.office() }, () => this.title(), this.titleState))
+    ses.render('title', titleScreen(ses, { onStart: () => this.office() }, () => this.title(), this.titleState))
   }
 
   // ---- the case board (office) ----

@@ -10,6 +10,7 @@ import type { JobFile } from '../queue/jobs'
 import { countsAsRevise, runReview, scoresExample } from '../review/scoring'
 import type { ReviewResult } from '../review/scoring'
 import { assembleCourse, renderCourseForReview } from './assemble'
+import { applyEdition, checkEdition, chunkEntries, editionEntries, editionSchema } from './editions'
 import {
   acceptedSchema,
   applyDistractors,
@@ -50,7 +51,7 @@ import { factCheck } from './fact-check'
 import type { FactCheckItem } from './fact-check'
 import { playtestDigest } from './playtest'
 import type { PlaytestResult } from './playtest'
-import { stepKey } from './pipeline'
+import { editionLanguages, stepKey } from './pipeline'
 import type { Pipeline, ReviewFile, StepsFile } from './pipeline'
 import type { EduService } from './service'
 
@@ -660,6 +661,49 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     ]
     return bits.join(', ')
   }
+
+  // ---- editions (EGS-32): the translator makes the other languages of the text ----
+
+  step('editions', async (h) => {
+    const R = h.R
+    const langs = editionLanguages(R)
+    if (langs.length === 0) return { status: 'skipped', note: 'no edition besides the source and the taught language' }
+    const loaded = await loadCourseFolder(svc.courses.root(h.slug))
+    const source = loaded.catalogs[R.brief.sourceLang] as TextCatalog | undefined
+    if (!source) throw new Error(`there is no text catalog for the source language "${R.brief.sourceLang}"`)
+    const target = R.brief.targetLang ? (loaded.catalogs[R.brief.targetLang] as TextCatalog | undefined) : undefined
+    const entries = editionEntries(source, target)
+    const { vars } = await common(h)
+    const made: Record<string, { strings: Record<string, string>; accepted: Record<string, string[]> }> = {}
+    for (const lang of langs) {
+      const into = { strings: {} as Record<string, string>, accepted: {} as Record<string, string[]> }
+      for (const chunk of chunkEntries(entries)) {
+        const { value } = await askRole(h.ctx, {
+          dataDir,
+          role: 'translator',
+          task: 'edition',
+          vars: {
+            title: vars.title,
+            audience: vars.audience,
+            source_language: langName(R.brief.sourceLang),
+            edition_language: langName(lang),
+            gap_marker: GAP_MARKER,
+            taught_note: R.brief.targetLang ? ` The course teaches ${langName(R.brief.targetLang)}: the taught phrases are not among the entries and are never translated; if an entry quotes one, keep the quote as it is.` : '',
+            entries: chunk.map((e) => JSON.stringify(e)).join('\n')
+          },
+          schema: editionSchema,
+          check: (out) => checkEdition(chunk, out),
+          maxTokens: 16_000
+        })
+        applyEdition(chunk, value, into)
+      }
+      made[lang] = into
+    }
+    const added = await svc.courses.addEditions(h.slug, made)
+    const summary = { languages: langs, keys: entries.length, taughtKept: target ? Object.keys(target.strings).length : 0 }
+    await P.writeJson(h.slug, 'editions.json', summary)
+    return { note: `${langs.join(', ')}: ${entries.length} text(s) each${target ? `, ${summary.taughtKept} taught text(s) of ${R.brief.targetLang} left as they are` : ''}; the course has ${added.languages.join(', ')}`, path: 'pipeline/editions.json' }
+  })
 
   // ---- voice (EGS-17): plan, speak ----
 

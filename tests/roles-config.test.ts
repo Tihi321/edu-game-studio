@@ -32,6 +32,7 @@ describe('the roles', () => {
       'art-critic',
       'composer',
       'voice-director',
+      'translator',
       'playtester',
       'accessibility-reviewer',
       'child-safety-reviewer',
@@ -51,6 +52,7 @@ describe('the roles', () => {
     expect(roles['art-director']!.models).toEqual(['paid', 'strata', 'lmstudio'])
     expect(roles.composer!.models).toEqual(['paid', 'strata', 'lmstudio'])
     expect(roles['voice-director']!.models).toEqual(['paid', 'strata', 'lmstudio'])
+    expect(roles.translator!.models).toEqual(['paid', 'strata', 'lmstudio'])
     expect(roles['art-critic']!.models).toEqual(['gemini/gemini-2.5-flash', 'anthropic/claude-sonnet-4-5', 'lmstudio']) // vision models first: the critic sends images
     for (const role of ROLES) expect(parseMd(seed('config', 'roles.md')).body, role).toContain(`\`${role}\``) // every role is described
   })

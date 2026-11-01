@@ -200,7 +200,39 @@ export class CourseStore {
       const problems = validateCourse(pack, catalogs).problems
       if (problems.length > 0) throw new Error(`the assembled course is not valid, nothing was written: ${fmt(problems)}`)
       await this.save(slug, pack, catalogs)
+      // the catalog of an edition made by an earlier run (`addEditions`) is no longer one: the pack lists one language again, so it would be UNKNOWN_LANGUAGE
+      const keep = new Set(Object.keys(catalogs))
+      const textDir = path.join(this.root(slug), 'course', 'text')
+      for (const f of await fs.readdir(textDir).catch(() => [] as string[])) if (f.endsWith('.json') && !keep.has(f.slice(0, -5))) await fs.rm(path.join(textDir, f), { force: true })
       return { slug, dir: this.root(slug) }
+    })
+  }
+
+  /**
+   * Adds editions to the course (EGS-32): writes the catalogs of the new languages and lists them in `pack.languages` (after the languages that are
+   * there), in one step. Refused (nothing written) when the course would not be valid with them, a missing text included: an edition needs every key.
+   * The catalog of the source language and of the target language is never touched.
+   */
+  addEditions(slug: string, editions: Record<string, { strings: Record<string, string>; accepted?: Record<string, string[]> }>): Promise<{ slug: string; languages: string[] }> {
+    return this.exclusive(slug, async () => {
+      const { pack, catalogs } = await this.load(slug)
+      const langs = Object.keys(editions)
+      const known = Array.isArray(pack.languages) ? (pack.languages as string[]) : []
+      const reserved = [String(pack.sourceLang), ...(typeof pack.targetLang === 'string' ? [pack.targetLang] : [])]
+      for (const l of langs) if (reserved.includes(l)) throw new Error(`"${l}" is the source or the target language of the course: it is not an edition to add`)
+      const all: Record<string, Json> = { ...catalogs }
+      for (const l of langs) {
+        const e = editions[l]!
+        const cat: Json = { schema: COURSE_SCHEMA_VERSION, lang: l, strings: e.strings, ...(e.accepted && Object.keys(e.accepted).length ? { accepted: e.accepted } : {}) }
+        const parsed = textCatalogSchema.safeParse(cat)
+        if (!parsed.success) throw new Error(`the text for "${l}" is not valid: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`)
+        all[l] = cat
+      }
+      const next: Json = { ...pack, languages: [...new Set([...known, ...langs])] }
+      const problems = validateCourse(next, all).problems
+      if (problems.length > 0) throw new Error(`the editions are not complete, nothing was written: ${fmt(problems)}`)
+      await this.save(slug, next, all, { catalogs: langs })
+      return { slug, languages: next.languages as string[] }
     })
   }
 

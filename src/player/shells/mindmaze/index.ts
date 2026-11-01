@@ -21,7 +21,7 @@ import { endScreen, newTitleState, titleScreen } from '../../kit/screens'
 import { ShellSession } from '../../kit/session'
 import { missedIds, type RoundState } from '../../round'
 import type { Shell, ShellHost } from '../../types'
-import { doorSvg, gatehouseSvg, keySvg, miniMapSvg, portraitFrame, setDoorOpen, skylineSvg, throneSvg, torchesEl } from './art'
+import { doorSvg, keySvg, miniMapSvg, portraitFrame, setDoorOpen, skylineSvg, throneSvg, torchesEl } from './art'
 import { layoutRooms, wingRows } from './layout'
 import { MAZE_STRINGS, type MazeKey } from './strings'
 import { goBack, ghostLeads, isOpen, loseTorch, moodAfter, newWalk, openDoor, pickForDoor, walkThrough, type Walk } from './walk'
@@ -222,13 +222,7 @@ class MindMaze {
     this.walks.clear()
     this.throne = null
     this.currentWing = null
-    const art = h(
-      'div',
-      { class: 'mm-title-art' },
-      h('div', { class: 'mm-art', role: 'img', 'aria-label': this.s('maze.title.art') }, gatehouseSvg()),
-      h('p', { class: 'mm-intro' }, this.s('maze.title.intro'))
-    )
-    ses.render('title', titleScreen(ses, { tagline: this.s('maze.tagline'), art, onStart: () => this.castle() }, () => this.title(), this.titleState))
+    ses.render('title', titleScreen(ses, { onStart: () => this.castle() }, () => this.title(), this.titleState))
   }
 
   // ---- the castle ----
