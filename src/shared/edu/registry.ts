@@ -17,6 +17,13 @@ export interface CheckContext {
   diacritics?: DiacriticsPolicy
   /** Typo tolerance on typed answers (default true; `pack.matching.typos`). */
   typos?: boolean
+  /** Language of the answer texts (`pack.targetLang`, else the edition); selects the language rules of the matcher (German). */
+  lang?: string
+}
+
+/** The ONE way to build a check context from a pack and an edition's text resolver (player, quiz arena, lint, live quiz, bot). */
+export function makeCheckContext(o: { pack: { matching?: { diacritics?: DiacriticsPolicy; typos?: boolean }; targetLang?: string }; text: TextResolver; targetLang?: string }): CheckContext {
+  return { text: o.text, diacritics: o.pack.matching?.diacritics, typos: o.pack.matching?.typos, lang: o.targetLang ?? o.pack.targetLang ?? o.text.lang }
 }
 
 export interface CheckResult {
@@ -32,6 +39,10 @@ export interface CheckResult {
   typo?: boolean
   /** The accents were off (accepted under `warn`, rejected under `strict`). */
   diacritics?: boolean
+  /** German: accepted with ae / oe / ue / ss for the umlauts / sharp s (a note, never a lost grade). */
+  translit?: boolean
+  /** German: accepted although a noun was typed in lower case (a note, never a lost grade). */
+  caps?: boolean
   /** The answer had the wrong shape. */
   invalid?: boolean
   /** Per-part results (gap, pair, item or word ids) for shells that mark parts. */

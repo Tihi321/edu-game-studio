@@ -33,6 +33,8 @@ export interface AuthorOptions {
   musicPlan?: 'ok' | 'repair' | 'unusable' | 'merge'
   /** The voice-director's answer: `ok` (default), `repair` (wrong the first time) or `unusable` (never right: the deterministic plan is used). */
   voicePlan?: 'ok' | 'repair' | 'unusable'
+  /** The translator's answer: `ok` (default), `repair` (leaves the last entry out the first time) or `drops` (leaves it out every time: the step fails). */
+  editions?: 'ok' | 'repair' | 'drops'
 }
 
 export interface Author {
@@ -84,10 +86,11 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     log('curriculum-designer/curriculum')
     const units = lines(t).filter((l) => /^\d+\. .+: /.test(l))
     const per = Number(grab(t, /(\d+) objective\(s\) in each/)) || 2
+    const verbN = Number(grab(t, /mark exactly (\d+) unit/)) || 0
     const facts = lines(t).map((l) => /^\[(f\d+)\]/.exec(l)?.[1]).filter((f): f is string => !!f)
     let k = 0
     return {
-      units: units.map((l, i) => ({ id: `u${i + 1}`, title: l.replace(/^\d+\. /, '').split(': ')[0], summary: `What part ${i + 1} covers.`, requires: i === 0 ? [] : [`u${i}`] })),
+      units: units.map((l, i) => ({ id: `u${i + 1}`, title: l.replace(/^\d+\. /, '').split(': ')[0], summary: `What part ${i + 1} covers.`, requires: i === 0 ? [] : [`u${i}`], ...(i < verbN ? { verb: true } : {}) })),
       objectives: units.flatMap((_, i) =>
         Array.from({ length: per }, (_, j) => ({ id: `u${i + 1}-o${j + 1}`, unit: `u${i + 1}`, bloom: j === 0 ? 'remember' : 'understand', text: `Explain point ${j + 1} of part ${i + 1}.`, facts: [facts[k++ % facts.length]!, facts[k % facts.length]!] }))
       )
@@ -100,7 +103,18 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
       return { answers: lines(t).map((l) => /^(\S+): .* -> (.+)$/.exec(l)).filter((m): m is RegExpExecArray => !!m).map((m) => ({ ref: m[1]!, accepted: [m[2]!, `${m[2]}!`] })) }
     }
     log('language-coach/scope')
-    return { units: lines(t).map((l) => /^- (u\d+): /.exec(l)?.[1]).filter((u): u is string => !!u).map((u) => ({ unit: u, vocabulary: [{ term: 'bok', gloss: 'hello' }], grammar: [] })) }
+    const isVerb = (u: string) => lines(t).some((l) => l.startsWith(`- ${u}: `) && l.includes('[VERB UNIT]'))
+    return { units: lines(t).map((l) => /^- (u\d+): /.exec(l)?.[1]).filter((u): u is string => !!u).map((u) => ({ unit: u, vocabulary: [{ term: 'bok', gloss: 'hello' }], ...(isVerb(u) ? { verbs: [{ inf: 'sein', tense: 'Praesens', level: 'A1' }] } : {}), grammar: [] })) }
+  })
+
+  on('translator', (t, req) => {
+    const entries = lines(t).filter((l) => l.startsWith('{"key"')).map((l) => JSON.parse(l) as { key: string; text?: string; accepted?: string[] })
+    const lang = grab(t, /translate them into ([^.\n]+)\./)
+    const again = t.includes('Your answer has problems')
+    log(again ? 'translator/edition:repair' : 'translator/edition')
+    void req
+    const drop = o.editions === 'drops' || (o.editions === 'repair' && !again)
+    return { items: (drop ? entries.slice(0, -1) : entries).map((e) => ({ key: e.key, ...(e.text !== undefined ? { text: `[${lang}] ${e.text}` } : {}), ...(e.accepted ? { accepted: e.accepted.map((a) => `[${lang}] ${a}`) } : {}) })) }
   })
 
   on('subject-expert', (t) => {

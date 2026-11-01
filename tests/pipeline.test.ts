@@ -24,6 +24,27 @@ describe('the brief', () => {
     expect(lang).toMatchObject({ units: 4, language: true, cefr: 'A1', languages: ['en', 'hr', 'de'] })
   })
 
+  it('a language brief picks language-<cefr> (A1, A2, B1); B2, C1 and C2 without a format fail in words; the verb-unit numbers come with the format (EGS-29)', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const { parseMdWith } = await import('../src/shared/md')
+    const seedFormats = parseMdWith(await readFile('seed/config/formats.md', 'utf8'), formatsSchema).data.formats
+    const b = { topic: 'German', audience: 'adults', sourceLang: 'hr', targetLang: 'de' }
+    expect(resolveBrief(b, seedFormats)).toMatchObject({ format: { id: 'language-a1' }, units: 4, verbUnits: 1, verbsPerUnit: 6, language: true })
+    expect(resolveBrief({ ...b, cefr: 'A1' }, seedFormats).format.id).toBe('language-a1')
+    expect(resolveBrief({ ...b, cefr: 'A2' }, seedFormats)).toMatchObject({ format: { id: 'language-a2' }, units: 5, itemsPerObjective: 4, verbUnits: 2, cefr: 'A2' })
+    expect(resolveBrief({ ...b, cefr: 'B1' }, seedFormats)).toMatchObject({ format: { id: 'language-b1' }, units: 6, articlesPerUnit: 2, verbUnits: 2 })
+    expect(resolveBrief({ ...b, cefr: 'A2', units: 1 }, seedFormats).verbUnits).toBe(1)
+    expect(() => resolveBrief({ ...b, cefr: 'B2' }, seedFormats)).toThrow(/no format for B2 yet/)
+    expect(() => resolveBrief({ ...b, cefr: 'C1' }, seedFormats)).toThrow(/out of scope \(HUB-22\)/)
+    expect(() => resolveBrief({ ...b, cefr: 'C2' }, seedFormats)).toThrow(/out of scope \(HUB-22\)/)
+    expect(resolveBrief({ ...b, cefr: 'C1', format: 'language-b1' }, seedFormats).format.id).toBe('language-b1') // a named format wins
+    expect(resolveBrief({ topic: 'Rome', audience: 'adults', cefr: 'B2' }, seedFormats).format.id).toBe('quick') // not a language course
+    // conjugation is listed by the formats but left out of what the item-writer is asked for until EGS-27 makes it an authored kind
+    expect(seedFormats.find((x) => x.id === 'language-a1')!.item_kinds).toContain('conjugation')
+    expect(resolveBrief(b, seedFormats).itemKinds).not.toContain('conjugation')
+    expect(resolveBrief({ topic: 'Rome', audience: 'adults' }, seedFormats).verbUnits).toBe(0)
+  })
+
   it('refuses a bad brief in words: no topic, an unknown format, a model that is not provider/model', () => {
     expect(briefSchema.safeParse({ audience: 'x' }).success).toBe(false)
     expect(() => resolveBrief({ topic: 'Rome', audience: 'adults', format: 'epic' }, formats)).toThrow(/no course format "epic" in config\/formats\.md \(formats: quick, language-a1\)/)
@@ -76,7 +97,7 @@ describe('the whole pipeline on the mock team', () => {
       expect(p.next).toMatch(/published/)
       const bad = p.steps.filter((s) => !['done', 'skipped'].includes(s.status))
       expect(bad).toEqual([])
-      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
+      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
       expect(p.steps.find((s) => s.step === 'art_review:all')!.note).toMatch(/no model with vision/) // the mock model has no vision: the art-critic is skipped, with the reason
       expect(statusOf(p, 'music_plan:all')).toBe('done')
       expect(statusOf(p, 'music_generate:all')).toBe('done')
@@ -157,6 +178,21 @@ describe('the whole pipeline on the mock team', () => {
       expect(Object.keys(hr.accepted).length).toBeGreaterThan(0)
       const pack = await json<{ targetLang: string; cefr: string }>(courseFile(env, slug, 'course', 'pack.json'))
       expect(pack).toMatchObject({ targetLang: 'hr', cefr: 'A1' })
+    } finally {
+      await env.cleanup()
+    }
+  }, 90_000)
+
+  it('a language-a2 run marks the verb units in the curriculum and in extensions.language, and the scope gives them verbs', async () => {
+    const env = await makePipelineEnv()
+    try {
+      const { failed, slug } = await run(env, { topic: 'German basics', audience: 'adults', age: 30, sourceLang: 'en', targetLang: 'de', cefr: 'A2', units: 3 })
+      expect(failed).toEqual([])
+      const pack = await json<{ extensions: { language?: { verbUnits: string[]; verbsPerUnit: number } }; cefr: string }>(courseFile(env, slug, 'course', 'pack.json'))
+      expect(pack.cefr).toBe('A2')
+      expect(pack.extensions.language).toEqual({ verbUnits: ['u1', 'u2'], verbsPerUnit: 6 })
+      const scope = await json<{ units: { unit: string; verbs: unknown[] }[] }>(courseFile(env, slug, 'pipeline', 'scope.json'))
+      expect(scope.units.map((u) => u.verbs?.length ?? 0)).toEqual([1, 1, 0])
     } finally {
       await env.cleanup()
     }

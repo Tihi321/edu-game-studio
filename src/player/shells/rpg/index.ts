@@ -9,7 +9,7 @@ import { ShellSession } from '../../kit/session'
 import type { NextQuestion, RoundState } from '../../round'
 import type { Shell, ShellHost } from '../../types'
 import { BOSS_STRIKE, FOE_STRIKE, HERO_MAX_HP, newBattle, resolveTurn, type Battle, type Turn } from './battle'
-import { drawBanner, drawMini, emptySkin, loadImage, readPalette, WorldCanvas, type Palette, type Scene, type SceneEntity, type Skin } from './draw'
+import { drawMini, emptySkin, loadImage, readPalette, WorldCanvas, type Palette, type Scene, type SceneEntity, type Skin } from './draw'
 import {
   dirBetween,
   nearby,
@@ -339,14 +339,9 @@ class Rpg {
 
   private title(): void {
     const ses = this.session
-    const s = this.s
     ses.finished = false
     this.event = ''
-    const banner = h('canvas', { class: 'rpg-banner', width: 512, height: 160, role: 'img', 'aria-label': s('rpg.title.art'), testid: 'title-art' })
-    const opening = this.introLines()[0]
-    const art = h('div', { class: 'rpg-title-art' }, banner, opening ? h('p', { class: 'rpg-opening', testid: 'opening-line' }, opening) : null)
-    this.show('title', titleScreen(ses, { tagline: s('rpg.tagline'), art, onStart: () => (this.hasPlayed() ? this.areas() : this.story('intro', 0)) }, () => this.title(), this.titleState))
-    drawBanner(banner, this.pal, strHash(ses.pack.id) % 97)
+    this.show('title', titleScreen(ses, { onStart: () => (this.hasPlayed() ? this.areas() : this.story('intro', 0)) }, () => this.title(), this.titleState))
   }
 
   private hasPlayed(): boolean {

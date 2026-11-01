@@ -130,12 +130,3 @@
   border-radius: 50%;
 }
 
-/* a title written with a chalk underline */
-[data-edu-theme='chalkboard'] .title-screen .screen-title::after {
-  content: '';
-  display: block;
-  width: min(100%, 11ch);
-  height: 14px;
-  margin: 2px auto 0;
-  background: var(--chalk-underline) center / 100% 100% no-repeat;
-}

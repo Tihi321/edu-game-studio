@@ -345,3 +345,21 @@ describe('checkItem', () => {
     expect(checkItem({ ...common, id: 'x', kind: 'nope', difficulty: 3, tags: [] }, 'a', ctx)).toMatchObject({ correct: false, invalid: true })
   })
 })
+
+describe('German flows through the context (lang)', () => {
+  const de: TextCatalog = { schema: 1, lang: 'de', strings: {}, accepted: { maedchen: ['Mädchen'], g1: ['Straße'], g2: ['Haus'] } }
+  const deCtx = (lang?: string): CheckContext => ({ text: makeTextResolver({ en, de }, 'en', 'de'), ...(lang ? { lang } : {}) })
+  const typedDe = parse({ kind: 'typed', answer: 'maedchen' })
+  const clozeDe = parse({ kind: 'cloze', text: 't.c', gaps: [{ id: 'a', answer: 'g1' }, { id: 'b', answer: 'g2' }] })
+  it('typed: transliteration is accepted with a flag, a missing umlaut is wrong', () => {
+    expect(checkItem(typedDe, 'Maedchen', deCtx('de'))).toMatchObject({ correct: true, score: 1, translit: true })
+    expect(checkItem(typedDe, 'Madchen', deCtx('de'))).toMatchObject({ correct: false, diacritics: true })
+    expect(checkItem(typedDe, 'Madchen', deCtx())).toMatchObject({ correct: true })
+  })
+  it('cloze carries translit and caps from any gap', () => {
+    expect(checkItem(clozeDe, { a: 'Strasse', b: 'haus' }, deCtx('de'))).toMatchObject({ correct: true, translit: true, caps: true })
+  })
+  it('an item with strictDiacritics: false stays lenient', () => {
+    expect(checkItem({ ...typedDe, strictDiacritics: false }, 'Madchen', deCtx('de')).correct).toBe(true)
+  })
+})

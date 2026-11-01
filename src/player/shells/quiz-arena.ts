@@ -1,6 +1,6 @@
 import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
-import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type TextResolver } from '../../shared/edu'
+import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
 import { unitArea } from '../../shared/music'
 import { GameAudio, loopsOf } from '../audio'
@@ -9,23 +9,20 @@ import { buildFeedback, answerLines, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
 import { itemImage } from '../items/common'
 import { createSpeechService, type SpeechService } from '../speech'
-import { speakToggle } from '../speech/toggle'
-import { shellPicker } from '../kit/screens'
-import { classroomBlock, isAssignedUnit, PlayTimer, type ClassroomHost } from '../classroom'
+import { applyScreenTheme, newTitleState, startScreen, type StartHost } from '../kit/start'
+import { isAssignedUnit, PlayTimer } from '../classroom'
 import {
   allMastered,
   browserStorage,
   cardOf,
   dequeue,
   enqueueMiss,
-  exportProgress,
   hasProgress,
   isMastered,
   isUnlocked,
   masteryMap,
   newProgress,
   newlyUnlocked,
-  parseProgress,
   ProgressStore,
   recordRound,
   starsFor,
@@ -57,15 +54,6 @@ const pickLang = (data: GameData, saved: string | undefined): string => {
     if (hit) return hit
   }
   return langs.includes(data.defaultLang) ? data.defaultLang : (langs[0] as string)
-}
-
-const languageName = (code: string): string => {
-  try {
-    const n = new Intl.DisplayNames([code], { type: 'language' }).of(code)
-    return n ? n.charAt(0).toLocaleUpperCase(code) + n.slice(1) : code.toUpperCase()
-  } catch {
-    return code.toUpperCase()
-  }
 }
 
 interface Current {
@@ -104,8 +92,6 @@ class QuizArena {
   private turn = 0
   private difficulty = 3
   private lastResult: CheckResult | undefined
-  private message: { text: string; kind: 'ok' | 'bad' } | null = null
-  private confirmReset = false
   private hud: { score?: HTMLElement; combo?: HTMLElement; progress?: HTMLElement; timer?: HTMLElement } = {}
   private readonly rng: SeededRandom
   /** The music of the area and the sound effects of the events (EGS-16). */
@@ -128,7 +114,7 @@ class QuizArena {
     this.lang = pickLang(this.data, this.progress.settings.lang)
     this.ui = makeUi(this.lang)
     this.text = makeTextResolver(this.data.catalogs, this.lang, this.pack.targetLang)
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.rng = rngFor(host.seed, 'arena')
     this.audio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
     this.setLang(this.lang, false)
@@ -144,7 +130,7 @@ class QuizArena {
   mount(): void {
     // the player root is the stage the design system styles: item and screen CSS are scoped under .edu-stage, the theme by attribute
     this.host.root.classList.add('edu-stage')
-    this.host.root.setAttribute('data-edu-theme', THEME_ID)
+    applyScreenTheme(this.host.root, 'title', THEME_ID)
     document.addEventListener('keydown', this.onKey)
     this.playTimer.start()
     this.go('title')
@@ -164,7 +150,7 @@ class QuizArena {
     this.lang = lang
     this.text = makeTextResolver(this.data.catalogs, lang, this.pack.targetLang)
     this.ui = makeUi(lang, this.data.catalogs[lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     document.documentElement.lang = lang
     document.title = this.courseTitle()
     if (render) {
@@ -220,6 +206,7 @@ class QuizArena {
     if (area !== undefined) this.audio.setArea(area)
     this.hud = {}
     const root = this.host.root
+    applyScreenTheme(root, screen, THEME_ID)
     clear(root)
     const body = this.build(screen)
     const app = h(
@@ -291,22 +278,51 @@ class QuizArena {
     return h(tag, { class: 'screen-title', tabindex: '-1', testid, 'data-autofocus': '' }, text)
   }
 
-  // ---- title ----
+  // ---- title (the shared start screen, EGS-25) ----
+
+  private readonly titleState = newTitleState()
+
+  private startHost(): StartHost {
+    const getProgress = (): Progress => this.progress
+    const setProgress = (p: Progress): void => {
+      this.progress = p
+    }
+    return {
+      pack: this.pack,
+      ui: this.ui,
+      shellId: SHELL_ID,
+      shells: this.host.shells,
+      switchShell: (id) => this.host.switchShell(id),
+      courseTitle: () => this.courseTitle(),
+      unitTitle: (id) => this.text.t(this.pack.units.find((u) => u.id === id)?.title ?? id),
+      lang: this.lang,
+      setLang: (code) => {
+        this.setLang(code, false)
+        this.progress = { ...this.progress, settings: { ...this.progress.settings, lang: code } }
+        this.save()
+      },
+      get progress() {
+        return getProgress()
+      },
+      set progress(p: Progress) {
+        setProgress(p)
+      },
+      save: () => this.save(),
+      persistent: this.store.persistent,
+      started: hasProgress(this.progress),
+      refreshAudio: () => this.audio.refresh(),
+      speechService: this.speechService,
+      reset: () => {
+        this.store.clear()
+        this.progress = newProgress(this.pack.id)
+        this.combo = 0
+        this.finished = false
+      }
+    }
+  }
 
   private buildTitle(): Child {
     const ui = this.ui
-    const langs = this.pack.languages
-    const started = hasProgress(this.progress)
-    const picker =
-      langs.length > 1
-        ? h(
-            'div',
-            { class: 'lang-picker', role: 'group', 'aria-label': ui('language'), testid: 'lang-picker' },
-            langs.map((code) =>
-              button(`lang-${code}`, languageName(code), () => this.setLang(code), { class: 'chip', 'aria-pressed': String(code === this.lang), lang: code })
-            )
-          )
-        : null
     const timer = h(
       'label',
       { class: 'toggle' },
@@ -321,153 +337,7 @@ class QuizArena {
       }),
       h('span', { class: 'toggle-text' }, h('b', {}, ui('timer')), h('small', {}, ui('timer.hint', { s: quizConfig(this.pack).timerSeconds })))
     )
-    const sound = this.pack.cues.length
-      ? h(
-          'label',
-          { class: 'toggle' },
-          h('input', {
-            type: 'checkbox',
-            testid: 'setting-sound',
-            ...(this.progress.settings.sound ? { checked: true } : {}),
-            onchange: (e: Event) => {
-              this.progress = { ...this.progress, settings: { ...this.progress.settings, sound: (e.target as HTMLInputElement).checked } }
-              this.save()
-              this.audio.refresh()
-            }
-          }),
-          h('span', { class: 'toggle-text' }, h('b', {}, ui('sound')))
-        )
-      : null
-    const reduceAudio = this.pack.cues.length
-      ? h(
-          'label',
-          { class: 'toggle' },
-          h('input', {
-            type: 'checkbox',
-            testid: 'setting-reduce-audio',
-            ...(this.progress.settings.reduceAudio ? { checked: true } : {}),
-            onchange: (e: Event) => {
-              this.progress = { ...this.progress, settings: { ...this.progress.settings, reduceAudio: (e.target as HTMLInputElement).checked } }
-              this.save()
-              this.audio.refresh()
-            }
-          }),
-          h('span', { class: 'toggle-text' }, h('b', {}, ui('reduceAudio')), h('small', {}, ui('reduceAudio.hint')))
-        )
-      : null
-    const speak = speakToggle(ui, this.speechService, this.progress.settings.speak !== false, (on) => {
-      this.progress = { ...this.progress, settings: { ...this.progress.settings, speak: on } }
-      this.save()
-    })
-    const fileInput = h('input', {
-      type: 'file',
-      accept: 'application/json,.json',
-      class: 'sr-only',
-      testid: 'import-file',
-      tabindex: '-1',
-      'aria-label': ui('import'),
-      onchange: (e: Event) => void this.importFile((e.target as HTMLInputElement).files?.[0])
-    })
-    const reset = this.confirmReset
-      ? h(
-          'span',
-          { class: 'confirm', role: 'group', 'aria-label': ui('reset.confirm') },
-          h('span', {}, ui('reset.confirm')),
-          button('reset-confirm', ui('reset.yes'), () => this.doReset(), { class: 'btn btn-danger btn-small' }),
-          button('reset-cancel', ui('reset.no'), () => {
-            this.confirmReset = false
-            this.go('title')
-          }, { class: 'btn btn-small', 'data-autofocus': '' })
-        )
-      : button('reset', ui('reset'), () => {
-          this.confirmReset = true
-          this.go('title')
-        }, { class: 'btn btn-small btn-ghost' })
-    return h(
-      'section',
-      { class: 'title-screen' },
-      h('p', { class: 'eyebrow' }, ui('title.tagline')),
-      this.heading('h1', this.courseTitle(), 'course-title'),
-      this.courseTitle().toLocaleLowerCase() === this.pack.subject.toLocaleLowerCase() ? null : h('p', { class: 'subject', testid: 'course-subject' }, this.pack.subject.charAt(0).toLocaleUpperCase() + this.pack.subject.slice(1)),
-      h('p', { class: 'audience' }, this.pack.audience),
-      classroomBlock(this.classroomHost()),
-      picker,
-      shellPicker(this.host, ui, SHELL_ID),
-      h('div', { class: 'settings' }, timer, sound, reduceAudio, speak),
-      h('div', { class: 'actions actions-center' }, button('start', started ? ui('continue') : ui('start'), () => this.go('map'), { class: 'btn btn-primary btn-big', ...(this.confirmReset ? {} : { 'data-autofocus': '' }) })),
-      h(
-        'div',
-        { class: 'progress-tools', role: 'group', 'aria-label': ui('export') + ' / ' + ui('import') },
-        button('export', ui('export'), () => this.doExport(), { class: 'btn btn-small btn-ghost' }),
-        button('import', ui('import'), () => fileInput.click(), { class: 'btn btn-small btn-ghost' }),
-        fileInput,
-        reset
-      ),
-      this.message ? h('p', { class: `message message-${this.message.kind}`, role: 'status', testid: 'title-message' }, this.message.text) : null,
-      !this.store.persistent ? h('p', { class: 'message message-bad', testid: 'storage-warning' }, ui('storage.off')) : null
-    )
-  }
-
-  private classroomHost(): ClassroomHost {
-    return {
-      pack: this.pack,
-      ui: this.ui,
-      unitTitle: (id) => this.text.t(this.pack.units.find((u) => u.id === id)?.title ?? id),
-      getProgress: () => this.progress,
-      setProgress: (p) => {
-        this.progress = p
-      },
-      save: () => this.save(),
-      say: (text, kind) => {
-        this.message = { text, kind }
-        this.go('title')
-      }
-    }
-  }
-
-  private doExport(): void {
-    try {
-      const blob = new Blob([exportProgress(this.progress)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = h('a', { href: url, download: `${this.pack.slug}-progress.json`, class: 'sr-only' })
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 2000)
-      this.message = { text: this.ui('export.done'), kind: 'ok' }
-    } catch (e) {
-      this.message = { text: String(e instanceof Error ? e.message : e), kind: 'bad' }
-    }
-    this.go('title')
-  }
-
-  private async importFile(file: File | undefined): Promise<void> {
-    if (!file) return
-    let text: string
-    try {
-      text = await file.text()
-    } catch {
-      this.message = { text: this.ui('import.bad', { why: 'unreadable' }), kind: 'bad' }
-      return this.go('title')
-    }
-    const res = parseProgress(text, this.pack)
-    if (res.ok) {
-      this.progress = res.progress
-      this.save()
-      if (this.progress.settings.lang && this.pack.languages.includes(this.progress.settings.lang)) this.setLang(this.progress.settings.lang, false)
-      this.message = { text: this.ui('import.ok'), kind: 'ok' }
-    } else this.message = { text: this.ui('import.bad', { why: res.error }), kind: 'bad' }
-    this.go('title')
-  }
-
-  private doReset(): void {
-    this.store.clear()
-    this.progress = newProgress(this.pack.id)
-    this.confirmReset = false
-    this.combo = 0
-    this.finished = false
-    this.message = { text: this.ui('reset.done'), kind: 'ok' }
-    this.go('title')
+    return startScreen(this.startHost(), { onStart: () => this.go('map'), settings: timer }, () => this.go('title'), this.titleState)
   }
 
   // ---- the unit map ----

@@ -1,6 +1,6 @@
 import type { CourseItem, CoursePack, CourseUnit } from '../../shared/course'
 import { unitOrder } from '../../shared/course'
-import { checkItem, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
+import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, SeededRandom, type CheckContext, type CheckResult, type Grade, type TextResolver } from '../../shared/edu'
 import type { GameData } from '../../shared/game-data'
 import { sectionOf } from '../../shared/shells'
 import { PlayTimer } from '../classroom'
@@ -33,6 +33,7 @@ import { gradeOf, itemsOfUnit, pickNext, recordResult, roundAccuracy, startPool,
 import { buildSnapshot } from '../state'
 import type { AnyScreen, ItemContext, RoundKind, ShellDebugApi, ShellHost } from '../types'
 import { makeShellUi, type ShellStrings, type ShellUi } from './strings'
+import { applyScreenTheme } from './start'
 
 /**
  * The shell kit's session (EGS-10): everything a game shell shares with the others, so a shell only draws its world and decides what a
@@ -169,7 +170,7 @@ export class ShellSession<K extends string = string> {
     this.text = makeTextResolver(this.data.catalogs, this.lang, this.pack.targetLang)
     this.ui = makeUi(this.lang, this.data.catalogs[this.lang])
     this.s = makeShellUi(this.strings, this.lang, this.data.catalogs[this.lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.applyLang()
   }
 
@@ -177,7 +178,7 @@ export class ShellSession<K extends string = string> {
   mount(): void {
     const root = this.host.root
     root.classList.add('edu-stage')
-    root.setAttribute('data-edu-theme', this.theme)
+    applyScreenTheme(root, 'title', this.theme)
     root.setAttribute('data-shell', this.shellId)
     document.addEventListener('keydown', this.onKey)
     this.playTimer.start()
@@ -229,7 +230,7 @@ export class ShellSession<K extends string = string> {
     this.text = makeTextResolver(this.data.catalogs, lang, this.pack.targetLang)
     this.ui = makeUi(lang, this.data.catalogs[lang])
     this.s = makeShellUi(this.strings, lang, this.data.catalogs[lang])
-    this.check = { text: this.text, diacritics: this.pack.matching.diacritics, typos: this.pack.matching.typos }
+    this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.progress = { ...this.progress, settings: { ...this.progress.settings, lang } }
     this.save()
     this.applyLang()
@@ -491,6 +492,7 @@ export class ShellSession<K extends string = string> {
    */
   render(screen: AnyScreen, body: Child, extra: PublishExtra = {}, opts: { focus?: boolean } = {}): HTMLElement {
     const root = this.host.root
+    applyScreenTheme(root, screen, this.theme)
     clear(root)
     const main = h('main', { class: `board board-${screen}`, id: 'edu-main' }, body)
     const app = h(

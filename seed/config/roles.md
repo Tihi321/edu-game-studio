@@ -27,6 +27,8 @@ roles:
     models: [paid, strata, lmstudio]
   voice-director:
     models: [paid, strata, lmstudio]
+  translator:
+    models: [paid, strata, lmstudio]
   publisher:
     models: [paid, strata, lmstudio]
   researcher:
@@ -62,6 +64,7 @@ The Edu Studio team (docs/design.md):
 - `art-critic`: looks at each generated picture (it needs a model with `vision: true`) and says pass or revise against the plan line; a revise makes the picture again with its note, up to `max_rounds` (`config/quality.md`). **Not must-pass**: a picture that is still rejected after the last round stays in the course. Without a vision model, or with `media.art.review: false`, the check is skipped and the step says why.
 - `composer`: plans the music of the course by area (menu, one per unit or group of units, boss, end, and the castle / RPG areas of those shells) and the sound effects of the events (correct, wrong, combo, level-up, boss): mood, tempo, chip or prompt, length, and the Chiptune Studio sound of each effect. Chiptune Studio makes the RPG and castle music and every sound effect, ComfyUI (ACE-Step) the other music; Flow Music only when the course opts in to spend credits. A plan the model cannot get right after the repair round is replaced by one made from the course text.
 - `voice-director`: plans what the game says aloud: a few short narration clips in the source language (unit introductions, articles) and, for a language course, the listening practice: the taught phrases that become listening items spoken in the target language, and a delivery style per language. Who speaks (Google's free Gemini voices within the day's quota, VibeTTS or ComfyUI TTS) is decided by the hub's allocation rule (`config/voice.md`), not by this role. A plan the model cannot get right after the repair round is replaced by one made from the course text.
+- `translator`: makes the other editions of a course (EGS-32): translates the text catalog of the source language, leaving the taught phrases of a language course alone, and keeps keys, gap markers and placeholders. Set the course model to `client/claude-code` and Claude Code translates, like any other role.
 - `playtester`: reads the bot's play of the built game and reports flow, difficulty and dead ends.
 - `accessibility-reviewer`: reading level, plain wording, no meaning carried by colour alone, alt text. **Must pass.**
 - `child-safety-reviewer`: age fit and safety of a course for children. **Must pass** (it reviews kids' courses only).
@@ -71,6 +74,6 @@ Starting choices, all of them first guesses to be tuned in the model picker:
 - Writers and designers (and the director and publisher): the paid default, with Strata and then LM Studio as fallbacks.
 - Researcher and fact-checker: Strata with thinking on `low` (named directly, it is not the Strata default), then LM Studio, then the paid default.
 - Other reviewers and the playtester: Strata (a model family different from the paid writers, and free), then LM Studio, then the paid default.
-- The art-director, the composer and the voice-director are writers (paid first). The art-critic must be a vision model, so it starts with Gemini 2.5 Flash, then Claude Sonnet (both see images), then LM Studio (only when a model there has `vision: true` in `config/providers.md`); the model picker offers it vision models only.
+- The art-director, the composer, the voice-director and the translator are writers (paid first). The art-critic must be a vision model, so it starts with Gemini 2.5 Flash, then Claude Sonnet (both see images), then LM Studio (only when a model there has `vision: true` in `config/providers.md`); the model picker offers it vision models only.
 
 Reviewer jobs prefer a model family different from the one that wrote the content. Changing a default here applies at once: a running job asks its current request again on the new model. `fallback_shared` in `config/settings.md` (the Models page's "One fallback order for every role") gives every role the fallback rows top to bottom instead. The engine rewrites this file when you change a role default in the UI, so comments in the YAML are not kept. The text below the frontmatter is.
