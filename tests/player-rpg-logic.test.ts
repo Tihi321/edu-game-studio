@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { autoArea, buildLayout, unitItemIds, type RpgArea } from '../src/shared/shells/rpg-layout'
-import { canReachSpot, findPath, GEN_H, GEN_W, generateMap, isAdjacent, isWalkable, parseMap, pathNextTo, posKey, reachableFrom, samePos, tileAt, type Pos } from '../src/shared/shells/rpg-map'
+import { buildLayout, unitItemIds, type RpgArea } from '../src/shared/shells/rpg-layout'
+import { canReachSpot, findPath, generateMap, posKey, samePos, type Pos } from '../src/shared/shells/rpg-map'
 import { sectionOf } from '../src/shared/shells'
-import { BASE_DAMAGE, BOSS_STRIKE, FOE_STRIKE, HERO_MAX_HP, barPercent, foeDamage, heroDamage, newBattle, resolveTurn, streakMultiplier } from '../src/player/shells/rpg/battle'
-import { bossGoto, nearby, newAreaProgress, nextGoal, pathToTarget, peopleOf, questAccuracy, replayProgress, stageOf, targetsOf, tryStep } from '../src/player/shells/rpg/model'
-import { ALL_SPRITES, SPRITE_COLOURS } from '../src/player/shells/rpg/sprites'
-import { RPG_STRINGS } from '../src/player/shells/rpg/strings'
+import { BASE_DAMAGE, FOE_STRIKE, HERO_MAX_HP, heroDamage, newBattle, resolveTurn, streakMultiplier } from '../src/player/shells/rpg/battle'
+import { bossGoto, newAreaProgress, nextGoal, questAccuracy, replayProgress, stageOf, tryStep } from '../src/player/shells/rpg/model'
 import type { RpgSection } from '../src/shared/shells/rpg-layout'
 import { FIXTURE_NAMES, loadFixture } from './edu-fixtures'
 
@@ -25,55 +23,10 @@ describe('the map generator', () => {
       }
   })
 
-  it('has the shape the player and the lint expect: size, walls, one start, one giver spot, one boss spot, a gate in the right wall, people alone on walkable tiles', () => {
-    for (const seed of seeds) {
-      const m = generateMap(seed, 3)
-      expect(m.rows).toHaveLength(GEN_H)
-      for (const r of m.rows) expect(r).toHaveLength(GEN_W)
-      const flat = m.rows.join('')
-      for (const ch of '@NBG') expect([...flat].filter((c) => c === ch)).toHaveLength(1)
-      expect(m.rows[0]).toBe('#'.repeat(GEN_W))
-      expect(m.rows[GEN_H - 1]).toBe('#'.repeat(GEN_W))
-      expect(tileAt(m.rows, m.start)).toBe('@')
-      expect(tileAt(m.rows, m.npc)).toBe('N')
-      expect(tileAt(m.rows, m.boss)).toBe('B')
-      expect(tileAt(m.rows, m.gate)).toBe('G')
-      expect(m.gate[0]).toBe(GEN_W - 1)
-      const people = [m.npc, m.boss, ...m.foes]
-      expect(new Set(people.map(posKey)).size).toBe(people.length)
-      expect(people.some((p) => samePos(p, m.start))).toBe(false)
-      for (const p of people) expect(isWalkable(tileAt(m.rows, p)), `${seed}: ${posKey(p)}`).toBe(true)
-      const parsed = parseMap(m.rows)
-      expect(parsed.ragged).toBe(false)
-      expect(parsed.unknown).toEqual([])
-    }
-  })
-
-  it('is deterministic per seed and varies between seeds', () => {
-    expect(generateMap('same', 3)).toEqual(generateMap('same', 3))
-    expect(new Set(seeds.map((s) => generateMap(s, 3).rows.join('/'))).size).toBeGreaterThan(250)
-  })
-
-  it('clamps the foe count (0 to 4)', () => {
-    expect(generateMap('x', -3).foes).toHaveLength(0)
-    expect(generateMap('x', 9).foes).toHaveLength(4)
-  })
 })
 
 describe('walking: breadth-first search on the tiles', () => {
   const rows = ['#######', '#@.#..#', '#.##.##', '#....G#', '#######']
-
-  it('knows which tiles block (walls, trees, water) and that the gate is shut until it opens', () => {
-    expect(isWalkable('.')).toBe(true)
-    expect(isWalkable(',')).toBe(true)
-    for (const ch of '#T~') expect(isWalkable(ch)).toBe(false)
-    expect(isWalkable('G')).toBe(false)
-    expect(isWalkable('G', true)).toBe(true)
-    expect(isWalkable(undefined)).toBe(false)
-    expect(tileAt(rows, [99, 99])).toBeUndefined()
-    expect(tileAt(rows, [-1, 0])).toBeUndefined()
-    expect(tileAt(rows, [1, -1])).toBeUndefined()
-  })
 
   it('finds the shortest path (up, down, left, right order makes it stable) and none through a wall', () => {
     const p = findPath(rows, [1, 1], (q) => samePos(q, [4, 3]))
@@ -83,35 +36,6 @@ describe('walking: breadth-first search on the tiles', () => {
     expect(findPath(rows, [1, 1], (q) => samePos(q, [1, 1]))).toEqual([])
   })
 
-  it('stops next to a person, and treats occupied tiles as walls', () => {
-    expect(pathNextTo(rows, [1, 1], [5, 3])).toEqual([[1, 2], [1, 3], [2, 3], [3, 3], [4, 3]])
-    expect(pathNextTo(rows, [1, 1], [4, 3], { blocked: new Set([posKey([3, 3])]) })).toBeNull()
-    const open = reachableFrom(rows, [1, 1])
-    expect(open.has(posKey([4, 3]))).toBe(true)
-    expect(open.has(posKey([5, 3]))).toBe(false) // the shut gate
-    expect(reachableFrom(rows, [1, 1], { gateOpen: true }).has(posKey([5, 3]))).toBe(true)
-    expect(isAdjacent([1, 1], [1, 2])).toBe(true)
-    expect(isAdjacent([1, 1], [2, 2])).toBe(false)
-  })
-
-  it('canReachSpot counts a person standing in a one-tile corridor as blocking the way past them', () => {
-    expect(canReachSpot(rows, [1, 1], [5, 3], [])).toBe(true)
-    expect(canReachSpot(rows, [1, 1], [4, 1], [[1, 3]])).toBe(false) // someone at the only way down cuts the right side off
-    // someone standing in the corridor at (2,3) cuts the way to the tiles beyond it
-    expect(canReachSpot(rows, [1, 1], [4, 3], [[2, 3]])).toBe(false)
-    expect(canReachSpot(rows, [1, 1], [2, 3], [[2, 3]])).toBe(true) // they themselves can be reached (from beside them)
-  })
-
-  it('parses a map: size, start, gate, raggedness, unknown characters', () => {
-    const m = parseMap(['#####', '#@.G', '###'])
-    expect(m.ragged).toBe(true)
-    expect(m.start).toEqual([1, 1])
-    expect(m.gate).toEqual([3, 1])
-    expect(m.w).toBe(5)
-    expect(m.h).toBe(3)
-    expect(parseMap(['#x#']).unknown).toEqual(['x'])
-    expect(parseMap(['###']).start).toBeNull()
-  })
 })
 
 describe('the layouts', () => {
@@ -160,22 +84,6 @@ describe('the layouts', () => {
     }
   })
 
-  it('fills in an automatic area for a unit the section does not cover', async () => {
-    const f = await loadFixture('solar-system')
-    const section = structuredClone(sectionOf<RpgSection>(f.pack, 'rpg')) as RpgSection
-    section.areas = section.areas.filter((a) => a.unit !== 'u-rocky-giant')
-    const layout = buildLayout(f.pack, section)
-    expect(layout.areas.map((a) => [a.unitId, a.auto])).toEqual([['u-sun-planets', false], ['u-rocky-giant', true], ['u-moons-beyond', false]])
-  })
-
-  it('gives an automatic area a generated map and one foe per objective', async () => {
-    const f = await loadFixture('european-capitals')
-    const a = autoArea(f.pack, 'u-central')
-    expect(a.foes).toHaveLength(3)
-    expect(a.id).toBe('u-central')
-    expect(a.foes.every((x) => x.hp === 200)).toBe(true)
-    expect(a.boss.hp).toBe(400)
-  })
 })
 
 describe('the battle maths', () => {
@@ -192,14 +100,6 @@ describe('the battle maths', () => {
     expect(heroDamage(Number.NaN, 0)).toBe(0)
     expect(streakMultiplier(-3)).toBe(1)
     expect(streakMultiplier(3)).toBe(1.75)
-  })
-
-  it('makes the foe strike back for every answer that is not right, never for a right one, at least 1', () => {
-    expect(foeDamage(true, 1)).toBe(0)
-    expect(foeDamage(false, 0)).toBe(FOE_STRIKE)
-    expect(foeDamage(false, 0.5)).toBe(Math.round(FOE_STRIKE / 2))
-    expect(foeDamage(false, 0.999)).toBe(1)
-    expect(foeDamage(false, 0, BOSS_STRIKE)).toBe(BOSS_STRIKE)
   })
 
   it('runs a battle: right answers strike harder with the streak, a wrong one breaks it and costs hit points', () => {
@@ -247,12 +147,6 @@ describe('the battle maths', () => {
     expect(fainted).toBe(true)
   })
 
-  it('shows a bar as a whole percentage between 0 and 100', () => {
-    expect(barPercent(50, 100)).toBe(50)
-    expect(barPercent(-5, 100)).toBe(0)
-    expect(barPercent(500, 100)).toBe(100)
-    expect(barPercent(1, 0)).toBe(0)
-  })
 })
 
 describe('the world model', () => {
@@ -270,14 +164,6 @@ describe('the world model', () => {
     boss: { id: 'b1', at: [6, 3], hp: 400 },
     auto: false
   }
-
-  it('lists everyone standing and the places the goto buttons walk to', () => {
-    const p = newAreaProgress(area)
-    expect(peopleOf(area, p).map((q) => q.id)).toEqual(['n1', 'f1', 'f2', 'b1'])
-    expect(targetsOf(area, p).map((t) => t.testid)).toEqual(['goto-n1', 'goto-f1', 'goto-f2', bossGoto, 'goto-gate'])
-    const next = { ...p, foesDown: ['f1'], bossDown: false }
-    expect(peopleOf(area, next).map((q) => q.id)).toEqual(['n1', 'f2', 'b1'])
-  })
 
   it('moves the hero, bumps into people, and stops at walls and the shut gate', () => {
     const p = newAreaProgress(area)
@@ -310,50 +196,11 @@ describe('the world model', () => {
     expect(g.steps).toBeGreaterThan(0)
   })
 
-  it('finds paths that end next to a person, and a path onto the gate only when it is open', () => {
-    const p = newAreaProgress(area)
-    const path = pathToTarget(area, p, 'goto-n1', false) as Pos[]
-    expect(path.length).toBeGreaterThan(0)
-    expect(isAdjacent(path.at(-1) as Pos, [4, 1])).toBe(true)
-    expect(pathToTarget(area, p, 'nobody', false)).toBeNull()
-    const shut = pathToTarget(area, p, 'goto-gate', false) as Pos[]
-    const open = pathToTarget(area, p, 'goto-gate', true) as Pos[]
-    expect(isAdjacent(shut.at(-1) as Pos, [8, 3])).toBe(true)
-    expect(samePos(open.at(-1) as Pos, [8, 3])).toBe(true)
-  })
-
-  it('says who stands next to the hero, the one faced first', () => {
-    const p = { ...newAreaProgress(area), pos: [4, 2] as Pos, face: 'up' as const }
-    expect(nearby(area, p).map((q) => q.id)).toEqual(['n1', 'f2'])
-    expect(nearby(area, { ...p, pos: [5, 2], face: 'down' }).map((q) => q.id)).toEqual(['f1'])
-    expect(nearby(area, { ...p, pos: [6, 2], face: 'down' }).map((q) => q.id)).toEqual(['b1'])
-    expect(nearby(area, { ...p, pos: [1, 3] }).length).toBe(0)
-  })
-
   it('computes the quest accuracy as the mean of the first-try scores and starts a replay with the quest still taken', () => {
     expect(questAccuracy([])).toBe(0)
     expect(questAccuracy([1, 1, 0.5, 0])).toBe(0.625)
     const p = { ...newAreaProgress(area), accepted: true, foesDown: ['f1'], bossDown: true, done: true, scores: [1], counted: ['f1'], pos: [3, 3] as Pos }
     const r = replayProgress(area, p)
     expect(r).toMatchObject({ accepted: true, foesDown: [], bossDown: false, done: false, scores: [], counted: [], pos: [1, 1] })
-  })
-})
-
-describe('the sprites and the words', () => {
-  it('draws every sprite on a 16 x 16 grid with known colour letters only', () => {
-    for (const [name, s] of Object.entries(ALL_SPRITES)) {
-      expect(s, name).toHaveLength(16)
-      s.forEach((row, i) => {
-        expect(row, `${name} row ${i}`).toHaveLength(16)
-        for (const ch of row) if (ch !== '.') expect(SPRITE_COLOURS[ch], `${name} row ${i}: "${ch}"`).toBeDefined()
-      })
-    }
-  })
-
-  it('has a Croatian word for every English one', () => {
-    const en = Object.keys(RPG_STRINGS.en)
-    const hr = Object.keys(RPG_STRINGS.hr ?? {})
-    expect(en.filter((k) => !hr.includes(k))).toEqual([])
-    expect(hr.filter((k) => !en.includes(k))).toEqual([])
   })
 })

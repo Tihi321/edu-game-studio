@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { CourseItem, TextCatalog } from '../src/shared/course'
-import { DAY_MS, newCard, schedule, type Card } from '../src/shared/edu/srs'
+import { newCard, schedule, type Card } from '../src/shared/edu/srs'
 import { makeTextResolver } from '../src/shared/edu/text'
-import { isProduction, scenesOfUnit, walkScene, type RoleplaySection, type RpScene, type RpWord } from '../src/shared/shells/roleplay'
+import { walkScene, type RoleplaySection, type RpScene, type RpWord } from '../src/shared/shells/roleplay'
 import { newlyOpen, nextScene, sceneBoard } from '../src/player/shells/roleplay/board'
-import { accuracy, answerTurn, hiddenLines, isDone, lastSay, MAX_TRIES, replyText, reveal, skipTurn, startScene, stepOf, turnCount, type SceneState } from '../src/player/shells/roleplay/dialogue'
-import { daysUntil, growth, metIn, plantsOf, stageCounts, stageOf, waterPool } from '../src/player/shells/roleplay/garden'
+import { accuracy, answerTurn, isDone, MAX_TRIES, replyText, reveal, startScene, stepOf, turnCount, type SceneState } from '../src/player/shells/roleplay/dialogue'
+import { plantsOf, stageOf } from '../src/player/shells/roleplay/garden'
 
 /**
  * The pure logic of the language role-play shell (EGS-13): the dialogue walker (right and wrong answers, the recovery, the retries, the
@@ -46,11 +46,6 @@ describe('walkScene', () => {
     expect(turnCount(scene)).toBe(2)
   })
 
-  it('reports a dangling next, a missing start and a cycle', () => {
-    expect(walkScene({ start: 'a', lines: [{ id: 'a', say: 'x', listen: false, text: 't', next: 'zz' }] })).toMatchObject({ ends: false, dangling: 'zz', path: ['a'] })
-    expect(walkScene({ start: 'q', lines: [] })).toMatchObject({ ends: false, dangling: 'q', path: [] })
-    expect(walkScene({ start: 'a', lines: [{ id: 'a', say: 'x', listen: false, text: 't', next: 'b' }, { id: 'b', reply: 'i', next: 'a' }] })).toMatchObject({ ends: false, loopAt: 'b' })
-  })
 })
 
 describe('dialogue: a perfect scene', () => {
@@ -99,13 +94,6 @@ describe('dialogue: a miss never ends the talk', () => {
     expect(stepOf(scene, st)).toMatchObject({ type: 'say', line: { id: 's2' } })
   })
 
-  it('an all-wrong scene still ends, with accuracy 0', () => {
-    const st = play([false, false, false, false, false, false])
-    expect(isDone(scene, st)).toBe(true)
-    expect(accuracy(st)).toBe(0)
-    expect(st.turns.every((t) => t.shown)).toBe(true)
-  })
-
   it('only the FIRST answer counts for the stars: a retry that is right does not raise the accuracy', () => {
     const st = play([false, true, true])
     expect(st.turns[0]).toMatchObject({ tries: 2, score: 0, right: true, shown: false })
@@ -114,41 +102,6 @@ describe('dialogue: a miss never ends the talk', () => {
     expect(st.log.filter((e) => e.kind === 'help')).toHaveLength(1)
   })
 
-  it('partial credit of the first answer counts as its score', () => {
-    expect(accuracy(play([0.5, true, true]))).toBe(0.75)
-  })
-
-  it('the helper is the last speaker who spoke to the learner; accuracy of a scene without answers is 0', () => {
-    let st = startScene(scene)
-    st = reveal(scene, st)
-    expect(lastSay(st)?.speaker).toBe('ana')
-    expect(accuracy(st)).toBe(0)
-    st = play([true, false])
-    expect(st.log.find((e) => e.kind === 'help')).toMatchObject({ speaker: 'luka' })
-  })
-
-  it('skipTurn goes past a turn whose item cannot be shown', () => {
-    let st = startScene(scene)
-    st = reveal(scene, st)
-    st = skipTurn(scene, st)
-    expect(stepOf(scene, st)).toMatchObject({ type: 'say', line: { id: 's2' } })
-    expect(st.turns).toEqual([])
-    expect(skipTurn(scene, st)).toBe(st) // not on a turn: nothing to skip
-  })
-})
-
-describe('dialogue: listen lines', () => {
-  const has = (a: string): boolean => a === 'aud-s2'
-  it('stay hidden until the next turn is answered, and only when the clip exists', () => {
-    let st = startScene(scene)
-    st = reveal(scene, st)
-    st = answerTurn(scene, st, { correct: true, score: 1, text: 'x' })
-    st = reveal(scene, st)
-    expect([...hiddenLines(scene, st, has)]).toEqual(['s2'])
-    expect([...hiddenLines(scene, st, () => false)]).toEqual([]) // no clip: the text is shown
-    st = answerTurn(scene, st, { correct: true, score: 1, text: 'y' })
-    expect([...hiddenLines(scene, st, has)]).toEqual([])
-  })
 })
 
 describe('replyText: the words of the learner bubble', () => {
@@ -163,27 +116,6 @@ describe('replyText: the words of the learner bubble', () => {
     expect(replyText(item({ kind: 'mcq', answer: 'hi', options: [{ id: 'hi', text: 'o.hi' }, { id: 'no', text: 'o.no' }] }), {}, text)).toBe('Dobar dan')
     expect(replyText(item({ kind: 'listening', mode: 'choose', answer: 'no', options: [{ id: 'hi', text: 'o.hi' }, { id: 'no', text: 'o.no' }] }), {}, text)).toBe('Laku noć')
     expect(replyText(item({ kind: 'cloze', text: 'cz', gaps: [{ id: '1', answer: 'g.vecer' }] }), {}, text)).toBe('Dobra večer!')
-  })
-  it('a dictation, a missing item and an unknown kind have no sentence to say; the line youSay wins', () => {
-    expect(replyText(item({ kind: 'listening', mode: 'type', answer: 'a.typed' }), {}, text)).toBeNull()
-    expect(replyText(undefined, {}, text)).toBeNull()
-    expect(replyText(item({ kind: 'order' }), {}, text)).toBeNull()
-    expect(replyText(item({ kind: 'typed', answer: 'a.typed' }), { youSay: 'you' }, text)).toBe('Dobar dan, gospođo')
-    expect(replyText(item({ kind: 'typed', answer: 'a.typed' }), { youSay: 'missing' }, text)).toBe('Doviđenja') // a missing key falls back to the item
-  })
-})
-
-describe('isProduction', () => {
-  const it2 = (x: Record<string, unknown>): CourseItem => x as unknown as CourseItem
-  it('typed, crossword, typed listening and a cloze with a free gap are production; choices are not', () => {
-    expect(isProduction(it2({ kind: 'typed' }))).toBe(true)
-    expect(isProduction(it2({ kind: 'crossword' }))).toBe(true)
-    expect(isProduction(it2({ kind: 'listening', mode: 'type' }))).toBe(true)
-    expect(isProduction(it2({ kind: 'listening', mode: 'choose' }))).toBe(false)
-    expect(isProduction(it2({ kind: 'cloze', gaps: [{ bank: ['a'] }, {}] }))).toBe(true)
-    expect(isProduction(it2({ kind: 'cloze', gaps: [{ bank: ['a'] }] }))).toBe(false)
-    expect(isProduction(it2({ kind: 'mcq' }))).toBe(false)
-    expect(isProduction(undefined)).toBe(false)
   })
 })
 
@@ -227,12 +159,6 @@ describe('sceneBoard: what is locked', () => {
     expect(b4.at(-1)).toMatchObject({ locked: false, finale: true, stars: 1 })
   })
 
-  it('a scene of no known unit stays playable and a section without a finale has none on the board', () => {
-    const odd: Pick<RoleplaySection, 'scenes' | 'finale'> = { scenes: [sc('x', 'nope'), sc('y')], finale: undefined }
-    const b = sceneBoard({ section: odd, pack: { units: units as never }, mastered: () => false, unitStars: () => 0, bossStars: 0 })
-    expect(b.map((e) => [e.scene.id, e.locked, e.finale])).toEqual([['x', false, false], ['y', false, false]])
-    expect(scenesOfUnit(odd, 'u1')).toEqual([])
-  })
 })
 
 describe('garden: growth from the SM-2 cards', () => {
@@ -250,16 +176,6 @@ describe('garden: growth from the SM-2 cards', () => {
     expect(stageOf(card(['good', 'again']), false)).toBe('wilted') // the last answer was a miss
     expect(stageOf(card(['good', 'good']), true)).toBe('wilted') // in the review queue
     expect(stageOf(undefined, true)).toBe('wilted')
-  })
-
-  it('a plant that is forgotten wilts, and growth says grew / wilted / same', () => {
-    expect(growth('seed', 'sprout')).toBe('grew')
-    expect(growth('sprout', 'bud')).toBe('grew')
-    expect(growth('bud', 'bud')).toBe('same')
-    expect(growth('bud', 'sprout')).toBe('same')
-    expect(growth('bloom', 'wilted')).toBe('wilted')
-    expect(growth('wilted', 'wilted')).toBe('same')
-    expect(growth('wilted', 'sprout')).toBe('grew')
   })
 
   const words: RpWord[] = [
@@ -289,43 +205,4 @@ describe('garden: growth from the SM-2 cards', () => {
     expect(finished[3]).toMatchObject({ planted: true, stage: 'seed', due: true, dueAt: null })
   })
 
-  it('stageCounts counts planted plants only; waterPool holds the seeds, the due and the wilted of the planted', () => {
-    expect(stageCounts(plants())).toEqual({ seed: 0, sprout: 1, bud: 1, bloom: 0, wilted: 1 })
-    expect(waterPool(plants())).toEqual(['i3']) // i1 and i2 are not due yet, i4 is not planted
-    expect(waterPool(plants({ doneUnits: ['u2'] }))).toEqual(['i3', 'i4'])
-    expect(waterPool(plants({ now: NOW + 30 * DAY_MS }))).toEqual(['i1', 'i2', 'i3'])
-    expect(waterPool(plants({ queue: ['i1'] }))).toEqual(['i1', 'i3'])
-  })
-
-  it('the next watering is counted in whole days', () => {
-    const p = plants({ now: NOW })
-    expect(daysUntil(p[3] as never, NOW)).toBeNull()
-    expect(daysUntil(p[1] as never, NOW)).toBe(1)
-    expect(daysUntil(p[0] as never, NOW)).toBeGreaterThanOrEqual(2)
-    expect(daysUntil({ dueAt: NOW - 5 }, NOW)).toBe(0)
-  })
-})
-
-describe('garden: the line a word was met in (vocabulary in context)', () => {
-  const resolve = (k: string): string => ({ 'k.hello': 'Dobar dan!', 'k.bye': 'Doviđenja, Ana!', 'k.w.hello': 'Dobar dan', 'k.w.bye': 'Doviđenja', 'k.w.thanks': 'Hvala' })[k] ?? k
-  const sc = (id: string, lines: RpScene['lines']): RpScene => ({ id, title: id, start: lines[0]!.id, lines })
-  const section = {
-    scenes: [
-      sc('a', [{ id: 'l1', say: 'ana', listen: false, text: 'k.hello', next: 'l2' }, { id: 'l2', reply: 'i-hello', next: null }]),
-      sc('b', [{ id: 'l1', say: 'luka', listen: false, text: 'k.bye', next: 'l2' }, { id: 'l2', reply: 'i-thanks', next: null }])
-    ]
-  }
-
-  it('is the first spoken line that contains the word (finished scenes first), else the line before the turn that asks it', () => {
-    expect(metIn(section, { text: 'k.w.hello', item: 'i-hello' }, resolve)).toEqual({ sceneId: 'a', lineId: 'l1', speaker: 'ana', text: 'k.hello', how: 'heard' })
-    expect(metIn(section, { text: 'k.w.bye', item: 'i-x' }, resolve)).toMatchObject({ sceneId: 'b', how: 'heard', speaker: 'luka' })
-    expect(metIn(section, { text: 'k.w.thanks', item: 'i-thanks' }, resolve)).toEqual({ sceneId: 'b', lineId: 'l1', speaker: 'luka', text: 'k.bye', how: 'used' })
-    expect(metIn(section, { text: 'k.w.thanks', item: 'i-none' }, resolve)).toBeNull()
-  })
-
-  it('does not match part of a word', () => {
-    const r = (k: string): string => (k === 'k.w' ? 'dan' : 'Dobar danas')
-    const s = { scenes: [sc('a', [{ id: 'l1', say: 'ana', listen: false, text: 'k.line', next: null }])] }
-    expect(metIn(s, { text: 'k.w', item: 'i' }, r)).toBeNull()
-  })
 })

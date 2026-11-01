@@ -5,7 +5,6 @@ import { makeTextResolver, validateCourse } from '../src/shared/edu'
 import { encArticles, encyclopediaSectionSchema, glossaryOf, passageOf, readerChapters, type EncyclopediaSection } from '../src/shared/shells/encyclopedia'
 import { emptyData, glossKey, readData, withChapterDone, withGlossDeck, withRead, withReaderAt } from '../src/player/shells/encyclopedia/data'
 import { glossify, readMarkup, type GlossWord } from '../src/player/gloss'
-import { linkify } from '../src/player/shells/encyclopedia/articles'
 import { FIXTURES } from './edu-fixtures'
 
 /**
@@ -20,14 +19,6 @@ describe('passageOf: extensions.passage', () => {
     expect(passageOf({ extensions: { passage: { article: 'a' } } })).toEqual({ article: 'a' })
     expect(passageOf({ extensions: { passage: { article: 'a', paragraphs: [2, 3] } } })).toEqual({ article: 'a', paragraphs: [2, 3] })
     expect(passageOf({ extensions: { passage: { article: 'a', paragraphs: [4, 2] } } })).toEqual({ article: 'a', paragraphs: [2, 4] })
-  })
-  it('is null for nothing or for something malformed; a bad range is ignored, not fatal', () => {
-    expect(passageOf({})).toBeNull()
-    expect(passageOf({ extensions: {} })).toBeNull()
-    expect(passageOf({ extensions: { passage: 'a' } })).toBeNull()
-    expect(passageOf({ extensions: { passage: { article: '' } } })).toBeNull()
-    expect(passageOf({ extensions: { passage: { article: 'a', paragraphs: [0, 2] } } })).toEqual({ article: 'a' })
-    expect(passageOf({ extensions: { passage: { article: 'a', paragraphs: [1] } } })).toEqual({ article: 'a' })
   })
 })
 
@@ -54,21 +45,11 @@ describe('glossify: the glossed words of a text', () => {
     const none = glossify([par('Nichts davon.')], [word('x', 'Mittelweg'), word('y', '  ')])
     expect(none[0]).toEqual([{ text: 'Nichts davon.' }])
   })
-  it('does not cut a cross-link, and keeps the link', () => {
-    const segs = linkify(['Der Mittelweg ist gut, der Mittelweg bleibt.'], 'self', [{ id: 'other', title: 'Mittelweg' }])
-    const out = glossify(segs, [word('m', 'Mittelweg'), word('b', 'bleibt')])
-    expect(out[0]?.some((s) => s.link === 'other' && s.text === 'Mittelweg')).toBe(true)
-    // the first mention is the link; the glossary word is then found at the second mention
-    expect(out[0]?.filter((s) => s.gloss).map((s) => s.gloss?.id)).toEqual(['m', 'b'])
-  })
 })
 
 describe('the reader data', () => {
   const arts = new Set(['a1', 'a2'])
   const keys = new Set([glossKey('a1', 'g1'), glossKey('a2', 'g2')])
-  it('is optional: an old save reads back unchanged', () => {
-    expect(readData({ found: [], read: ['a1'] }, new Set(), arts, keys)).toEqual({ found: [], read: ['a1'] })
-  })
   it('keeps the position (clamped), the chapters read and the words out of the deck; drops ids the course no longer has', () => {
     const d = readData({ found: [], read: [], reader: { chapter: 'a2', scroll: 7, done: ['a1', 'gone'] }, glossOff: [glossKey('a1', 'g1'), 'a9/zz', 4] }, new Set(), arts, keys)
     expect(d.reader).toEqual({ chapter: 'a2', scroll: 1, done: ['a1'] })

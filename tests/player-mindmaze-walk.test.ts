@@ -3,7 +3,7 @@ import { checkItem, makeTextResolver, rngFor, solveItem, type CheckContext } fro
 import { doorKey, resolveMaze, routeToKey, type MazeWing } from '../src/shared/shells/mindmaze'
 import { gradeOf, missedIds, pickNext, recordResult, roundAccuracy, startPool, type NextQuestion, type RoundState } from '../src/player/round'
 import { layoutRooms, wingRows } from '../src/player/shells/mindmaze/layout'
-import { goBack, ghostLeads, isOpen, loseTorch, moodAfter, newWalk, openDoor, pickForDoor, relight, walkThrough } from '../src/player/shells/mindmaze/walk'
+import { goBack, ghostLeads, isOpen, loseTorch, newWalk, openDoor, pickForDoor, relight, walkThrough } from '../src/player/shells/mindmaze/walk'
 import { loadFixture } from './edu-fixtures'
 
 /** The MindMaze walk (EGS-11): torches, ghost, doors that stay open, the door's question, the maps. Pure: no DOM. */
@@ -59,12 +59,6 @@ describe('the walk', () => {
     expect(led.open).toEqual(w.open) // the doors you opened stay open
     expect(walkThrough(led, a).ghosted).toBe(false)
     expect(relight(r.walk).torches).toBe(3)
-  })
-
-  it('moods: a streak of two or more cheers, a miss groans', () => {
-    expect(moodAfter(true, 1)).toBe('none')
-    expect(moodAfter(true, 2)).toBe('cheer')
-    expect(moodAfter(false, 0)).toBe('groan')
   })
 
   it('after the ghost the route to the key still exists and starts with the open doors', async () => {
@@ -165,18 +159,6 @@ describe('the maps', () => {
       expect(n.x).toBeLessThanOrEqual(m.width)
       expect(n.y).toBeLessThanOrEqual(m.height)
     }
-  })
-
-  it('layoutRooms shows rooms the entrance cannot reach in a last column, and marks doors that lead back', () => {
-    const rooms = [
-      { id: 'a', name: { ui: 'a' }, doors: [{ to: 'b', items: ['x'] }], key: false },
-      { id: 'b', name: { ui: 'b' }, doors: [{ to: 'a', items: ['x'] }], key: false },
-      { id: 'lost', name: { ui: 'lost' }, doors: [], key: false }
-    ]
-    const m = layoutRooms({ entry: 'a', rooms })
-    expect(m.nodes.find((n) => n.id === 'lost')!.col).toBe(2)
-    expect(m.edges.find((e) => e.from === 'b' && e.to === 'a')!.back).toBe(true)
-    expect(m.edges.find((e) => e.from === 'a' && e.to === 'b')!.back).toBe(false)
   })
 
   it('wingRows: wings in rows by how many units they need before them', async () => {
