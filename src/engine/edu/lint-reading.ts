@@ -58,6 +58,8 @@ export function lintReading(pack: CoursePack, res: TextResolver): ReadingProblem
   // ---- the texts ----
   pack.encyclopedia.articles.forEach((a, i) => {
     if (!glossed.has(a.id) && !b2) return
+    // A1/A2 article texts have a glossary but are short notes, not graded readings: the pipeline records no reading band for them (no extensions.language.reading).
+    if (!b2 && !askedWords(pack)) return
     const at = `encyclopedia.articles[${i}]`
     const body = bodies.get(a.id) ?? ''
     if (body.trim() === '') return // TEXT_MISSING

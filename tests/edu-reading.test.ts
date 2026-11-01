@@ -28,6 +28,13 @@ describe('reading lint codes', () => {
     const ps = lintGameData(await game(), () => true)
     expect(ps.filter((p) => p.code.startsWith('READING_') || p.code === 'TFNG_OPTIONS' || p.code === 'SELFCHECK_NO_MODEL')).toEqual([])
   })
+  it('an A1 course with glossed article notes and no recorded reading band gets no reading warnings', async () => {
+    const d = await game()
+    d.pack.cefr = 'A1'
+    delete (d.pack.extensions as Raw).language
+    d.catalogs.de!.strings['art.art-homeoffice.body'] = 'Ein kurzer Satz.'
+    expect(only(lintGameData(d, () => true), 'READING_LENGTH')).toEqual([])
+  })
   it('READING_LENGTH: too short and too long (warnings)', async () => {
     const d = await game()
     d.catalogs.de!.strings['art.art-homeoffice.body'] = 'Ein kurzer Satz.'
