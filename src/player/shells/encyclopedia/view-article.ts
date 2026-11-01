@@ -1,5 +1,5 @@
 import { button, h } from '../../dom'
-import { glossify, glossParagraph, glossPopover } from '../../gloss'
+import { glossify, readMarkup, glossParagraph, glossPopover } from '../../gloss'
 import type { EncApp } from './app'
 
 const host = (url: string): string => {
@@ -82,7 +82,8 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
   const off = new Set(words.filter((w) => app.glossOff().has(`${id}/${w.id}`)).map((w) => w.id))
   // a link to another article: it opens that one and `back` returns here
   const link = (to: string, text: string): HTMLElement => button(`link-${to}`, text, () => app.article(to, () => app.article(id)), { class: 'enc-xlink' })
-  const segs = glossify(app.segments(id), words)
+  const marked = readMarkup(app.segments(id))
+  const segs = glossify(marked.map((m) => m.runs), words)
 
   return h(
     'div',
@@ -98,7 +99,7 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
         h('h1', { class: 'screen-title enc-article-title', tabindex: '-1', testid: 'article-title' }, a.title),
         h('p', { class: 'enc-rule', 'aria-hidden': 'true' }),
         seal,
-        h('div', { class: 'enc-body gloss-scope', testid: 'article-body', ...(words.length > 0 && s.pack.targetLang ? { lang: s.pack.targetLang } : {}) }, segs.map((sg) => glossParagraph(sg, pop, link, off)), words.length > 0 ? pop.el : null)
+        h('div', { class: 'enc-body gloss-scope', testid: 'article-body', ...(words.length > 0 && s.pack.targetLang ? { lang: s.pack.targetLang } : {}) }, segs.map((sg, i) => glossParagraph(sg, pop, link, off, marked[i]?.heading)), words.length > 0 ? pop.el : null)
       ),
       h(
         'aside',
