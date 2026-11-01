@@ -105,7 +105,7 @@ describe('art', () => {
       } finally {
         await env.cleanup()
       }
-    }, 120_000)
+    })
 
     it('ComfyUI down: every picture gets its placeholder and a warning, the course builds and publishes, the lint warns PLACEHOLDER_ASSET and nothing else; when ComfyUI is back edu_asset_generate replaces them', async () => {
       const env = await makePipelineEnv()
@@ -158,7 +158,7 @@ describe('art', () => {
       } finally {
         await env.cleanup()
       }
-    }, 150_000)
+    })
 })
 
 describe('music and sound effects', () => {
@@ -250,7 +250,7 @@ describe('music and sound effects', () => {
       } finally {
         await env.cleanup()
       }
-    }, 150_000)
+    })
 
     it('a plan that stays unusable is replaced by the deterministic plan from the course text: the step never blocks, every sound is there', async () => {
       const env = await makePipelineEnv({ musicPlan: 'unusable' })
@@ -269,7 +269,7 @@ describe('music and sound effects', () => {
       } finally {
         await env.cleanup()
       }
-    }, 120_000)
+    })
 
     it('restart from: music makes run 2 with a new music_plan, the same ids and nothing made again; restart from: art redoes the art plan and the music plan the same way', async () => {
       const env = await makePipelineEnv()
@@ -306,7 +306,7 @@ describe('music and sound effects', () => {
       } finally {
         await env.cleanup()
       }
-    }, 240_000)
+    })
 
     it('the course says provider flow but not flowCredits: Flow is never called, the tracks use the default providers, and the plan says why', async () => {
       const env = await makePipelineEnv()
@@ -322,7 +322,7 @@ describe('music and sound effects', () => {
       } finally {
         await env.cleanup()
       }
-    }, 120_000)
+    })
 })
 
 describe('voice', () => {
@@ -439,7 +439,7 @@ describe('voice', () => {
       } finally {
         await env.cleanup()
       }
-    }, 200_000)
+    })
 
     it('every provider down: silent placeholders and warnings, the run still publishes, the lint warns PLACEHOLDER_ASSET for each clip; a provider coming back replaces them', async () => {
       const env = await makePipelineEnv()
@@ -467,5 +467,5 @@ describe('voice', () => {
       } finally {
         await env.cleanup()
       }
-    }, 300_000)
+    })
 })

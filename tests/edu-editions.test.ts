@@ -97,7 +97,7 @@ describe('editions in the pipeline (mock translator)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  })
 
   it('a translation with a key missing is asked again once (repair round) and then accepted', async () => {
     const env = await makePipelineEnv({ editions: 'repair' })
@@ -110,7 +110,7 @@ describe('editions in the pipeline (mock translator)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  })
 
   it('a translator that keeps dropping a key fails the step with the key named; the pack keeps one language and the run does not publish', async () => {
     const env = await makePipelineEnv({ editions: 'drops' })
@@ -124,7 +124,7 @@ describe('editions in the pipeline (mock translator)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  })
 
   it('nothing to translate (the other language is the taught one): the step is skipped with its reason and no translator is called', async () => {
     const env = await makePipelineEnv()
@@ -137,7 +137,7 @@ describe('editions in the pipeline (mock translator)', () => {
     } finally {
       await env.cleanup()
     }
-  }, 120_000)
+  })
 })
 
 describe('CourseStore.addEditions', () => {

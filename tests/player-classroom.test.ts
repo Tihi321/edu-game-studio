@@ -50,7 +50,9 @@ function result(name: string, o: Partial<StudentResult> & { stars?: Record<strin
 }
 
 describe('the assignment', () => {
-  it('is read from pack.extensions and checked', () => {
+  it('the assignment is read from pack.extensions and an empty unit list means every unit', () => {
+  // is read from pack.extensions and checked
+  {
     expect(assignmentOf({ classroom: { assignment: ASSIGNMENT } })?.title).toBe('Week 3')
     expect(assignmentOf({})).toBeNull()
     expect(assignmentOf(undefined)).toBeNull()
@@ -58,12 +60,14 @@ describe('the assignment', () => {
     expect(assignmentOf({ classroom: { assignment: { ...ASSIGNMENT, targetStars: 4 } } })).toBeNull()
     expect(assignmentOf({ classroom: { assignment: { ...ASSIGNMENT, message: 'x'.repeat(401) } } })).toBeNull()
     expect(assignmentOf({ classroom: { assignment: { ...ASSIGNMENT, due: 'tomorrow' } } })).toBeNull()
-  })
-  it('an empty unit list means every unit; unknown units are dropped', () => {
+  }
+  // an empty unit list means every unit; unknown units are dropped
+  {
     expect(assignedUnits(PACK, null)).toEqual(['u1', 'u2', 'u3'])
     expect(assignedUnits(PACK, { units: [] })).toEqual(['u1', 'u2', 'u3'])
     expect(assignedUnits(PACK, { units: ['u2', 'nope'] })).toEqual(['u2'])
     expect(assignedUnits(PACK, { units: ['nope'] })).toEqual(['u1', 'u2', 'u3'])
+  }
   })
 })
 
@@ -91,20 +95,24 @@ describe('building a result from a Progress', () => {
 
 describe('reading a result file defensively', () => {
   const good = () => JSON.parse(JSON.stringify(result('Ana', { stars: { u1: 3 } }))) as Record<string, unknown>
-  it('accepts a good file and drops unknown keys', () => {
+  it('reading a result file defensively: good file, size and kind, clamping, name cleaning', () => {
+  // accepts a good file and drops unknown keys
+  {
     const r = parseStudentResult(JSON.stringify({ ...good(), cards: { huge: 1 }, extra: 'x' }))
     expect(r.ok).toBe(true)
     if (r.ok) expect(Object.keys(r.result)).not.toContain('cards')
-  })
-  it('refuses a file over 200 KB, not JSON, the wrong kind or schema', () => {
+  }
+  // refuses a file over 200 KB, not JSON, the wrong kind or schema
+  {
     const big = JSON.stringify({ ...good(), pad: 'x'.repeat(MAX_RESULT_BYTES) })
     expect(parseStudentResult(big)).toEqual({ ok: false, error: 'larger than 200 KB' })
     expect(parseStudentResult('{nope')).toEqual({ ok: false, error: 'not JSON' })
     expect(parseStudentResult('[]')).toMatchObject({ ok: false })
     expect(parseStudentResult(JSON.stringify({ ...good(), kind: 'edu-progress' }))).toMatchObject({ ok: false, error: expect.stringContaining('not a student result') })
     expect(parseStudentResult(JSON.stringify({ ...good(), schema: 2 }))).toMatchObject({ ok: false, error: expect.stringContaining('schema') })
-  })
-  it('clamps bad numbers and drops bad ids', () => {
+  }
+  // clamps bad numbers and drops bad ids
+  {
     const r = parseStudentResult(
       JSON.stringify({ ...good(), answered: 5, right: 99, playSeconds: -4, units: { u1: { stars: 99, best: 7, rounds: 'x' }, '../evil': { stars: 3 }, 'a b': { stars: 3 } }, missed: { i1: -5, i2: 'x', '__proto__': 3, 'ok-id': 2.4 }, queue: ['i1', 'i1', 5, '<script>'] })
     )
@@ -115,13 +123,15 @@ describe('reading a result file defensively', () => {
     expect(r.result.units).toEqual({ u1: { stars: 3, best: 1, rounds: 0 } })
     expect(r.result.missed).toEqual({ i1: 1, 'ok-id': 2 })
     expect(r.result.queue).toEqual(['i1'])
-  })
-  it('cleans an injection-looking name and refuses an empty one', () => {
+  }
+  // cleans an injection-looking name and refuses an empty one
+  {
     const r = parseStudentResult(JSON.stringify({ ...good(), student: { name: '  =HYPERLINK("http://x")\u0000\n  ', id: 'z' } }))
     expect(r.ok && r.result.student.name).toBe('=HYPERLINK("http://x")')
     expect(parseStudentResult(JSON.stringify({ ...good(), student: { name: '  \n\t ', id: 'z' } }))).toMatchObject({ ok: false, error: 'no student name' })
     expect(cleanName('x'.repeat(100)).length).toBe(60)
     expect(cleanName(42)).toBe('')
+  }
   })
 })
 
@@ -137,7 +147,9 @@ describe('the class report', () => {
   ]
   const report = classReport(PACK, inputs, { assignment: ASSIGNMENT, labels: { i1: 'First question' } })
 
-  it('has one row per student, the newer duplicate wins, other courses and assignments are rejected with a reason', () => {
+  it('the class report: rows, per-student math, per unit and item, defaults, Markdown and CSV', () => {
+  // has one row per student, the newer duplicate wins, other courses and assignments are rejected with a reason
+  {
     expect(report.students.map((s) => s.name)).toEqual(['ANA', 'Ben', 'Cleo', 'Dino'])
     expect(report.students).toHaveLength(4)
     expect(report.flags.join(' ')).toContain('newer one is used')
@@ -145,8 +157,9 @@ describe('the class report', () => {
       { source: 'other.json', reason: 'it is for the course "other-course", not "course-a"' },
       { source: 'wrong-assignment.json', reason: 'it is for the assignment "old", not "a1"' }
     ])
-  })
-  it('per student math covers the assigned units only', () => {
+  }
+  // per student math covers the assigned units only
+  {
     const by = Object.fromEntries(report.students.map((s) => [s.name, s]))
     expect(by['ANA']).toMatchObject({ unitsMastered: 2, unitsAssigned: 2, stars: 5, maxStars: 6, accuracy: 75, minutes: 60, finished: true })
     expect(by['Ben']).toMatchObject({ unitsMastered: 1, stars: 3, accuracy: 50, minutes: 2, finished: false })
@@ -154,8 +167,9 @@ describe('the class report', () => {
     expect(by['Cleo']).toMatchObject({ unitsMastered: 2, stars: 6, accuracy: 0, finished: true }) // u3 is not assigned
     expect(by['Dino']).toMatchObject({ unitsMastered: 0, stars: 0, finished: false })
     expect(report.unfinished).toEqual(['Ben', 'Dino'])
-  })
-  it('per unit, per item and the weakest objectives', () => {
+  }
+  // per unit, per item and the weakest objectives
+  {
     expect(report.units).toEqual([
       { unit: 'u1', mastered: 3, reachedTarget: 3, avgStars: 2 },
       { unit: 'u2', mastered: 2, reachedTarget: 2, avgStars: 1.5 }
@@ -172,20 +186,23 @@ describe('the class report', () => {
       ['o2', 0.5],
       ['o1', 0.38]
     ])
-  })
-  it('without an assignment every unit counts with the default target of 2 stars', () => {
+  }
+  // without an assignment every unit counts with the default target of 2 stars
+  {
     const r = classReport(PACK, [result('Zed', { stars: { u1: 2, u2: 2, u3: 2 } })])
     expect(r.students[0]).toMatchObject({ unitsAssigned: 3, finished: true })
     expect(r.unfinished).toEqual([])
-  })
-  it('renders Markdown, escaping pipes and markup in names', () => {
+  }
+  // renders Markdown, escaping pipes and markup in names
+  {
     const md = reportToMarkdown(classReport(PACK, [result('A|B <i>x</i>', { stars: { u1: 3 } })], { assignment: ASSIGNMENT }), 'Course A')
     expect(md).toContain('# Class report: Course A')
     expect(md).toContain('| A\\|B \\<i\\>x\\</i\\> |')
     expect(reportToMarkdown(report)).toContain('Left out other.json')
     expect(reportToMarkdown(report)).toContain('## Not finished')
-  })
-  it('renders CSV that a spreadsheet cannot read as a formula', () => {
+  }
+  // renders CSV that a spreadsheet cannot read as a formula
+  {
     for (const bad of ['=1+1', '+1', '-1', '@SUM(A1)', '\t=x']) expect(csvCell(bad).replace(/^"/, '')).toMatch(/^'/)
     expect(csvCell('plain')).toBe('plain')
     expect(csvCell('a,b')).toBe('"a,b"')
@@ -194,6 +211,7 @@ describe('the class report', () => {
     const lines = csv.trim().split('\n')
     expect(lines[0]).toBe('student,units_mastered,units_assigned,stars,max_stars,accuracy_pct,minutes,answered,review_queue,finished,exported_at')
     expect(lines[1]?.startsWith("'=cmd|calc,")).toBe(true)
+  }
   })
 })
 
@@ -205,22 +223,27 @@ describe('progress normalisation (name, studentId, playSeconds)', () => {
     if (!r.ok) throw new Error(r.error)
     return r.progress
   }
-  it('an old save has no name and no play time', () => {
+  it('progress normalisation: an old save, a clean name, a bad name and play time', () => {
+  // an old save has no name and no play time
+  {
     const p = parse({})
     expect(p.settings.name).toBeUndefined()
     expect(p.playSeconds).toBeUndefined()
-  })
-  it('keeps a clean name (60 characters at most) and a plain student id', () => {
+  }
+  // keeps a clean name (60 characters at most) and a plain student id
+  {
     const p = parse({ settings: { timer: false, sound: true, name: `  ${'N'.repeat(90)}  `, studentId: 'abc123-xyz' }, playSeconds: 90.4 })
     expect(p.settings.name).toBe('N'.repeat(60))
     expect(p.settings.studentId).toBe('abc123-xyz')
     expect(p.playSeconds).toBe(90)
-  })
-  it('drops a bad name or id and clamps the play time', () => {
+  }
+  // drops a bad name or id and clamps the play time
+  {
     const p = parse({ settings: { timer: false, sound: true, name: 42, studentId: '<x>' }, playSeconds: 1e12 })
     expect(p.settings.name).toBeUndefined()
     expect(p.settings.studentId).toBeUndefined()
     expect(p.playSeconds).toBe(360_000)
     expect(parse({ playSeconds: -5 }).playSeconds).toBe(0)
+  }
   })
 })

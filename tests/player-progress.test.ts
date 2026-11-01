@@ -19,10 +19,13 @@ import {
 import { loadFixture } from './edu-fixtures'
 
 describe('stars', () => {
-  it('1 star from 50 %, 2 from 70 %, 3 from 90 %', () => {
+  it('stars: thresholds and the best round kept', () => {
+  // 1 star from 50 %, 2 from 70 %, 3 from 90 %
+  {
     expect([0, 0.49, 0.5, 0.69, 0.7, 0.89, 0.9, 1].map(starsFor)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
-  })
-  it('recordRound keeps the best stars and counts rounds', () => {
+  }
+  // recordRound keeps the best stars and counts rounds
+  {
     let p = newProgress('c')
     p = recordRound(p, { unitId: 'u1' }, 0.95)
     p = recordRound(p, { unitId: 'u1' }, 0.2)
@@ -30,6 +33,7 @@ describe('stars', () => {
     expect(p.units.u1?.best).toBeCloseTo(0.95)
     p = recordRound(p, { boss: true }, 0.6)
     expect(p.boss.stars).toBe(1)
+  }
   })
 })
 
@@ -62,7 +66,9 @@ describe('review queue', () => {
 })
 
 describe('export and import', () => {
-  it('round-trips', async () => {
+  it('export and import: round trip, junk refused, unknown ids dropped and numbers clamped', async () => {
+  // round-trips
+  {
     const f = await loadFixture('solar-system')
     let p = newProgress(f.pack.id)
     p = recordRound(p, { unitId: f.pack.units[0]!.id }, 0.8)
@@ -72,9 +78,10 @@ describe('export and import', () => {
     if (res.ok) expect(res.progress).toEqual(p)
     expect(hasProgress(p)).toBe(true)
     expect(hasProgress(newProgress('x'))).toBe(false)
-  })
+  }
 
-  it('refuses junk, another course, another version and a wrong format', async () => {
+  // refuses junk, another course, another version and a wrong format
+  {
     const f = await loadFixture('solar-system')
     const bad = (t: string): string => {
       const r = parseProgress(t, f.pack)
@@ -85,9 +92,10 @@ describe('export and import', () => {
     expect(bad(JSON.stringify({ format: 'something', progress: {} }))).toBe('wrong file format')
     expect(bad(JSON.stringify({ format: 'edu-progress', progress: { version: 9, pack: f.pack.id } }))).toContain('version')
     expect(bad(JSON.stringify({ format: 'edu-progress', progress: { version: 1, pack: 'other' } }))).toContain('other')
-  })
+  }
 
-  it('drops unknown units, items and cards, and clamps numbers', async () => {
+  // drops unknown units, items and cards, and clamps numbers
+  {
     const f = await loadFixture('solar-system')
     const unit = f.pack.units[0]!.id
     const item = f.pack.items[0]!.id
@@ -114,6 +122,7 @@ describe('export and import', () => {
     expect(p.score).toBe(0)
     expect(p.right).toBe(5)
     expect(p.settings.timer).toBe(false)
+  }
   })
 })
 
@@ -124,7 +133,9 @@ describe('ProgressStore', () => {
     return { data, getItem: (k) => data[k] ?? null, setItem: (k, v) => void (data[k] = v), removeItem: (k) => void delete data[k] }
   }
 
-  it('saves under a key namespaced by the pack id and loads it back', () => {
+  it('ProgressStore: namespaced key, storage that throws, write failure, corrupt value', () => {
+  // saves under a key namespaced by the pack id and loads it back
+  {
     const s = memory()
     const store = new ProgressStore(pack, s)
     store.save({ ...newProgress('c'), score: 5 })
@@ -133,9 +144,10 @@ describe('ProgressStore', () => {
     expect(new ProgressStore(pack, s).load().score).toBe(5)
     store.clear()
     expect(new ProgressStore(pack, s).load().score).toBe(0)
-  })
+  }
 
-  it('never throws when the storage does, and says it is not persistent', () => {
+  // never throws when the storage does, and says it is not persistent
+  {
     const boom: StorageLike = {
       getItem: () => {
         throw new Error('denied')
@@ -153,9 +165,10 @@ describe('ProgressStore', () => {
     expect(store.load().score).toBe(3) // the read is denied, the session copy in memory is used
     expect(() => store.clear()).not.toThrow()
     expect(new ProgressStore(pack, null).persistent).toBe(false)
-  })
+  }
 
-  it('keeps the progress in memory when only writing fails', () => {
+  // keeps the progress in memory when only writing fails
+  {
     const s = memory()
     s.setItem = () => {
       throw new Error('quota')
@@ -163,11 +176,13 @@ describe('ProgressStore', () => {
     const store = new ProgressStore(pack, s)
     store.save({ ...newProgress('c'), score: 3 })
     expect(store.persistent).toBe(false)
-  })
+  }
 
-  it('ignores a corrupt stored value', () => {
+  // ignores a corrupt stored value
+  {
     const s = memory()
     s.setItem(storageKey('c'), '{broken')
     expect(new ProgressStore(pack, s).load()).toEqual(newProgress('c'))
+  }
   })
 })

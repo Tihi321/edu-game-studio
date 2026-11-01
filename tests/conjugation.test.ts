@@ -71,15 +71,13 @@ describe('checkConjugation', () => {
     expect(checkItem(gehen, { ich: 'gehe' }, ctx())).toMatchObject({ correct: false, invalid: true })
     expect(checkItem(gehen, { ihr: 'geht', ich: 'gehe', du: 'gehst' }, ctx()).correct).toBe(false)
     expect(checkItem(gehen, 'gehe', ctx())).toMatchObject({ correct: false, invalid: true })
-  })
 
-  it('solve passes the check; the imperative with the pronoun works', () => {
+    // solve passes the check; the imperative with the pronoun works
     for (const id of ['c-sein', 'c-gehen', 'c-gehen-imp']) expect(checkItem(item(id), solveItem(item(id), ctx()), ctx()).correct, id).toBe(true)
     expect(checkItem(item('c-gehen-imp'), { du: 'Gehe', ihr: 'geht', Sie: 'gehen Sie' }, ctx()).correct).toBe(true)
     expect(checkItem(item('c-gehen-imp'), { du: 'geh', ihr: 'geht', Sie: 'gehen' }, ctx()).detail?.Sie).toBe(false)
-  })
 
-  it('grades: all right good, half or more hard, less again; typing has no timer', () => {
+    // grades: all right good, half or more hard, less again; typing has no timer
     const grade = (answer: unknown) => gradeOf(sein, answer, checkItem(sein, answer, ctx()))
     expect(grade(right)).toBe('good')
     expect(grade({ ...right, du: 'x', ihr: 'x' })).toBe('hard')
@@ -106,51 +104,45 @@ describe('conjugation: validation and lint codes', () => {
   const conj = (g: GameData, id: string): Record<string, unknown> => g.pack.items.find((i) => i.id === id) as unknown as Record<string, unknown>
   const only = (g: GameData, code: string): LintProblem[] => lintGameData(g, () => true).filter((p) => p.code === code)
 
-  it('the fixture lints clean', () => {
+  it('the fixture lints clean; each CONJ_ lint code fires on its own mistake', () => {
     expect(lintGameData(game(), () => true)).toEqual([])
-  })
 
-  it('CONJ_PERSON_DUPLICATE: a person twice', () => {
-    const g = game()
+    // CONJ_PERSON_DUPLICATE: a person twice
+    let g = game()
     ;(conj(g, 'c-sein').forms as { person: string }[])[4]!.person = 'ich'
     expect(only(g, 'CONJ_PERSON_DUPLICATE')[0]).toMatchObject({ severity: 'error' })
-  })
 
-  it('CONJ_ASK_TOO_MANY: ask larger than the asked forms', () => {
-    const g = game()
+    // CONJ_ASK_TOO_MANY: ask larger than the asked forms
+    g = game()
     conj(g, 'c-gehen').ask = 5
     expect(only(g, 'CONJ_ASK_TOO_MANY')[0]).toMatchObject({ severity: 'error' })
     conj(g, 'c-gehen').ask = 4
     expect(only(g, 'CONJ_ASK_TOO_MANY')).toEqual([])
-  })
 
-  it('CONJ_IMPERATIVE_PERSON: wir in the imperative of a German course, not in another language', () => {
-    const g = game()
+    // CONJ_IMPERATIVE_PERSON: wir in the imperative of a German course, not in another language
+    g = game()
     ;(conj(g, 'c-gehen-imp').forms as { person: string }[])[0]!.person = 'wir'
     expect(only(g, 'CONJ_IMPERATIVE_PERSON')[0]).toMatchObject({ severity: 'error' })
     ;(g.pack as unknown as Record<string, unknown>).targetLang = 'hr'
     expect(only(g, 'CONJ_IMPERATIVE_PERSON')).toEqual([])
-  })
 
-  it('CONJ_FORM_DUPLICATE_AMBIGUOUS is a warning for two asked persons with the same form, none when one is given', () => {
-    const g = game()
+    // CONJ_FORM_DUPLICATE_AMBIGUOUS is a warning for two asked persons with the same form, none when one is given
+    g = game()
     const forms = conj(g, 'c-gehen').forms as { person: string; given: boolean }[]
     g.catalogs.de!.accepted!['item.c-gehen.form.wir'] = ['gehst'] // wir = du
     expect(only(g, 'CONJ_FORM_DUPLICATE_AMBIGUOUS')[0]).toMatchObject({ severity: 'warning' })
     forms.find((f) => f.person === 'wir')!.given = true
     expect(only(g, 'CONJ_FORM_DUPLICATE_AMBIGUOUS')).toEqual([])
-  })
 
-  it('CONJ_FORM_MISMATCH and CONJ_VERB_UNKNOWN (EGS-28) work on the real kind', () => {
-    const g = game()
+    // CONJ_FORM_MISMATCH and CONJ_VERB_UNKNOWN (EGS-28) work on the real kind
+    g = game()
     g.catalogs.de!.accepted!['item.c-sein.form.er'] = ['bist']
     expect(only(g, 'CONJ_FORM_MISMATCH')[0]).toMatchObject({ severity: 'error' })
     g.catalogs.de!.strings['item.c-gehen.verb'] = 'quatschen'
     expect(only(g, 'CONJ_VERB_UNKNOWN')[0]).toMatchObject({ severity: 'warning' })
-  })
 
-  it('validate: an item with every form given is refused', () => {
-    const g = game()
+    // validate: an item with every form given is refused
+    g = game()
     for (const f of conj(g, 'c-sein').forms as { given: boolean }[]) f.given = true
     expect(validateCourse(g.pack, g.catalogs).problems.map((p) => p.code)).toContain('CONJ_NOTHING_ASKED')
   })
@@ -183,9 +175,8 @@ describe('conjugation: authoring and assembling', () => {
     expect(msg({ given: ['wir'] })).toContain('not one of the forms')
     expect(msg({ ask: 3 })).toContain('only 2 form(s) are asked')
     expect(msg({ forms: [{ person: 'ich', accepted: [] }, { person: 'du', accepted: ['gehst'] }] })).toContain('accepted')
-  })
 
-  it('renders for the fact-checker', () => {
+    // renders for the fact-checker
     const text = renderItemForCheck(authoredItemSchema.parse(written)).text
     expect(text).toContain('Verb: gehen (praesens)')
     expect(text).toContain('er: geht (given)')
@@ -211,13 +202,12 @@ describe('conjugation: authoring and assembling', () => {
 })
 
 describe('conjugation: live quiz and studio editor', () => {
-  it('the live quiz skips the kind', () => {
+  it('the live quiz skips the kind; the editor model lists the texts and saves tense, ask and given', () => {
     const qs = selectQuestions(fx.pack, fx.catalogs, 'en', { count: 50, seed: 1 })
     expect(qs.length).toBeGreaterThan(0)
     expect(qs.some((q) => q.itemId.startsWith('c-'))).toBe(false)
-  })
 
-  it('the editor model lists the texts of the item and saves tense, ask and given', () => {
+    // the editor model lists the texts of the item and saves tense, ask and given', () => {
     const sein = item('c-sein')
     const fields = itemTextFields(sein as never, fx.pack, fx.catalogs, 'en')
     expect(fields.map((f) => f.path)).toEqual(expect.arrayContaining(['prompt', 'verb', 'forms[0].label', 'forms[0].answer']))

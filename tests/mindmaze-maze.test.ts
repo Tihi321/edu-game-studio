@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, test } from 'vitest'
 import type { CoursePack } from '../src/shared/course'
 import {
   AUTO_MIN_DOORS,
@@ -34,18 +34,14 @@ const uniq = (xs: string[]): string[] => [...new Set(xs)].sort()
 const FIXTURES_WITH_SECTION = ['solar-system', 'european-capitals'] as const
 
 describe('the golden fixtures', () => {
-  for (const name of FIXTURES_WITH_SECTION) {
-    it(`${name}: the authored castle validates and lints clean`, async () => {
+  it('the authored castle validates and lints clean; one wing per unit, every item asked at a door, two routes to the key', async () => {
+    for (const name of FIXTURES_WITH_SECTION) {
       const f = await loadFixture(name)
       expect(f.pack.shells.enabled).toContain('mindmaze')
       const s = sectionFor(f)
       expect(validateCodes(s, f)).toEqual([])
       expect(mindmazeShell.lint(s, ctxOf(f))).toEqual([])
       expect(validateShellSections(f.pack).problems.filter((p) => p.code.startsWith('MAZE_'))).toEqual([])
-    })
-
-    it(`${name}: one wing per unit, every item of a unit asked at a door, two routes to the key, 4 or more doors`, async () => {
-      const f = await loadFixture(name)
       const maze = resolveMaze(f.pack, sectionFor(f))
       expect(maze.wings.map((w) => w.unit)).toEqual(f.pack.units.map((u) => u.id))
       for (const w of maze.wings) {
@@ -59,14 +55,13 @@ describe('the golden fixtures', () => {
         expect(w.rooms.every((r) => r.character !== undefined)).toBe(true)
         expect(reachable(w, w.entry).size).toBe(w.rooms.length)
       }
-    })
-
-  }
+    }
+  })
 })
 
 describe('the automatic layout (no section)', () => {
-  for (const name of FIXTURE_NAMES) {
-    it(`${name}: a lint-clean wing per unit from the objectives, with a key room and two routes`, async () => {
+  it('a lint-clean wing per unit from the objectives, with a key room and two routes (each fixture)', async () => {
+    for (const name of FIXTURE_NAMES) {
       const f = await loadFixture(name)
       expect(mindmazeShell.lint(undefined, ctxOf(f))).toEqual([])
       const maze = resolveMaze(f.pack, undefined)
@@ -90,8 +85,8 @@ describe('the automatic layout (no section)', () => {
         const asked = new Set(w.rooms.flatMap((r) => r.doors.flatMap((d) => d.items)))
         for (const o of objs) for (const i of f.pack.items.filter((x) => x.objective === o.id)) expect(asked.has(i.id)).toBe(true)
       }
-    })
-  }
+    }
+  })
 
   it('a unit with a single objective still gets a route of the minimum length (galleries fill it)', async () => {
     const f = await loadFixture('solar-system')
@@ -160,6 +155,9 @@ describe('every lint code fires on a broken variant of solar-system', () => {
     fired.add(code)
   }
   const wing = (s: MindmazeSection, i = 0) => s.wings[i]!
+  // one test: each case below breaks solar-system in one way and must raise its code
+  const cases: [string, () => unknown][] = []
+  const it = (name: string, fn: () => unknown): void => void cases.push([name, fn])
 
   it('MAZE_WING_UNIT_MISSING', () => check('MAZE_WING_UNIT_MISSING', (s) => (wing(s).unit = 'u-nope'), 'validate'))
   it('MAZE_ENTRY_MISSING', () => check('MAZE_ENTRY_MISSING', (s) => (wing(s).entry = 'nowhere'), 'validate'))
@@ -199,7 +197,8 @@ describe('every lint code fires on a broken variant of solar-system', () => {
     fired.add('MAZE_TOO_FEW_TORCHES')
   })
 
-  it('every code of the shell was exercised, and the warnings are declared', () => {
+  test('every code fires on a broken variant, every code of the shell was exercised, and the warnings are declared', async () => {
+    for (const [name, fn] of cases) await Promise.resolve(fn()).catch((e: unknown) => Promise.reject(new Error(`${name}: ${String(e)}`)))
     expect(uniq([...fired])).toEqual(uniq([...MAZE_CODES]))
     expect(mindmazeShell.warnings).toEqual(['MAZE_DOOR_ITEM_OTHER_UNIT', 'MAZE_TOO_FEW_TORCHES'])
     for (const w of mindmazeShell.warnings ?? []) expect(mindmazeShell.codes).toContain(w)

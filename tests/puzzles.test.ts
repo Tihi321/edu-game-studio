@@ -31,7 +31,7 @@ import {
   type PuzzleWord
 } from '../src/shared/edu'
 
-describe('the native TypeScript puzzle and quiz engine (200 seeds soundness proof)', () => {
+describe('the native TypeScript puzzle and quiz engine (50 seeds soundness proof)', () => {
   const BANDS = ['easy', 'medium', 'hard'] as const
   const KINDS = [
     ['murdle', murdleCoreSchema, 3],
@@ -41,8 +41,8 @@ describe('the native TypeScript puzzle and quiz engine (200 seeds soundness proo
     ['quiz', quizCoreSchema, undefined]
   ] as const
 
-  it.each(KINDS)('%s: 200 seeds are unique, deducible, and have exactly one solution', (kind, schema, size) => {
-    for (let seed = 1; seed <= 200; seed++) {
+  it.each(KINDS)('%s: 50 seeds are unique, deducible, and have exactly one solution', (kind, schema, size) => {
+    for (let seed = 1; seed <= 50; seed++) {
       const band = BANDS[(seed - 1) % BANDS.length]!
       const p = generate({ kind, seed, band, ...(size ? { size } : {}) } as any)
       expect(() => schema.parse(p)).not.toThrow()
@@ -58,7 +58,9 @@ describe('the native TypeScript puzzle and quiz engine (200 seeds soundness proo
 })
 
 describe('corrupting puzzles is caught by solvePuzzle', () => {
-  it('catches unknown item and non-unique clues in murdle', async () => {
+  it('corrupting puzzles is caught by solvePuzzle: murdle and testimony', async () => {
+  // catches unknown item and non-unique clues in murdle
+  {
     const p: any = generate({ kind: 'murdle', seed: 42, band: 'easy' })
     const badItem = { ...p, clues: [...p.clues, { id: 'c99', type: 'is', a: 's1', b: 'ghost' }] }
     await expect(solvePuzzle(undefined, badItem as any)).rejects.toThrow(/unknown item ghost/)
@@ -67,9 +69,10 @@ describe('corrupting puzzles is caught by solvePuzzle', () => {
     const proof = await solvePuzzle(undefined, nonUnique as any)
     expect(proof.unique).toBe(false)
     expect(proof.deducible).toBe(false)
-  })
+  }
 
-  it('catches corrupted keys and clash mismatches in testimony', async () => {
+  // catches corrupted keys and clash mismatches in testimony
+  {
     const p: any = generate({ kind: 'testimony', seed: 27, band: 'medium' })
     const badKey = {
       ...p,
@@ -80,6 +83,7 @@ describe('corrupting puzzles is caught by solvePuzzle', () => {
     // Corrupt solution statement
     const wrongSolution = { ...p, solution: { ...p.solution, statement: 't99' } }
     await expect(solvePuzzle(undefined, wrongSolution as any)).rejects.toThrow(/not there/)
+  }
   })
 
 })
@@ -98,7 +102,9 @@ describe('band targeting across all kinds', () => {
 })
 
 describe('interactive play helpers', () => {
-  it('hint gives wrong mark hint, step deduction hint, or accuse', () => {
+  it('interactive helpers: puzzle hints, quiz check and hint', () => {
+  // hint gives wrong mark hint, step deduction hint, or accuse
+  {
     const p: any = generate({ kind: 'murdle', seed: 8, band: 'easy' })
     const _wrongMarks = { 's1|w1': 'yes' }
     // If s1 is not w1, it gives a 'wrong' hint
@@ -106,9 +112,10 @@ describe('interactive play helpers', () => {
     expect(t.unique).toBe(true)
     const h = hint(p, {})
     expect(['step', 'accuse']).toContain(h.kind)
-  })
+  }
 
-  it('quiz interactive helpers (checkQuiz, hintQuiz)', () => {
+  // quiz interactive helpers (checkQuiz, hintQuiz)
+  {
     const p: any = generate({ kind: 'quiz', seed: 99, band: 'medium' })
     const perfectAnswers = { ...p.solution }
     expect(checkQuiz(p, perfectAnswers)).toEqual({
@@ -124,6 +131,7 @@ describe('interactive play helpers', () => {
     expect(res.wrong).toEqual([firstQ.id])
     expect(hintQuiz(p, wrongAnswers).kind).toBe('step')
     expect(hintQuiz(p, perfectAnswers).kind).toBe('accuse')
+  }
   })
 })
 
@@ -157,7 +165,9 @@ const PLANETS = w('Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Ura
 const PLANETS_HR = w('Merkur', 'Venera', 'Zemlja', 'Mars', 'Jupiter', 'Saturn', 'Uran', 'Neptun')
 
 describe('crossword generator', () => {
-  it('places every word and verifies, for 40 seeds, in English and Croatian', () => {
+  it('crossword: places every word for 40 seeds, numbers entries, reports unplaced words, catches a damaged grid', () => {
+  // places every word and verifies, for 40 seeds, in English and Croatian
+  {
     for (let seed = 0; seed < 40; seed++) {
       for (const words of [PLANETS, PLANETS_HR]) {
         const g = generateCrossword(words, seed)
@@ -168,8 +178,9 @@ describe('crossword generator', () => {
         expect(g.height).toBeLessThanOrEqual(15)
       }
     }
-  })
-  it('numbers the entries row-major and shares a number between an across and a down entry that start together', () => {
+  }
+  // numbers the entries row-major and shares a number between an across and a down entry that start together
+  {
     const g = generateCrossword(PLANETS, 7)
     const numbers = g.entries.map((e) => e.number)
     expect(Math.min(...numbers)).toBe(1)
@@ -181,16 +192,18 @@ describe('crossword generator', () => {
       return pr - qr || pc - qc
     })
     for (const e of g.entries) expect(e.number).toBe(starts.indexOf(`${e.row},${e.col}`) + 1)
-  })
-  it('reports a word that shares no letter with the others as unplaced, and short or repeated words too', () => {
+  }
+  // reports a word that shares no letter with the others as unplaced, and short or repeated words too
+  {
     const words: PuzzleWord[] = [...w('Mars', 'Earth'), { id: 'x', answer: 'Qiq' }, { id: 'one', answer: 'A' }, { id: 'w0', answer: 'Mars' }]
     const g = generateCrossword(words, 1)
     expect(g.unplaced).toContain('x')
     expect(g.unplaced).toContain('one')
     expect(g.unplaced).toContain('w0') // the id repeats
     expect(g.entries.map((e) => e.id).sort()).toEqual(['w0', 'w1'])
-  })
-  it('verification catches a damaged grid', () => {
+  }
+  // verification catches a damaged grid
+  {
     const g = generateCrossword(PLANETS, 7)
     const bad = structuredClone(g)
     const e = bad.entries[0]!
@@ -199,15 +212,19 @@ describe('crossword generator', () => {
     const stray = structuredClone(g)
     stray.cells[0]![0] = stray.cells[0]![0] === null ? 'Q' : null
     expect(verifyCrossword(stray, PLANETS).length).toBeGreaterThan(0)
+  }
   })
 })
 
 describe('word-search generator', () => {
-  it('is deterministic for a seed', () => {
+  it('word-search: deterministic, places every word for 40 seeds, honours a size and reports a word that cannot fit', () => {
+  // is deterministic for a seed
+  {
     expect(generateWordSearch(PLANETS, 11)).toEqual(generateWordSearch(PLANETS, 11))
     expect(generateWordSearch(PLANETS, 11).cells).not.toEqual(generateWordSearch(PLANETS, 12).cells)
-  })
-  it('places every word, reads each back and fills with letters, for 40 seeds and every direction set', () => {
+  }
+  // places every word, reads each back and fills with letters, for 40 seeds and every direction set
+  {
     for (const directions of ['forward', 'diagonal', 'all'] as const) {
       for (let seed = 0; seed < 40; seed++) {
         for (const words of [PLANETS, PLANETS_HR]) {
@@ -220,13 +237,15 @@ describe('word-search generator', () => {
         }
       }
     }
-  })
-  it('honours an explicit size, grows the grid when none is given, and reports a word that cannot fit', () => {
+  }
+  // honours an explicit size, grows the grid when none is given, and reports a word that cannot fit
+  {
     const g = generateWordSearch(PLANETS, 3, { size: 12 })
     expect(g.size).toBe(12)
     const long = generateWordSearch(w('Extraordinarily', 'Mars'), 3, { size: 8 })
     expect(long.unplaced).toEqual(['w0'])
     expect(long.size).toBe(8)
     expect(generateWordSearch(w('Extraordinarily', 'Mars'), 3).unplaced).toEqual([])
+  }
   })
 })

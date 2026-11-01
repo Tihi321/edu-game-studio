@@ -12,19 +12,23 @@ const exists = (p: string) => stat(p).then(() => true, () => false)
 const readJson = async <T>(p: string) => JSON.parse(await readFile(p, 'utf8')) as T
 
 describe('findPlayerBundle', () => {
-  it('uses EDU_PLAYER_DIR', async () => {
+  it('findPlayerBundle: env, hint, walk up, both files; the engine version', async () => {
+  // uses EDU_PLAYER_DIR
+  {
     const dir = await fakeBundle()
     const b = findPlayerBundle({ EDU_PLAYER_DIR: dir } as NodeJS.ProcessEnv)
     expect(b).toEqual({ js: path.join(dir, 'player.js'), css: path.join(dir, 'player.css') })
-  })
+  }
 
-  it('says what to run when EDU_PLAYER_DIR has no bundle', async () => {
+  // says what to run when EDU_PLAYER_DIR has no bundle
+  {
     const dir = await tmp()
     expect(() => findPlayerBundle({ EDU_PLAYER_DIR: dir } as NodeJS.ProcessEnv)).toThrow(/yarn build:player/)
     expect(() => findPlayerBundle({ EDU_PLAYER_DIR: dir } as NodeJS.ProcessEnv)).toThrow(/EDU_PLAYER_DIR/)
-  })
+  }
 
-  it('walks up from the start folder to out/player', async () => {
+  // walks up from the start folder to out/player
+  {
     const root = await tmp()
     const out = path.join(root, 'out', 'player')
     await mkdir(out, { recursive: true })
@@ -33,23 +37,26 @@ describe('findPlayerBundle', () => {
     const start = path.join(root, 'out', 'engine')
     await mkdir(start, { recursive: true })
     expect(findPlayerBundle({} as NodeJS.ProcessEnv, start)).toEqual({ js: path.join(out, 'player.js'), css: path.join(out, 'player.css') })
-  })
+  }
 
-  it('needs both files, and throws the hint when there is no bundle', async () => {
+  // needs both files, and throws the hint when there is no bundle
+  {
     const root = await tmp()
     await mkdir(path.join(root, 'out', 'player'), { recursive: true })
     await writeFile(path.join(root, 'out', 'player', 'player.js'), 'x') // no css
     expect(() => findPlayerBundle({} as NodeJS.ProcessEnv, root)).toThrow(PLAYER_BUNDLE_HINT)
-  })
+  }
 
-  it('reads the engine version from package.json', () => {
+  // reads the engine version from package.json
+  {
     expect(engineVersion()).toMatch(/^\d+\.\d+\.\d+/)
+  }
   })
 })
 
 describe('buildCourse: the golden fixtures', () => {
-  for (const name of ['solar-system', 'hr-a1-greetings']) {
-    it(`builds ${name} into a self-contained folder`, async () => {
+  it('builds each into a self-contained folder (each fixture)', async () => {
+    for (const name of ['solar-system', 'hr-a1-greetings']) {
       const bundle = await fakeBundle()
       const { root } = await copyFixture(name)
       const res = await buildCourse(root, undefined, { playerDir: bundle, now: new Date('2026-10-29T12:00:00Z') })
@@ -83,10 +90,12 @@ describe('buildCourse: the golden fixtures', () => {
       expect(html).toContain('<script src="player.js"></script>')
       expect(html).toContain('href="player.css"')
       expect(html).toContain('id="edu-root"')
-    })
-  }
+    }
+  })
 
-  it('puts the course title of the default edition (or the subject) in index.html', async () => {
+  it('index.html carries the title; game-data.js cannot close the script tag', async () => {
+  // puts the course title of the default edition (or the subject) in index.html
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     const enPath = path.join(root, 'course', 'text', 'en.json')
@@ -101,9 +110,10 @@ describe('buildCourse: the golden fixtures', () => {
     await buildCourse(root, undefined, { playerDir: bundle })
     const data = await readJson<GameData>(path.join(root, 'build', 'game-data.json'))
     expect(await readFile(path.join(root, 'build', 'index.html'), 'utf8')).toContain(`<title>${data.pack.subject}</title>`)
-  })
+  }
 
-  it('never lets a string close the script tag in game-data.js', async () => {
+  // never lets a string close the script tag in game-data.js
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     const enPath = path.join(root, 'course', 'text', 'en.json')
@@ -115,11 +125,14 @@ describe('buildCourse: the golden fixtures', () => {
     expect(js).not.toContain('</script>')
     expect((evalGameDataJs(js) as GameData).catalogs.en!.strings['course.title']).toBe('x </script><script>alert(1)</script>')
     expect(js).toBe(renderGameDataJs(JSON.parse(await readFile(path.join(root, 'build', 'game-data.json'), 'utf8')) as GameData))
+  }
   })
 })
 
 describe('buildCourse: refusing, forcing, cleaning', () => {
-  it('does not build a course with problems, and leaves the old build alone', async () => {
+  it('refusing, forcing, cleaning: problems, missing asset, unparsable pack, clean, not a build, no bundle', async () => {
+  // does not build a course with problems, and leaves the old build alone
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     const first = await buildCourse(root, undefined, { playerDir: bundle })
@@ -134,9 +147,10 @@ describe('buildCourse: refusing, forcing, cleaning', () => {
     expect(res.files).toEqual([])
     expect(res.problems.map((p) => p.code)).toContain('MISSING_TEXT')
     expect(await readFile(path.join(root, 'build', 'game-data.json'), 'utf8')).toBe(before)
-  })
+  }
 
-  it('reports a missing asset file and builds anyway with force', async () => {
+  // reports a missing asset file and builds anyway with force
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     await rm(path.join(root, 'course', 'assets', 'solar-system.svg'))
@@ -146,18 +160,20 @@ describe('buildCourse: refusing, forcing, cleaning', () => {
     expect(forced.forced).toBe(true)
     expect(forced.problems.map((p) => p.code)).toEqual(['MISSING_ASSET_FILE'])
     expect(await exists(path.join(root, 'build', 'assets', 'solar-system.svg'))).toBe(false)
-  })
+  }
 
-  it('cannot force a pack that does not parse', async () => {
+  // cannot force a pack that does not parse
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     await writeFile(path.join(root, 'course', 'pack.json'), '{ not json')
     const res = await buildCourse(root, undefined, { playerDir: bundle, force: true })
     expect(res.ok).toBe(false)
     expect(res.problems.some((p) => p.code === 'PARSE')).toBe(true)
-  })
+  }
 
-  it('cleans its own build folder first', async () => {
+  // cleans its own build folder first
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     await buildCourse(root, undefined, { playerDir: bundle })
@@ -167,9 +183,10 @@ describe('buildCourse: refusing, forcing, cleaning', () => {
     expect(await exists(path.join(root, 'build', 'stale.txt'))).toBe(false)
     expect(await exists(path.join(root, 'build', 'assets', 'old'))).toBe(false)
     expect((await readdir(path.join(root, 'build'))).sort()).toEqual(['assets', 'game-data.js', 'game-data.json', 'index.html', 'player.css', 'player.js'])
-  })
+  }
 
-  it('refuses to clean a folder that is not a build', async () => {
+  // refuses to clean a folder that is not a build
+  {
     const bundle = await fakeBundle()
     const { root } = await copyFixture('solar-system')
     const other = await tmp()
@@ -180,15 +197,17 @@ describe('buildCourse: refusing, forcing, cleaning', () => {
     const empty = await tmp()
     expect((await buildCourse(root, empty, { playerDir: bundle })).ok).toBe(true)
     expect((await buildCourse(root, empty, { playerDir: bundle })).ok).toBe(true)
-  })
+  }
 
-  it('throws before cleaning when there is no player bundle', async () => {
+  // throws before cleaning when there is no player bundle
+  {
     const { root } = await copyFixture('solar-system')
     const bundle = await fakeBundle()
     await buildCourse(root, undefined, { playerDir: bundle })
     const none = await tmp()
     await expect(buildCourse(root, undefined, { playerDir: none })).rejects.toThrow(/yarn build:player/)
     expect(await exists(path.join(root, 'build', 'game-data.json'))).toBe(true)
+  }
   })
 })
 

@@ -147,4 +147,3 @@ export async function waitFor<T>(fn: () => T | Promise<T>, ms = 8000, label = 'c
   }
 }
 
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))

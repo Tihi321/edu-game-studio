@@ -82,7 +82,9 @@ describe('pickForDoor: the question of a door', () => {
     return recordResult(rs, pick, item, result, gradeOf(item, a, result))
   }
 
-  it('asks an item of the door first, never one of another door while the door still has fresh ones', async () => {
+  it('the door question: the door first, a miss returns, never nothing to ask', async () => {
+  // asks an item of the door first, never one of another door while the door still has fresh ones
+  {
     const { f, wing } = await wingOf()
     const rng = rngFor(7, 'door')
     const door = wing.rooms[1]!.doors[0]!
@@ -97,9 +99,10 @@ describe('pickForDoor: the question of a door', () => {
     }
     expect(new Set(asked).size).toBe(door.items.length)
     expect(roundAccuracy(rs)).toBe(1)
-  })
+  }
 
-  it('a missed question comes back, after others, in the same run', async () => {
+  // a missed question comes back, after others, in the same run
+  {
     const { f, wing } = await wingOf()
     const rng = rngFor(3, 'miss')
     let rs = startPool(poolOf(wing), { kind: 'unit', unitId: wing.unit })
@@ -119,9 +122,10 @@ describe('pickForDoor: the question of a door', () => {
     }
     expect(again).toBeGreaterThanOrEqual(2)
     expect(again).toBeLessThanOrEqual(5)
-  })
+  }
 
-  it('never has nothing to ask: with the run used up the door gives a practice question from its own pool', async () => {
+  // never has nothing to ask: with the run used up the door gives a practice question from its own pool
+  {
     const { f, wing } = await wingOf()
     const rng = rngFor(5, 'used')
     const pool = poolOf(wing)
@@ -139,11 +143,14 @@ describe('pickForDoor: the question of a door', () => {
     expect(door.items).toContain(practice!.id)
     // a door with no items at all has nothing to ask (the shell lets such a door yield)
     expect(pickForDoor(rs, [], (r) => pickNext(r, f.pack, rng, {}, 0), rng)).toBeNull()
+  }
   })
 })
 
 describe('the maps', () => {
-  it('layoutRooms: columns by distance from the entrance, every room a distinct number, every door an edge', async () => {
+  it('the maps: layoutRooms and wingRows', async () => {
+  // layoutRooms: columns by distance from the entrance, every room a distinct number, every door an edge
+  {
     const { wing } = await wingOf()
     const m = layoutRooms(wing)
     expect(m.nodes).toHaveLength(wing.rooms.length)
@@ -159,13 +166,15 @@ describe('the maps', () => {
       expect(n.x).toBeLessThanOrEqual(m.width)
       expect(n.y).toBeLessThanOrEqual(m.height)
     }
-  })
+  }
 
-  it('wingRows: wings in rows by how many units they need before them', async () => {
+  // wingRows: wings in rows by how many units they need before them
+  {
     const f = await loadFixture('european-capitals')
     const wings = resolveMaze(f.pack, undefined).wings
     expect(wingRows(wings, f.pack.units)).toEqual([['u-west'], ['u-central', 'u-south']])
     const solar = await loadFixture('solar-system')
     expect(wingRows(resolveMaze(solar.pack, undefined).wings, solar.pack.units)).toEqual([['u-sun-planets'], ['u-rocky-giant'], ['u-moons-beyond']])
+  }
   })
 })

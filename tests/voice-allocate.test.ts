@@ -22,14 +22,17 @@ const alloc = (o: Partial<AllocationInput> & { need: Record<string, number> }) =
 const providers = (r: ReturnType<typeof alloc>): Record<string, string> => Object.fromEntries(Object.entries(r).map(([l, a]) => [l, a.provider]))
 
 describe('quota math', () => {
-  it('remaining is limit - used and never negative; a counter of another day counts as 0', () => {
+  it('quota math: remaining, the configured time zone', () => {
+  // remaining is limit - used and never negative; a counter of another day counts as 0
+  {
     expect(quotaView({ day: '2026-10-30', used: 4 }, { limit: 10, tz: 'UTC', day: '2026-10-30' })).toEqual({ limit: 10, used: 4, remaining: 6, day: '2026-10-30', tz: 'UTC' })
     expect(quotaView({ day: '2026-10-30', used: 14 }, { limit: 10, tz: 'UTC', day: '2026-10-30' })).toMatchObject({ used: 14, remaining: 0 })
     expect(quotaView({ day: '2026-10-29', used: 9 }, { limit: 10, tz: 'UTC', day: '2026-10-30' })).toMatchObject({ used: 0, remaining: 10 })
     expect(quotaView(null, { limit: 0, tz: 'UTC', day: '2026-10-30' })).toMatchObject({ used: 0, remaining: 0 })
-  })
+  }
 
-  it('the day follows the configured time zone; an unknown zone falls back to the default one', () => {
+  // the day follows the configured time zone; an unknown zone falls back to the default one
+  {
     // summer time (UTC-7 until 2026-11-01): Pacific midnight is 07:00 UTC; winter time (UTC-8): 08:00 UTC
     expect(dayIn('America/Los_Angeles', new Date('2026-12-01T07:59:00Z'))).toBe('2026-11-30') // 23:59 on Nov 30
     expect(dayIn('America/Los_Angeles', new Date('2026-12-01T08:01:00Z'))).toBe('2026-12-01') // just after midnight
@@ -38,6 +41,7 @@ describe('quota math', () => {
     expect(dayIn('UTC', new Date('2026-10-30T07:01:00Z'))).toBe('2026-10-30')
     expect(dayIn('Pacific/Auckland', new Date('2026-10-30T12:00:00Z'))).toBe('2026-10-31')
     expect(dayIn('Not/AZone', new Date('2026-10-30T06:59:00Z'))).toBe(dayIn(DEFAULT_GEMINI_RESET_TZ, new Date('2026-10-30T06:59:00Z')))
+  }
   })
 })
 
@@ -95,21 +99,25 @@ describe('the allocation rule', () => {
     expect(alloc({ need: { hr: 0, en: 2 }, quota: { limit: 10, used: 9 } }).hr).toMatchObject({ provider: 'none', chain: [] })
   })
 
-  it('everything is local when nothing fits, the quota is used up, over the limit or the limit is 0', () => {
+  it('falls back everywhere: nothing fits, forced providers, a provider down', () => {
+  // everything is local when nothing fits, the quota is used up, over the limit or the limit is 0
+  {
     expect(providers(alloc({ need: { hr: 11, en: 11 } }))).toEqual({ hr: 'vibetts', en: 'vibetts' })
     expect(providers(alloc({ need: { hr: 1, en: 1 }, quota: { limit: 10, used: 10 } }))).toEqual({ hr: 'vibetts', en: 'vibetts' })
     expect(providers(alloc({ need: { hr: 1 }, quota: { limit: 0, used: 0 } }))).toEqual({ hr: 'vibetts' })
     expect(providers(alloc({ need: { hr: 1 }, quota: { limit: 10, used: 25 } }))).toEqual({ hr: 'vibetts' })
-  })
+  }
 
-  it('forced vibetts and comfy never use Gemini; forced gemini still respects the quota', () => {
+  // forced vibetts and comfy never use Gemini; forced gemini still respects the quota
+  {
     expect(alloc({ need: { hr: 1 }, provider: 'vibetts' }).hr!.chain).toEqual(['vibetts', 'comfy'])
     expect(alloc({ need: { hr: 1 }, provider: 'comfy' }).hr!.chain).toEqual(['comfy', 'vibetts'])
     expect(providers(alloc({ need: { hr: 2, en: 9 }, provider: 'gemini', quota: { limit: 10, used: 5 } }))).toEqual({ hr: 'gemini', en: 'vibetts' })
     expect(providers(alloc({ need: { hr: 6 }, provider: 'gemini', quota: { limit: 10, used: 5 } }))).toEqual({ hr: 'vibetts' })
-  })
+  }
 
-  it('falls back when a provider is down, and with all down gives provider none and a reason (placeholders, never a failed run)', () => {
+  // falls back when a provider is down, and with all down gives provider none and a reason (placeholders, never a failed run)
+  {
     const geminiDown = alloc({ need: { hr: 1, en: 1 }, avail: down({ gemini: { up: false, reason: 'flow-music-mcp is not running' } }) })
     expect(providers(geminiDown)).toEqual({ hr: 'vibetts', en: 'vibetts' })
     expect(geminiDown.hr!.reason).toMatch(/Gemini is not available \(flow-music-mcp is not running\)/)
@@ -120,6 +128,7 @@ describe('the allocation rule', () => {
     const r = alloc({ need: { hr: 2, en: 1 }, avail: none })
     expect(providers(r)).toEqual({ hr: 'none', en: 'none' })
     expect(r.hr!.reason).toMatch(/nothing can speak hr.*VibeTTS is not available \(VibeTTS is not running\).*ComfyUI TTS does not read hr.*placeholders/)
+  }
   })
 })
 
