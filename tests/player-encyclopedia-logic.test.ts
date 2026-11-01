@@ -231,7 +231,7 @@ describe('the course side: years, phrases, the section schema', () => {
   })
 
   it('accepts a section with every part optional and refuses unknown keys and year 0', () => {
-    expect(encyclopediaSectionSchema.parse({})).toEqual({ timeline: [], hunts: [] })
+    expect(encyclopediaSectionSchema.parse({})).toEqual({ timeline: [], hunts: [], glossary: {}, reader: false })
     expect(encyclopediaSectionSchema.safeParse({ extra: 1 }).success).toBe(false)
     expect(encyclopediaSectionSchema.safeParse({ timeline: [{ id: 't', year: 0, label: 'k' }] }).success).toBe(false)
     expect(encyclopediaSectionSchema.safeParse({ timeline: [{ id: 't', year: -44, label: 'k' }] }).success).toBe(true)

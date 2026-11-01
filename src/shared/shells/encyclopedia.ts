@@ -16,7 +16,10 @@ import type { ShellDef, ShellLintContext, ShellLintProblem } from './types'
  *   hunts     scavenger hunts: `{ id, unit, title, intro?, steps: [{ id, clue, article, item, collectible }] }`. A step: the clue is a riddle, the
  *             learner finds `article`, collects the `collectible` by answering `item`.
  *
- * Lint codes (all errors unless noted): ENC_HUNT_TARGET_MISSING, ENC_HUNT_ITEM_MISSING, ENC_HUNT_ITEM_DUPLICATE, ENC_UNIT_NO_HUNT, ENC_HUNT_EMPTY,
+ *   glossary  B2 reading (EGS-35): `{ [articleId]: GlossEntry[] }`, the words of a text that can be tapped for a gloss (see `GlossEntry`)
+ *   reader    true: the reader view (chapters of the articles, in unit order) is the first screen after Start
+ *
+ * Lint codes (all errors unless noted): GLOSS_TERM_NOT_IN_TEXT, GLOSS_DUPLICATE, (warning) GLOSS_COVERAGE, ENC_HUNT_TARGET_MISSING, ENC_HUNT_ITEM_MISSING, ENC_HUNT_ITEM_DUPLICATE, ENC_UNIT_NO_HUNT, ENC_HUNT_EMPTY,
  * ENC_TIMELINE_ARTICLE_MISSING, ENC_MAP_ARTICLE_MISSING, ENC_MAP_PLACE_OUTSIDE, ENC_MAP_NO_IMAGE; warnings: ENC_ANSWER_NOT_IN_ARTICLE (the right
  * answer of a step's item is not in the target article in an edition), ENC_HUNT_ITEM_OTHER_UNIT. The validator adds UNKNOWN_UNIT, UNKNOWN_ASSET
  * and DUPLICATE_ID.
@@ -62,10 +65,30 @@ const huntSchema = z.strictObject({
   steps: z.array(stepSchema)
 })
 
+/**
+ * One tappable word of a reading. `term` is the exact surface form in the article body (target-language catalog, taught); `lemma` the
+ * dictionary form (nouns with article and plural: "die Entscheidung, -en"); `gloss` and `note` are edition strings (hr, en). Keys by
+ * convention: `art.<articleId>.gl.<id>.term|lemma|gloss|note`.
+ */
+export const GLOSS_POS = ['n', 'v', 'adj', 'adv', 'prep', 'conj', 'phrase'] as const
+const glossEntrySchema = z.strictObject({
+  id: idSchema,
+  term: keySchema,
+  lemma: keySchema.optional(),
+  gloss: keySchema,
+  pos: z.enum(GLOSS_POS).optional(),
+  note: keySchema.optional()
+})
+export type GlossEntry = z.infer<typeof glossEntrySchema>
+
 export const encyclopediaSectionSchema = z.strictObject({
   timeline: z.array(eventSchema).default([]),
   map: mapSchema.optional(),
-  hunts: z.array(huntSchema).default([])
+  hunts: z.array(huntSchema).default([]),
+  /** Per article id: the words of that text with a gloss. */
+  glossary: z.record(z.string(), z.array(glossEntrySchema)).default({}),
+  /** true: the reader view is the first screen after Start. */
+  reader: z.boolean().default(false)
 })
 export type EncyclopediaSection = z.infer<typeof encyclopediaSectionSchema>
 
@@ -216,6 +239,51 @@ const KIND_RANK: Record<string, number> = { mcq: 0, typed: 1, cloze: 2, 'true-fa
 
 const unitOfItem = (pack: CoursePack, item: Pick<CourseItem, 'objective'>): string | undefined => pack.objectives.find((o) => o.id === item.objective)?.unit
 
+/** The paragraphs of the body keys of an article (a blank line or a line break starts a new one). */
+export const paragraphsOf = (bodies: readonly string[]): string[] =>
+  bodies
+    .flatMap((b) => b.split(/\n+/))
+    .map((p) => p.trim())
+    .filter(Boolean)
+
+/** The chapters of the reader: the real articles in unit order (prerequisites first), then in the order the course lists them. */
+export function readerChapters(pack: CoursePack, articles: readonly EncArticle[] = encArticles(pack)): EncArticle[] {
+  const order = unitOrder(pack.units)
+  const rank = (a: EncArticle): number => {
+    const i = a.unit ? order.indexOf(a.unit) : -1
+    return i < 0 ? order.length : i
+  }
+  return articles
+    .filter((a) => !a.virtual)
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => rank(x.a) - rank(y.a) || x.i - y.i)
+    .map((x) => x.a)
+}
+
+/** The glossary entries of an article (empty when it has none). */
+export const glossaryOf = (section: Pick<EncyclopediaSection, 'glossary'> | undefined, articleId: string): GlossEntry[] => section?.glossary?.[articleId] ?? []
+
+/**
+ * The text an item points at: `extensions.passage = { article, paragraphs?: [from, to] }` (paragraphs are 1-based and inclusive; missing means
+ * the whole article). Null when the item has none or it is malformed.
+ */
+export interface Passage {
+  article: string
+  paragraphs?: [number, number]
+}
+export function passageOf(item: { extensions?: Record<string, unknown> | undefined }): Passage | null {
+  const raw = item.extensions?.passage
+  if (typeof raw !== 'object' || raw === null) return null
+  const o = raw as Record<string, unknown>
+  if (typeof o.article !== 'string' || o.article === '') return null
+  const p = o.paragraphs
+  if (Array.isArray(p) && p.length === 2 && p.every((n) => Number.isInteger(n) && (n as number) >= 1)) {
+    const [a, b] = p as [number, number]
+    return { article: o.article, paragraphs: [Math.min(a, b), Math.max(a, b)] }
+  }
+  return { article: o.article }
+}
+
 /** The articles of the course: the real ones, plus one per objective for a unit that has none (built from the objective and its facts). */
 export function encArticles(pack: CoursePack): EncArticle[] {
   const real: EncArticle[] = pack.encyclopedia.articles.map((a) => ({
@@ -354,6 +422,11 @@ function validate(section: EncyclopediaSection, pack: CoursePack): Problem[] {
   section.hunts.forEach((h, i) => {
     if (!units.has(h.unit)) out.push({ code: 'UNKNOWN_UNIT', path: `hunts[${i}].unit`, message: `unknown unit "${h.unit}"` })
   })
+  const articles = new Set(pack.encyclopedia.articles.map((a) => a.id))
+  for (const [articleId, entries] of Object.entries(section.glossary)) {
+    if (!articles.has(articleId)) out.push({ code: 'UNKNOWN_ARTICLE', path: `glossary.${articleId}`, message: `the glossary belongs to the article "${articleId}", which does not exist` })
+    dup('gloss entry', entries.map((e) => e.id), `glossary.${articleId}`)
+  }
   return out
 }
 
@@ -409,10 +482,37 @@ const lint = (section: EncyclopediaSection | undefined, ctx: ShellLintContext): 
       if (m.width > 0 && m.height > 0 && (p.x < 0 || p.x > m.width || p.y < 0 || p.y > m.height)) out.push({ code: 'ENC_MAP_PLACE_OUTSIDE', path: `map.places[${i}]`, message: `the place "${p.id}" (${p.x}, ${p.y}) is outside the ${m.width} x ${m.height} image` })
     })
   }
+  out.push(...lintGlossary(section, ctx, source))
+  return out
+}
+
+/** The glossary of the readings: every term is in its text, no term twice, enough entries for a long text. */
+function lintGlossary(section: EncyclopediaSection | undefined, ctx: ShellLintContext, text: TextResolver): ShellLintProblem[] {
+  const out: ShellLintProblem[] = []
+  const bodies = new Map(ctx.pack.encyclopedia.articles.map((a) => [a.id, text.text(a.body) ?? '']))
+  for (const [articleId, entries] of Object.entries(section?.glossary ?? {})) {
+    const body = bodies.get(articleId)
+    if (body === undefined) continue // UNKNOWN_ARTICLE (validator)
+    const seen = new Map<string, string>()
+    entries.forEach((e, i) => {
+      const term = text.text(e.term)
+      if (term === undefined) return // TEXT_MISSING
+      const p = `glossary.${articleId}[${i}]`
+      if (!body.includes(term)) out.push({ code: 'GLOSS_TERM_NOT_IN_TEXT', path: `${p}.term`, message: `the gloss "${e.id}" has the term "${term}", which is not in the text of the article "${articleId}"` })
+      const prev = seen.get(term)
+      if (prev) out.push({ code: 'GLOSS_DUPLICATE', path: `${p}.term`, message: `the glosses "${prev}" and "${e.id}" both gloss "${term}" in the article "${articleId}"` })
+      else seen.set(term, e.id)
+    })
+    const words = body.split(/\s+/).filter(Boolean).length
+    if (words >= 300 && entries.length < 8) out.push({ code: 'GLOSS_COVERAGE', severity: 'warning', path: `glossary.${articleId}`, message: `the text "${articleId}" has ${words} words but only ${entries.length} glossed words (at least 8 help the learner)` })
+  }
   return out
 }
 
 const CODES = [
+  'GLOSS_TERM_NOT_IN_TEXT',
+  'GLOSS_DUPLICATE',
+  'GLOSS_COVERAGE',
   'ENC_HUNT_TARGET_MISSING',
   'ENC_HUNT_ITEM_MISSING',
   'ENC_HUNT_ITEM_DUPLICATE',
@@ -441,11 +541,22 @@ export const encyclopediaShell: ShellDef<EncyclopediaSection> = {
         { path: `hunts[${hi}].steps[${si}].clue`, key: st.clue, role: 'string' as const },
         { path: `hunts[${hi}].steps[${si}].collectible`, key: st.collectible, role: 'string' as const }
       ])
-    ])
+    ]),
+    ...Object.entries(s.glossary).flatMap(([articleId, entries]) =>
+      entries.flatMap((e, i) => {
+        const p = `glossary.${articleId}[${i}]`
+        return [
+          { path: `${p}.term`, key: e.term, role: 'string' as const },
+          { path: `${p}.gloss`, key: e.gloss, role: 'string' as const },
+          ...(e.lemma ? [{ path: `${p}.lemma`, key: e.lemma, role: 'string' as const }] : []),
+          ...(e.note ? [{ path: `${p}.note`, key: e.note, role: 'string' as const }] : [])
+        ]
+      })
+    )
   ],
   assetRefs: (s) => (s.map ? [{ path: 'map.asset', id: s.map.asset }] : []),
   validate,
   lint,
   codes: CODES,
-  warnings: ['ENC_ANSWER_NOT_IN_ARTICLE', 'ENC_HUNT_ITEM_OTHER_UNIT']
+  warnings: ['ENC_ANSWER_NOT_IN_ARTICLE', 'ENC_HUNT_ITEM_OTHER_UNIT', 'GLOSS_COVERAGE']
 }

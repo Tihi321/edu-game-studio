@@ -2,6 +2,7 @@ import { DEFAULT_SHELL, GAME_DATA_FORMAT, PLAYER_ROOT_ID, type GameData } from '
 import { createDebug } from './debug'
 import { clear, h } from './dom'
 import { makeUi } from './i18n'
+import { withPassage } from './items/common'
 import type { EduEngineApi, ItemRenderer, PlayerState, Shell, ShellDebugApi } from './types'
 
 /** The version of the player runtime (`window.EduEngine.version`). */
@@ -95,7 +96,7 @@ export function createEngine(): EduEngineApi {
       shells.set(id, shell)
     },
     registerItemKind(kind, renderer) {
-      renderers.set(kind, renderer)
+      renderers.set(kind, withPassage(renderer))
     },
     getState() {
       return JSON.parse(JSON.stringify(state)) as PlayerState

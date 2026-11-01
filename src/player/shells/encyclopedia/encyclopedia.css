@@ -1465,3 +1465,171 @@
     flex-direction: column;
   }
 }
+
+/* ---- the reader (EGS-35): chapters of a reading course, larger type in a reading-width column ---- */
+
+.edu-stage .enc-reader {
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr);
+  gap: var(--edu-space-6);
+  align-items: start;
+}
+
+.edu-stage .enc-reader-toc {
+  position: sticky;
+  top: var(--edu-space-4);
+  padding: var(--edu-space-4);
+  background: var(--enc-paper-deep);
+  border: 1px solid var(--enc-rule);
+  border-radius: var(--edu-radius-m);
+}
+
+.edu-stage .enc-reader-toc h2 {
+  margin: 0 0 var(--edu-space-3);
+  font-size: var(--edu-text-m);
+}
+
+.edu-stage .enc-reader-toc ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-reader-toc-btn {
+  display: flex;
+  gap: var(--edu-space-2);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--edu-space-2);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--edu-radius-s);
+}
+
+.edu-stage .enc-reader-toc-btn[aria-current='true'] {
+  background: var(--enc-slip);
+  border-color: var(--enc-brass);
+  font-weight: 700;
+}
+
+.edu-stage .enc-reader-num {
+  font-family: var(--edu-font-display);
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-reader-toc-btn .mark {
+  margin-left: auto;
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-reader-main {
+  min-width: 0;
+  max-width: calc(var(--edu-measure) + var(--edu-space-6));
+}
+
+.edu-stage .enc-reader-title {
+  margin: var(--edu-space-2) 0;
+}
+
+.edu-stage .enc-reader-body {
+  max-width: none;
+  margin: 0;
+  font-size: var(--edu-text-xl);
+}
+
+.edu-stage .enc-reader-hint {
+  color: var(--edu-text-dim);
+  font-size: var(--edu-text-s);
+}
+
+.edu-stage .enc-reader-end {
+  height: 1px;
+}
+
+.edu-stage .enc-reader-done {
+  font-weight: 700;
+  color: var(--enc-oxblood);
+}
+
+.edu-stage .enc-reader-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-3);
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--edu-space-4) 0;
+}
+
+.edu-stage .enc-reader-progress {
+  margin: 0;
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .enc-glossary {
+  margin-top: var(--edu-space-5);
+  padding: var(--edu-space-4);
+  background: var(--enc-paper-deep);
+  border: 1px solid var(--enc-rule);
+  border-radius: var(--edu-radius-m);
+}
+
+.edu-stage .enc-glossary h2 {
+  margin: 0 0 var(--edu-space-3);
+  font-size: var(--edu-text-l);
+}
+
+.edu-stage .enc-glossary ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--edu-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.edu-stage .enc-glossary li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2) var(--edu-space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: var(--edu-space-2);
+  border-bottom: 1px dotted var(--enc-rule);
+}
+
+.edu-stage .enc-gloss-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--edu-space-2);
+  align-items: baseline;
+}
+
+.edu-stage .enc-gloss-note {
+  font-size: var(--edu-text-s);
+  color: var(--edu-text-dim);
+}
+
+.edu-stage .enc-gloss-deck {
+  display: inline-flex;
+  gap: var(--edu-space-2);
+  align-items: center;
+  font-size: var(--edu-text-s);
+}
+
+@media (max-width: 760px) {
+  .edu-stage .enc-reader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .edu-stage .enc-reader-toc {
+    position: static;
+  }
+
+  .edu-stage .enc-reader-body {
+    font-size: var(--edu-text-l);
+  }
+}

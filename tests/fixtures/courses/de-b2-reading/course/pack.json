@@ -1,0 +1,662 @@
+{
+  "schema": 1,
+  "id": "de-b2-reading",
+  "slug": "de-b2-reading",
+  "sourceLang": "hr",
+  "languages": [
+    "hr",
+    "en"
+  ],
+  "targetLang": "de",
+  "subject": "Deutsch B2: Lesen mit Glossar",
+  "audience": "Croatian and English speakers reading German at B2",
+  "cefr": "B2",
+  "matching": {
+    "diacritics": "ignore",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-arbeit",
+      "title": "unit.arbeit.title",
+      "summary": "unit.arbeit.summary",
+      "requires": []
+    },
+    {
+      "id": "u-mobil",
+      "title": "unit.mobil.title",
+      "summary": "unit.mobil.summary",
+      "requires": [
+        "u-arbeit"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-arbeit",
+      "unit": "u-arbeit",
+      "bloom": "understand",
+      "text": "obj.arbeit",
+      "facts": []
+    },
+    {
+      "id": "obj-mobil",
+      "unit": "u-mobil",
+      "bloom": "understand",
+      "text": "obj.mobil",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "ho-mcq",
+      "kind": "mcq",
+      "objective": "obj-arbeit",
+      "prompt": "ho-mcq.prompt",
+      "explanation": "ho-mcq.explanation",
+      "difficulty": 2,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-homeoffice",
+          "paragraphs": [
+            1,
+            1
+          ]
+        }
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "ho-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "ho-mcq.opt.b",
+          "why": "ho-mcq.why.b"
+        },
+        {
+          "id": "c",
+          "text": "ho-mcq.opt.c",
+          "why": "ho-mcq.why.c"
+        },
+        {
+          "id": "d",
+          "text": "ho-mcq.opt.d",
+          "why": "ho-mcq.why.d"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "ho-tfng",
+      "kind": "mcq",
+      "objective": "obj-arbeit",
+      "prompt": "ho-tfng.prompt",
+      "explanation": "ho-tfng.explanation",
+      "difficulty": 2,
+      "tags": [
+        "reading",
+        "tfng"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-homeoffice",
+          "paragraphs": [
+            2,
+            2
+          ]
+        }
+      },
+      "options": [
+        {
+          "id": "t",
+          "text": "ho-tfng.opt.t"
+        },
+        {
+          "id": "f",
+          "text": "ho-tfng.opt.f",
+          "why": "ho-tfng.why.f"
+        },
+        {
+          "id": "ng",
+          "text": "ho-tfng.opt.ng",
+          "why": "ho-tfng.why.ng"
+        }
+      ],
+      "answer": "t",
+      "shuffle": false
+    },
+    {
+      "id": "ho-order",
+      "kind": "order",
+      "objective": "obj-arbeit",
+      "prompt": "ho-order.prompt",
+      "explanation": "ho-order.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-homeoffice"
+        }
+      },
+      "items": [
+        {
+          "id": "s1",
+          "text": "ho-order.s.s1"
+        },
+        {
+          "id": "s2",
+          "text": "ho-order.s.s2"
+        },
+        {
+          "id": "s3",
+          "text": "ho-order.s.s3"
+        },
+        {
+          "id": "s4",
+          "text": "ho-order.s.s4"
+        },
+        {
+          "id": "s5",
+          "text": "ho-order.s.s5"
+        }
+      ]
+    },
+    {
+      "id": "ho-headings",
+      "kind": "match-pairs",
+      "objective": "obj-arbeit",
+      "prompt": "ho-headings.prompt",
+      "explanation": "ho-headings.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading",
+        "headings"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-homeoffice"
+        }
+      },
+      "pairs": [
+        {
+          "id": "p1",
+          "left": "ho-headings.l.p1",
+          "right": "ho-headings.r.p1"
+        },
+        {
+          "id": "p2",
+          "left": "ho-headings.l.p2",
+          "right": "ho-headings.r.p2"
+        },
+        {
+          "id": "p3",
+          "left": "ho-headings.l.p3",
+          "right": "ho-headings.r.p3"
+        },
+        {
+          "id": "p4",
+          "left": "ho-headings.l.p4",
+          "right": "ho-headings.r.p4"
+        },
+        {
+          "id": "p5",
+          "left": "ho-headings.l.p5",
+          "right": "ho-headings.r.p5"
+        }
+      ]
+    },
+    {
+      "id": "ho-cloze",
+      "kind": "cloze",
+      "objective": "obj-arbeit",
+      "prompt": "ho-cloze.prompt",
+      "explanation": "ho-cloze.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-homeoffice",
+          "paragraphs": [
+            3,
+            3
+          ]
+        }
+      },
+      "text": "ho-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "ho-cloze.w.deshalb",
+          "bank": [
+            "ho-cloze.w.deshalb",
+            "ho-cloze.w.obwohl",
+            "ho-cloze.w.indem",
+            "ho-cloze.w.falls"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rv-mcq",
+      "kind": "mcq",
+      "objective": "obj-mobil",
+      "prompt": "rv-mcq.prompt",
+      "explanation": "rv-mcq.explanation",
+      "difficulty": 2,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-radverkehr",
+          "paragraphs": [
+            2,
+            2
+          ]
+        }
+      },
+      "options": [
+        {
+          "id": "a",
+          "text": "rv-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "rv-mcq.opt.b",
+          "why": "rv-mcq.why.b"
+        },
+        {
+          "id": "c",
+          "text": "rv-mcq.opt.c",
+          "why": "rv-mcq.why.c"
+        },
+        {
+          "id": "d",
+          "text": "rv-mcq.opt.d",
+          "why": "rv-mcq.why.d"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "rv-tfng",
+      "kind": "mcq",
+      "objective": "obj-mobil",
+      "prompt": "rv-tfng.prompt",
+      "explanation": "rv-tfng.explanation",
+      "difficulty": 2,
+      "tags": [
+        "reading",
+        "tfng"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-radverkehr"
+        }
+      },
+      "options": [
+        {
+          "id": "t",
+          "text": "rv-tfng.opt.t",
+          "why": "rv-tfng.why.t"
+        },
+        {
+          "id": "f",
+          "text": "rv-tfng.opt.f",
+          "why": "rv-tfng.why.f"
+        },
+        {
+          "id": "ng",
+          "text": "rv-tfng.opt.ng"
+        }
+      ],
+      "answer": "ng",
+      "shuffle": false
+    },
+    {
+      "id": "rv-order",
+      "kind": "order",
+      "objective": "obj-mobil",
+      "prompt": "rv-order.prompt",
+      "explanation": "rv-order.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-radverkehr"
+        }
+      },
+      "items": [
+        {
+          "id": "s1",
+          "text": "rv-order.s.s1"
+        },
+        {
+          "id": "s2",
+          "text": "rv-order.s.s2"
+        },
+        {
+          "id": "s3",
+          "text": "rv-order.s.s3"
+        },
+        {
+          "id": "s4",
+          "text": "rv-order.s.s4"
+        },
+        {
+          "id": "s5",
+          "text": "rv-order.s.s5"
+        }
+      ]
+    },
+    {
+      "id": "rv-headings",
+      "kind": "match-pairs",
+      "objective": "obj-mobil",
+      "prompt": "rv-headings.prompt",
+      "explanation": "rv-headings.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading",
+        "headings"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-radverkehr"
+        }
+      },
+      "pairs": [
+        {
+          "id": "p1",
+          "left": "rv-headings.l.p1",
+          "right": "rv-headings.r.p1"
+        },
+        {
+          "id": "p2",
+          "left": "rv-headings.l.p2",
+          "right": "rv-headings.r.p2"
+        },
+        {
+          "id": "p3",
+          "left": "rv-headings.l.p3",
+          "right": "rv-headings.r.p3"
+        },
+        {
+          "id": "p4",
+          "left": "rv-headings.l.p4",
+          "right": "rv-headings.r.p4"
+        },
+        {
+          "id": "p5",
+          "left": "rv-headings.l.p5",
+          "right": "rv-headings.r.p5"
+        }
+      ]
+    },
+    {
+      "id": "rv-cloze",
+      "kind": "cloze",
+      "objective": "obj-mobil",
+      "prompt": "rv-cloze.prompt",
+      "explanation": "rv-cloze.explanation",
+      "difficulty": 3,
+      "tags": [
+        "reading"
+      ],
+      "extensions": {
+        "passage": {
+          "article": "art-radverkehr",
+          "paragraphs": [
+            3,
+            3
+          ]
+        }
+      },
+      "text": "rv-cloze.text",
+      "gaps": [
+        {
+          "id": "1",
+          "answer": "rv-cloze.w.allerdings",
+          "bank": [
+            "rv-cloze.w.allerdings",
+            "rv-cloze.w.obwohl",
+            "rv-cloze.w.indem",
+            "rv-cloze.w.falls"
+          ]
+        }
+      ]
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "encyclopedia"
+    ],
+    "config": {
+      "quiz-arena": {
+        "roundLength": 6
+      },
+      "encyclopedia": {
+        "reader": true,
+        "glossary": {
+          "art-homeoffice": [
+            {
+              "id": "angestellte",
+              "term": "art.art-homeoffice.gl.angestellte.term",
+              "lemma": "art.art-homeoffice.gl.angestellte.lemma",
+              "gloss": "art.art-homeoffice.gl.angestellte.gloss",
+              "pos": "n",
+              "note": "art.art-homeoffice.gl.angestellte.note"
+            },
+            {
+              "id": "erledigen",
+              "term": "art.art-homeoffice.gl.erledigen.term",
+              "lemma": "art.art-homeoffice.gl.erledigen.lemma",
+              "gloss": "art.art-homeoffice.gl.erledigen.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "grundlegend",
+              "term": "art.art-homeoffice.gl.grundlegend.term",
+              "lemma": "art.art-homeoffice.gl.grundlegend.lemma",
+              "gloss": "art.art-homeoffice.gl.grundlegend.gloss",
+              "pos": "adj"
+            },
+            {
+              "id": "ueberfordern",
+              "term": "art.art-homeoffice.gl.ueberfordern.term",
+              "lemma": "art.art-homeoffice.gl.ueberfordern.lemma",
+              "gloss": "art.art-homeoffice.gl.ueberfordern.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "pendeln",
+              "term": "art.art-homeoffice.gl.pendeln.term",
+              "lemma": "art.art-homeoffice.gl.pendeln.lemma",
+              "gloss": "art.art-homeoffice.gl.pendeln.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "vereinbaren",
+              "term": "art.art-homeoffice.gl.vereinbaren.term",
+              "lemma": "art.art-homeoffice.gl.vereinbaren.lemma",
+              "gloss": "art.art-homeoffice.gl.vereinbaren.gloss",
+              "pos": "v",
+              "note": "art.art-homeoffice.gl.vereinbaren.note"
+            },
+            {
+              "id": "erschoepfung",
+              "term": "art.art-homeoffice.gl.erschoepfung.term",
+              "lemma": "art.art-homeoffice.gl.erschoepfung.lemma",
+              "gloss": "art.art-homeoffice.gl.erschoepfung.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "verschwimmen",
+              "term": "art.art-homeoffice.gl.verschwimmen.term",
+              "lemma": "art.art-homeoffice.gl.verschwimmen.lemma",
+              "gloss": "art.art-homeoffice.gl.verschwimmen.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "fuehrungskraft",
+              "term": "art.art-homeoffice.gl.fuehrungskraft.term",
+              "lemma": "art.art-homeoffice.gl.fuehrungskraft.lemma",
+              "gloss": "art.art-homeoffice.gl.fuehrungskraft.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "erstatten",
+              "term": "art.art-homeoffice.gl.erstatten.term",
+              "lemma": "art.art-homeoffice.gl.erstatten.lemma",
+              "gloss": "art.art-homeoffice.gl.erstatten.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "mittelweg",
+              "term": "art.art-homeoffice.gl.mittelweg.term",
+              "lemma": "art.art-homeoffice.gl.mittelweg.lemma",
+              "gloss": "art.art-homeoffice.gl.mittelweg.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "bereicherung",
+              "term": "art.art-homeoffice.gl.bereicherung.term",
+              "lemma": "art.art-homeoffice.gl.bereicherung.lemma",
+              "gloss": "art.art-homeoffice.gl.bereicherung.gloss",
+              "pos": "n"
+            }
+          ],
+          "art-radverkehr": [
+            {
+              "id": "freizeitgeraet",
+              "term": "art.art-radverkehr.gl.freizeitgeraet.term",
+              "lemma": "art.art-radverkehr.gl.freizeitgeraet.lemma",
+              "gloss": "art.art-radverkehr.gl.freizeitgeraet.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "verkehrspolitik",
+              "term": "art.art-radverkehr.gl.verkehrspolitik.term",
+              "lemma": "art.art-radverkehr.gl.verkehrspolitik.lemma",
+              "gloss": "art.art-radverkehr.gl.verkehrspolitik.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "umweltfreundlich",
+              "term": "art.art-radverkehr.gl.umweltfreundlich.term",
+              "lemma": "art.art-radverkehr.gl.umweltfreundlich.lemma",
+              "gloss": "art.art-radverkehr.gl.umweltfreundlich.gloss",
+              "pos": "adj"
+            },
+            {
+              "id": "stau",
+              "term": "art.art-radverkehr.gl.stau.term",
+              "lemma": "art.art-radverkehr.gl.stau.lemma",
+              "gloss": "art.art-radverkehr.gl.stau.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "verursachen",
+              "term": "art.art-radverkehr.gl.verursachen.term",
+              "lemma": "art.art-radverkehr.gl.verursachen.lemma",
+              "gloss": "art.art-radverkehr.gl.verursachen.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "abgas",
+              "term": "art.art-radverkehr.gl.abgas.term",
+              "lemma": "art.art-radverkehr.gl.abgas.lemma",
+              "gloss": "art.art-radverkehr.gl.abgas.gloss",
+              "pos": "n",
+              "note": "art.art-radverkehr.gl.abgas.note"
+            },
+            {
+              "id": "umsteigen",
+              "term": "art.art-radverkehr.gl.umsteigen.term",
+              "lemma": "art.art-radverkehr.gl.umsteigen.lemma",
+              "gloss": "art.art-radverkehr.gl.umsteigen.gloss",
+              "pos": "v",
+              "note": "art.art-radverkehr.gl.umsteigen.note"
+            },
+            {
+              "id": "voraussetzung",
+              "term": "art.art-radverkehr.gl.voraussetzung.term",
+              "lemma": "art.art-radverkehr.gl.voraussetzung.lemma",
+              "gloss": "art.art-radverkehr.gl.voraussetzung.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "sperren",
+              "term": "art.art-radverkehr.gl.sperren.term",
+              "lemma": "art.art-radverkehr.gl.sperren.lemma",
+              "gloss": "art.art-radverkehr.gl.sperren.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "zustimmung",
+              "term": "art.art-radverkehr.gl.zustimmung.term",
+              "lemma": "art.art-radverkehr.gl.zustimmung.lemma",
+              "gloss": "art.art-radverkehr.gl.zustimmung.gloss",
+              "pos": "n"
+            },
+            {
+              "id": "beilegen",
+              "term": "art.art-radverkehr.gl.beilegen.term",
+              "lemma": "art.art-radverkehr.gl.beilegen.lemma",
+              "gloss": "art.art-radverkehr.gl.beilegen.gloss",
+              "pos": "v"
+            },
+            {
+              "id": "vollziehen",
+              "term": "art.art-radverkehr.gl.vollziehen.term",
+              "lemma": "art.art-radverkehr.gl.vollziehen.lemma",
+              "gloss": "art.art-radverkehr.gl.vollziehen.gloss",
+              "pos": "v"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "assets": [],
+  "cues": [],
+  "encyclopedia": {
+    "articles": [
+      {
+        "id": "art-homeoffice",
+        "title": "art.art-homeoffice.title",
+        "body": "art.art-homeoffice.body",
+        "citations": [],
+        "related": [
+          "art-radverkehr"
+        ],
+        "unit": "u-arbeit"
+      },
+      {
+        "id": "art-radverkehr",
+        "title": "art.art-radverkehr.title",
+        "body": "art.art-radverkehr.body",
+        "citations": [],
+        "related": [
+          "art-homeoffice"
+        ],
+        "unit": "u-mobil"
+      }
+    ]
+  },
+  "factbase": [],
+  "extensions": {}
+}

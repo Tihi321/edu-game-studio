@@ -563,12 +563,41 @@ async function run(opts) {
   /** Whether to answer this item right: by mode. */
   const wantRight = () => (opts.mode === 'perfect' ? true : opts.mode === 'wrong' ? false : rng() < opts.accuracy)
 
+  /**
+   * An item that names a text (`extensions.passage`, EGS-35) shows the "Read the text" panel: closed unless the question was opened from the
+   * reader (context "reader"), the toggle opens it, the text is there and a glossed word in it can be tapped.
+   */
+  async function checkPassage(s, item) {
+    const p = (summary.passages ??= { items: 0, opened: 0, taps: 0 })
+    p.items++
+    if (!(await exists('passage-toggle')) || !(await exists('passage-panel'))) return fail(`${item.id}: it names a text but there is no passage-toggle / passage-panel`)
+    const wantOpen = s.context === 'reader'
+    const hidden = await page.locator(tid('passage-panel')).isHidden()
+    if (hidden === wantOpen) fail(`${item.id}: the passage panel starts ${hidden ? 'closed' : 'open'}, expected ${wantOpen ? 'open (reader)' : 'closed'}`)
+    if (hidden) {
+      await press('passage-toggle')
+      if (await page.locator(tid('passage-panel')).isHidden()) return fail(`${item.id}: passage-toggle does not open the text`)
+      if ((await page.locator(tid('passage-toggle')).getAttribute('aria-expanded')) !== 'true') fail(`${item.id}: passage-toggle is not aria-expanded while the text is open`)
+    }
+    p.opened++
+    if (((await page.locator(tid('passage-panel')).textContent()) ?? '').trim().length < 40) fail(`${item.id}: the passage panel holds no text`)
+    const gloss = page.locator(`${tid('passage-panel')} button.gloss`).first()
+    if ((await gloss.count()) > 0) {
+      const id = await gloss.getAttribute('data-testid')
+      await press(id)
+      if (!(await page.locator(tid('gloss-popover')).isVisible())) fail(`${item.id}: tapping a glossed word in the passage opens no popover`)
+      await press('gloss-close')
+      p.taps++
+    }
+  }
+
   /** Answers one question and checks the feedback. */
   async function answerCurrent(s) {
     const item = items.get(s.itemId)
     if (!item) throw new Error(`the game shows an item that is not in game-data.json: ${s.itemId}`)
     if (answered >= maxSteps * (opts.mode === 'wrong' ? opts.rounds : 1)) throw new Error(`step bound exceeded: more than ${maxSteps} answers without finishing`)
     if (s.roundKind === 'boss') await shot('item-boss', `item-boss-${item.kind}`)
+    if (item.extensions?.passage) await checkPassage(s, item)
     await shot(`item-${item.kind}`)
     const right = wantRight()
     const lang = s.lang

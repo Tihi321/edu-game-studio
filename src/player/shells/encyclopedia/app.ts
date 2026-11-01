@@ -1,20 +1,22 @@
-import { buildEncyclopedia, type EncArticle, type EncHunt, type EncModel, type EncStep, type EncyclopediaSection } from '../../../shared/shells/encyclopedia'
+import { buildEncyclopedia, glossaryOf, passageOf, readerChapters, type EncArticle, type EncHunt, type EncModel, type EncStep, type EncyclopediaSection } from '../../../shared/shells/encyclopedia'
 import { button, h, type Child } from '../../dom'
+import type { GlossWord } from '../../gloss'
 import { ask } from '../../kit/question'
 import { endScreen, newTitleState, titleScreen } from '../../kit/screens'
 import { ShellSession } from '../../kit/session'
 import type { NextQuestion, RoundState } from '../../round'
 import type { Shell } from '../../types'
 import { linkify, linkedIds, paragraphsOf, searchArticles, searchTermFor, type ArticleText, type Seg } from './articles'
-import { emptyData, readData, withFound, withRead, type EncData } from './data'
+import { emptyData, glossKey, readData, withChapterDone, withFound, withGlossDeck, withRead, withReaderAt, type EncData } from './data'
 import { ENC_STRINGS, type EncKey } from './strings'
 import { articleScreenBody } from './view-article'
 import { codexBody, huntsBody, clueBar, hudBar } from './view-hunts'
 import { exploreBody } from './view-explore'
 import { mapBody, timelineBody } from './view-places'
+import { readerBody } from './view-reader'
 
 /** The parts of the book the tabs lead to. */
-export type Part = 'index' | 'timeline' | 'map' | 'codex' | 'hunts'
+export type Part = 'index' | 'reader' | 'timeline' | 'map' | 'codex' | 'hunts'
 
 export interface ActiveHunt {
   hunt: EncHunt
@@ -54,7 +56,7 @@ export interface ArtView {
   virtual: boolean
 }
 
-const PARTS: Part[] = ['index', 'timeline', 'map', 'codex', 'hunts']
+const PARTS: Part[] = ['index', 'reader', 'timeline', 'map', 'codex', 'hunts']
 
 /**
  * The encyclopedia explorer: one object holds the model of the course (articles, hunts, timeline, map), what the learner has found and read,
@@ -75,6 +77,10 @@ export class EncApp {
   /** Where `back` goes: the screens the learner came from, oldest first. */
   trail: (() => void)[] = []
   audio: HTMLAudioElement | null = null
+  /** Undoes what the screen on show set up outside its DOM (a scroll listener, an observer); run before the next screen is drawn. */
+  cleanup: (() => void)[] = []
+  /** What the screen being built wants undone when the next one is drawn (moved to `cleanup` by `page`, which runs after the screen's body exists). */
+  pendingCleanup: (() => void)[] = []
   private readonly titleState = newTitleState()
   private linkCache = new Map<string, string[]>()
 
@@ -95,7 +101,9 @@ export class EncApp {
       ])
     )
     this.linkCache = new Map()
-    this.data = readData(this.s.shellData(), new Set(this.allSteps().map((x) => x.id)), new Set(this.model.articles.map((a) => a.id)))
+    const section = this.s.section<EncyclopediaSection>()
+    const glossKeys = new Set(Object.entries(section?.glossary ?? {}).flatMap(([a, es]) => es.map((e) => glossKey(a, e.id))))
+    this.data = readData(this.s.shellData(), new Set(this.allSteps().map((x) => x.id)), new Set(this.model.articles.map((a) => a.id)), glossKeys)
   }
 
   allSteps(): EncStep[] {
@@ -155,6 +163,113 @@ export class EncApp {
     return null
   }
 
+  // ---- the reader (B2 readings, EGS-35) ----
+
+  /** The chapters of the reader: the real articles in unit order. */
+  chapters(): ArtView[] {
+    return readerChapters(this.s.pack, this.model.articles).map((a) => this.arts.get(a.id) as ArtView)
+  }
+
+  /** The reader is offered when the course has readings and either says so (`reader: true`) or glosses a text. */
+  hasReader(): boolean {
+    const section = this.s.section<EncyclopediaSection>()
+    return this.chapters().length > 0 && (section?.reader === true || Object.values(section?.glossary ?? {}).some((es) => es.length > 0))
+  }
+
+  readerFirst(): boolean {
+    return this.s.section<EncyclopediaSection>()?.reader === true && this.chapters().length > 0
+  }
+
+  /** The glossary of a text in the edition being read (terms from the target catalog, glosses from the edition). */
+  glossWords(articleId: string): GlossWord[] {
+    return glossaryOf(this.s.section<EncyclopediaSection>(), articleId).flatMap((e) => {
+      const term = this.s.text.text(e.term)
+      const gloss = this.s.text.text(e.gloss)
+      if (term === undefined || gloss === undefined) return []
+      const lemma = e.lemma ? this.s.text.text(e.lemma) : undefined
+      const note = e.note ? this.s.text.text(e.note) : undefined
+      return [{ id: e.id, term, gloss, ...(lemma ? { lemma } : {}), ...(e.pos ? { pos: e.pos } : {}), ...(note ? { note } : {}) }]
+    })
+  }
+
+  glossOff(): Set<string> {
+    return new Set(this.data.glossOff ?? [])
+  }
+
+  setGlossDeck(articleId: string, glossId: string, inDeck: boolean): void {
+    this.data = withGlossDeck(this.data, glossKey(articleId, glossId), inDeck)
+    this.saveData()
+  }
+
+  /** The chapter the reader opens on: the one it stood on, else the first. */
+  readerChapter(): string {
+    const chapters = this.chapters()
+    const at = this.data.reader?.chapter
+    return chapters.find((c) => c.id === at)?.id ?? (chapters[0]?.id as string)
+  }
+
+  /** The reader moved (`scroll` 0 to 1 down the chapter): remembered. */
+  rememberReader(chapter: string, scroll: number): void {
+    const next = withReaderAt(this.data, chapter, scroll)
+    if (next === this.data) return
+    this.data = next
+    this.saveData()
+  }
+
+  chapterRead(chapter: string): boolean {
+    return this.data.reader?.done.includes(chapter) === true
+  }
+
+  /** A chapter was read to its last paragraph. */
+  markChapterRead(chapter: string): void {
+    if (this.chapterRead(chapter)) return
+    this.data = withChapterDone(withRead(this.data, chapter), chapter)
+    this.saveData()
+    document.querySelector('[data-testid="reader-progress"]')?.setAttribute('data-read', 'true')
+    document.querySelector('[data-testid="reader-done"]')?.removeAttribute('hidden')
+    document.querySelector(`[data-testid="reader-chapter-${chapter}"]`)?.setAttribute('data-read', 'true')
+  }
+
+  /** Questions of a chapter (the items whose `extensions.passage` names it). */
+  chapterItems(chapter: string): string[] {
+    return this.s.pack.items.filter((i) => passageOf(i)?.article === chapter && this.s.canAsk(i)).map((i) => i.id)
+  }
+
+  /** The questions on a text, one after the other, with the text open above each; the end (or Back) returns to the chapter. */
+  practice(chapter: string): void {
+    const ids = this.chapterItems(chapter)
+    if (ids.length === 0) return
+    this.s.passageOpen = true
+    this.askPractice(this.s.startRun(ids, { kind: 'review' }), chapter, 0)
+  }
+
+  private askPractice(run: RoundState, chapter: string, index: number): void {
+    const s = this.s
+    const done = (): void => {
+      s.passageOpen = false
+      this.reader(chapter)
+    }
+    const pick = s.next(run)
+    const item = pick ? s.item(pick.id) : undefined
+    if (!pick || !item) return done()
+    let current = run
+    ask(s, {
+      item,
+      context: 'reader',
+      retry: pick.retry,
+      roundKind: 'review',
+      roundSize: run.size,
+      index,
+      view: () => ({ ...this.baseView(), chapter }),
+      leaveLabel: s.ui('reader.leave'),
+      onLeave: done,
+      onAnswered: (o) => {
+        current = s.record(current, pick, o)
+      },
+      onNext: () => this.askPractice(current, chapter, index + 1)
+    })
+  }
+
   // ---- words of the hunts ----
 
   stepClue(step: EncStep): string {
@@ -211,13 +326,13 @@ export class EncApp {
   // ---- navigation ----
 
   private partAvailable(p: Part): boolean {
-    return p === 'timeline' ? this.hasTimeline() : p === 'map' ? this.hasMap() : true
+    return p === 'reader' ? this.hasReader() : p === 'timeline' ? this.hasTimeline() : p === 'map' ? this.hasMap() : true
   }
 
   /** The tabs: the title page, then the parts of the book (brass index tabs). */
   nav(active: Part | null): HTMLElement {
     const s = this.s
-    const go: Record<Part, () => void> = { index: () => this.explore(), timeline: () => this.timeline(), map: () => this.map(), codex: () => this.codex(), hunts: () => this.hunts() }
+    const go: Record<Part, () => void> = { index: () => this.explore(), reader: () => this.reader(), timeline: () => this.timeline(), map: () => this.map(), codex: () => this.codex(), hunts: () => this.hunts() }
     return h(
       'nav',
       { class: 'enc-tabs', 'aria-label': s.s('enc.nav.label') },
@@ -225,7 +340,7 @@ export class EncApp {
       PARTS.filter((p) => this.partAvailable(p)).map((p) =>
         button(
           `nav-${p}`,
-          s.s(`enc.nav.${p}` as EncKey),
+          p === 'reader' ? s.ui('reader.nav') : s.s(`enc.nav.${p}` as EncKey),
           () => {
             this.trail = []
             go[p]()
@@ -239,6 +354,8 @@ export class EncApp {
   /** The frame every world screen shares: the tabs, the pinned clue, then the content. */
   private page(screen: string, part: Part | null, content: Child, view: Record<string, unknown> = {}): HTMLElement {
     this.stopAudio()
+    for (const f of this.cleanup.splice(0)) f()
+    this.cleanup = this.pendingCleanup.splice(0)
     const body = h('div', { class: `enc-page enc-page-${screen}`, 'data-part': part ?? '' }, this.nav(part), clueBar(this), content)
     return this.s.render(screen, body, { view: { ...this.baseView(), ...view } })
   }
@@ -278,7 +395,7 @@ export class EncApp {
       'title',
       titleScreen(
         this.s,
-        { tagline: this.s.s('enc.tagline'), startLabel: this.s.started ? this.s.s('enc.continue') : this.s.s('enc.open'), onStart: () => this.explore(), art: bookEmblem() },
+        { tagline: this.s.s('enc.tagline'), startLabel: this.readerFirst() ? this.s.ui(this.data.reader ? 'reader.continue' : 'reader.open') : this.s.started ? this.s.s('enc.continue') : this.s.s('enc.open'), onStart: () => (this.readerFirst() ? this.reader() : this.explore()), art: bookEmblem() },
         () => this.title(),
         this.titleState
       )
@@ -288,6 +405,16 @@ export class EncApp {
   explore(): void {
     this.s.finished = false
     this.page('explore', 'index', exploreBody(this), { query: this.query })
+  }
+
+  /** The reader: one chapter of the readings with tap-to-gloss, its glossary and the way on (`chapter` default: where the learner stood). */
+  reader(chapter?: string): void {
+    const chapters = this.chapters()
+    if (chapters.length === 0) return this.explore()
+    const id = chapters.some((c) => c.id === chapter) ? (chapter as string) : this.readerChapter()
+    if (id !== this.data.reader?.chapter) this.rememberReader(id, 0)
+    this.trail = []
+    this.page('reader', 'reader', readerBody(this, id), { chapter: id })
   }
 
   article(id: string, from?: () => void): void {
@@ -462,6 +589,7 @@ export class EncApp {
         const a = t.find((x) => x.id === id)
         return a ? searchTermFor(a, t) : null
       },
+      chapters: () => this.chapters().map((c) => ({ id: c.id, read: this.chapterRead(c.id), glosses: this.glossWords(c.id).map((g) => g.id), items: this.chapterItems(c.id) })),
       links: (id: string) => ({ links: this.linksFrom(id), related: this.arts.get(id)?.related ?? [] }),
       articles: () => this.model.articles.map((a) => a.id),
       timeline: () => this.model.timeline.map((e) => ({ id: e.id, year: e.year, article: e.article ?? null })),
