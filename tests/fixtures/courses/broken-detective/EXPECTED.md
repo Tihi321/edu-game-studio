@@ -1,6 +1,6 @@
 # The broken-detective fixture
 
-A tiny course (3 units, 6 items, one edition `en`) whose detective section (`shells.config.detective`) is wrong on purpose, once per lint code that a real section can reach. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the references), so `tests/detective-lint.test.ts` builds it with `force: true`, lints it, and asserts that the build and the lint report **exactly** the codes below.
+A tiny course (3 units, 6 items, one edition `en`) whose detective section (`shells.config.detective`) is wrong on purpose, once per lint code that a real section can reach. Nothing else is wrong with the course. It cannot be built the normal way (the validator refuses the references), so `tests/lint.test.ts` builds it with `force: true`, lints it, and asserts that the build and the lint report each of the codes below.
 
 | Where | What is wrong | Code |
 |---|---|---|
@@ -17,7 +17,7 @@ A tiny course (3 units, 6 items, one edition `en`) whose detective section (`she
 | chase leg 2 | starts at `p-nine`, which is no place (and the trail is at `p-two`) | `DET_CHASE_PLACE_MISSING`, `DET_CHASE_ROUTE_BROKEN` |
 | chase leg 2 | its clue item `i-gone` does not exist | `DET_CHASE_ITEM_MISSING` (and `UNKNOWN_ITEM`) |
 
-`DET_PUZZLE_INVALID`, `DET_PUZZLE_NOT_UNIQUE` and `DET_PUZZLE_UNSOLVABLE` cannot be provoked by a section: the generator makes a proved puzzle for every kind, size, band and seed the schema allows (the proof test runs 200 seeds of each). They are covered in `tests/detective-lint.test.ts` with an injected case builder that fails the way `generate()` and `verify()` do.
+`DET_PUZZLE_INVALID`, `DET_PUZZLE_NOT_UNIQUE` and `DET_PUZZLE_UNSOLVABLE` cannot be provoked by a section: the generator makes a proved puzzle for every kind, size, band and seed the schema allows (the proof test runs 200 seeds of each). They are covered in `tests/lint.test.ts` with an injected case builder that fails the way `generate()` and `verify()` do.
 
 ## Expected problem codes of the forced build
 

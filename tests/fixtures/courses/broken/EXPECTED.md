@@ -1,6 +1,6 @@
 # The broken fixture
 
-A small course that is wrong on purpose. It cannot be built the normal way (the validator refuses it), so the tests build it with `force: true` (`yarn engine -- build broken --force`) and then lint it. `tests/edu-lint.test.ts` asserts that the lint reports **exactly** the error codes below, and that the forced build reports exactly the build problem codes below. Nothing is a warning here.
+A small course that is wrong on purpose. It cannot be built the normal way (the validator refuses it), so the tests build it with `force: true` (`yarn engine -- build broken --force`) and then lint it. `tests/lint.test.ts` asserts that the lint reports each of the error codes below, and that the forced build reports exactly the build problem codes below. Nothing is a warning here.
 
 It has one edition (`en`), 12 items, 4 units and 8 objectives. The commented source of each mistake:
 

@@ -48,6 +48,6 @@ By default the room listens on `127.0.0.1`: only this machine can join (good for
 
 ## Where the code is
 
-`src/shared/live/` (questions, the room state machine, texts: pure), `src/engine/live/server.ts` (the http server) and `client-files.ts` (finds `out/live/`, like the player bundle; `EDU_LIVE_DIR` overrides), `src/live-client/` (the player and host pages, bundled by `vite.live.config.ts` to `out/live/live.js` and `live.css` with `yarn build:live`; `yarn build:engine` runs it), `src/engine/mcp/tools-live.ts` (the tools). Tests: `tests/live-room.test.ts`, `tests/live-server.test.ts`, `tests/live-mcp.test.ts` and the browser test `tests/live-quiz.e2e.test.ts`.
+`src/shared/live/` (questions, the room state machine, texts: pure), `src/engine/live/server.ts` (the http server) and `client-files.ts` (finds `out/live/`, like the player bundle; `EDU_LIVE_DIR` overrides), `src/live-client/` (the player and host pages, bundled by `vite.live.config.ts` to `out/live/live.js` and `live.css` with `yarn build:live`; `yarn build:engine` runs it), `src/engine/mcp/tools-live.ts` (the tools). Tests: `tests/live-room.test.ts`, `tests/live-server.test.ts`, `tests/edu-mcp.test.ts` and the browser test `tests/live-quiz.e2e.test.ts`.
 
 The live client draws the questions itself (big buttons or a text box) and does not use the game's item renderers: those need the whole pack and game data, and the players must never get the answers.

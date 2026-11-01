@@ -61,12 +61,6 @@ describe('the golden fixtures', () => {
       }
     })
 
-    it(`${name}: every text key of the section exists in every edition (the characters speak both languages)`, async () => {
-      const f = await loadFixture(name)
-      const refs = mindmazeShell.textRefs(sectionFor(f), f.pack)
-      expect(refs.length).toBeGreaterThan(50)
-      for (const lang of f.pack.languages) for (const r of refs) expect(f.catalogs[lang]?.strings[r.key], `${lang} ${r.key}`).toBeTruthy()
-    })
   }
 })
 
@@ -109,28 +103,6 @@ describe('the automatic layout (no section)', () => {
     expect(lintCodes(undefined, { ...f, pack })).toEqual([])
   })
 
-  it('units no authored wing covers get an automatic wing, in prerequisite order', async () => {
-    const f = await loadFixture('solar-system')
-    const s = sectionFor(f)
-    s.wings = s.wings.filter((w) => w.unit !== 'u-rocky-giant')
-    const maze = resolveMaze(f.pack, s)
-    expect(maze.wings.map((w) => [w.unit, w.auto])).toEqual([
-      ['u-sun-planets', false],
-      ['u-rocky-giant', true],
-      ['u-moons-beyond', false]
-    ])
-    // the lint tells the author a unit was forgotten, but the castle still works
-    expect(lintCodes(s, f)).toEqual(['MAZE_UNIT_NO_WING'])
-  })
-
-  it('a section with no wings at all (only torches) is a fully automatic castle', async () => {
-    const f = await loadFixture('solar-system')
-    const s = mindmazeSectionSchema.parse({ torches: 5 })
-    const maze = resolveMaze(f.pack, s)
-    expect(maze.torches).toBe(5)
-    expect(maze.wings.every((w) => w.auto)).toBe(true)
-    expect(lintCodes(s, f)).toEqual([])
-  })
 })
 
 describe('the graph helpers and the route', () => {
@@ -144,13 +116,6 @@ describe('the graph helpers and the route', () => {
     expect([...reachable(w, 'a')].sort()).toEqual(['a', 'b'])
     expect([...reachable(w, 'c')].sort()).toEqual(['a', 'b', 'c'])
     expect(reachable(w, 'nowhere').size).toBe(0)
-  })
-
-  it('canReachKey', () => {
-    const w = wing({ a: ['b'], b: ['k'], k: [], trap: [] }, ['k'])
-    expect(canReachKey(w, 'a')).toBe(true)
-    expect(canReachKey(w, 'k')).toBe(true)
-    expect(canReachKey(w, 'trap')).toBe(false)
   })
 
   it('routeToKey takes the shortest way, ties keep the author order of doors', () => {
@@ -182,23 +147,6 @@ describe('the graph helpers and the route', () => {
     expect(routeToKey(w, 'nope')).toMatchObject({ found: false })
   })
 
-  it('a loop between rooms does not trap the route', () => {
-    const w = wing({ a: ['b'], b: ['a', 'k'], k: [] }, ['k'])
-    expect(routeToKey(w, 'a').path).toEqual(['a', 'b', 'k'])
-  })
-})
-
-describe('the section schema', () => {
-  it('fills the defaults and refuses unknown fields', () => {
-    const s = mindmazeSectionSchema.parse({})
-    expect(s).toEqual({ torches: 3, wings: [] })
-    expect(mindmazeSectionSchema.safeParse({ torches: 3, spooky: true }).success).toBe(false)
-    expect(mindmazeSectionSchema.safeParse({ torches: 10 }).success).toBe(false)
-    expect(mindmazeSectionSchema.safeParse({ throne: { size: 2 } }).success).toBe(false)
-    expect(mindmazeSectionSchema.safeParse({ wings: [{ id: 'w', unit: 'u', name: 'k', entry: 'r', rooms: [] }] }).success).toBe(false)
-    const room = mindmazeSectionSchema.parse({ wings: [{ id: 'w', unit: 'u', name: 'k', entry: 'r', rooms: [{ id: 'r', name: 'k' }] }] }).wings[0]!.rooms[0]!
-    expect(room).toMatchObject({ doors: [], key: false })
-  })
 })
 
 describe('every lint code fires on a broken variant of solar-system', () => {

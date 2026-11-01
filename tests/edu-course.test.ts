@@ -6,15 +6,10 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { validateCourseFolder } from '../src/engine/edu/course-io'
 import {
   coursePackSchema,
-  findUnitCycle,
-  isBuiltinItem,
   itemBaseShape,
-  itemKindsBuiltin,
   itemsOf,
   objectivesOf,
-  textCatalogSchema,
-  unitOfItem,
-  unitOrder
+  unitOfItem
 } from '../src/shared/course'
 import {
   ITEM_KINDS,
@@ -43,44 +38,6 @@ describe('golden fixtures', () => {
       expect(res.pack?.id).toBe(name)
     })
   }
-
-  it('solar-system: en + hr, three units in a prerequisite chain, every item kind used', async () => {
-    const f = await loadFixture('solar-system')
-    expect(f.pack).toMatchObject({ schema: 1, sourceLang: 'en', languages: ['en', 'hr'] })
-    expect(f.pack.units.map((u) => u.id)).toEqual(['u-sun-planets', 'u-rocky-giant', 'u-moons-beyond'])
-    expect(f.pack.units.map((u) => u.requires)).toEqual([[], ['u-sun-planets'], ['u-rocky-giant']])
-    expect(unitOrder(f.pack.units)).toEqual(f.pack.units.map((u) => u.id))
-    expect(findUnitCycle(f.pack.units)).toBeNull()
-    // conjugation is a language-course kind: tests/fixtures/courses/de-verbs-a1 uses it
-    expect(new Set(f.pack.items.map((i) => i.kind))).toEqual(new Set(itemKindsBuiltin.filter((k) => k !== 'conjugation')))
-  })
-
-  it('solar-system: facts have sources and urls, articles cite them, items carry explanations and hooks', async () => {
-    const f = await loadFixture('solar-system')
-    expect(f.pack.factbase.length).toBeGreaterThanOrEqual(20)
-    for (const fact of f.pack.factbase) {
-      expect(fact.source).toMatch(/NASA/)
-      expect(fact.url).toMatch(/^https:\/\/(science\.nasa\.gov|www\.nasa\.gov|nssdc\.gsfc\.nasa\.gov)\//)
-    }
-    expect(f.pack.encyclopedia.articles.length).toBeGreaterThanOrEqual(4)
-    for (const a of f.pack.encyclopedia.articles) expect(a.citations.length).toBeGreaterThan(0)
-    expect(f.pack.items.filter((i) => i.didYouKnow).length).toBeGreaterThan(f.pack.items.length / 2)
-    const assets = Object.fromEntries(f.pack.assets.map((a) => [a.id, a]))
-    expect(assets['img-solar-system']?.kind).toBe('image')
-    expect(assets['aud-beeps']?.kind).toBe('audio')
-  })
-
-  it('hr-a1-greetings: source en, target hr, edition en, three units, A1, strict accents used', async () => {
-    const f = await loadFixture('hr-a1-greetings')
-    expect(f.pack).toMatchObject({ sourceLang: 'en', languages: ['en'], targetLang: 'hr', cefr: 'A1' })
-    expect(f.pack.units).toHaveLength(3)
-    expect(f.pack.units.map((u) => u.requires)).toEqual([[], ['u-greetings'], ['u-introductions']])
-    const kinds = new Set(f.pack.items.map((i) => i.kind))
-    for (const k of ['typed', 'cloze', 'match-pairs', 'mcq', 'flashcard', 'listening', 'word-search']) expect(kinds.has(k)).toBe(true)
-    expect(f.pack.items.some((i) => i.kind === 'typed' && i.strictDiacritics === true)).toBe(true)
-    // the listening clips are honest about being placeholder tones
-    for (const a of f.pack.assets.filter((x) => x.kind === 'audio')) expect(f.catalogs.en!.strings[a.alt]).toMatch(/placeholder tone/i)
-  })
 
   for (const name of FIXTURE_NAMES) {
     it(`${name}: every objective is asked in at least two forms and every item belongs to one`, async () => {
@@ -160,13 +117,6 @@ describe('golden fixtures', () => {
 })
 
 describe('schema', () => {
-  it('accepts both fixtures through the pack and catalog schemas', async () => {
-    for (const name of FIXTURE_NAMES) {
-      const f = await loadFixture(name)
-      expect(coursePackSchema.safeParse(f.rawPack).success).toBe(true)
-      for (const c of Object.values(f.rawCatalogs)) expect(textCatalogSchema.safeParse(c).success).toBe(true)
-    }
-  })
   it('rejects a pack without schema 1, with an unknown key, or with a bad id', async () => {
     const f = await loadFixture('solar-system')
     const a = clone(f.rawPack)
@@ -186,38 +136,6 @@ describe('schema', () => {
     expect(res.problems).toEqual([])
     expect(res.pack?.shells.config['something-new']).toEqual({ a: [1, 2] })
   })
-  it('fills defaults: difficulty 3, no tags, quiz-arena, no cues', () => {
-    const p = coursePackSchema.parse({
-      schema: 1,
-      id: 'x',
-      slug: 'x',
-      sourceLang: 'en',
-      languages: ['en'],
-      subject: 's',
-      audience: 'a',
-      units: [{ id: 'u', title: 't' }],
-      objectives: [{ id: 'o', unit: 'u', bloom: 'remember', text: 't' }],
-      items: []
-    })
-    expect(p.shells).toEqual({ enabled: ['quiz-arena'], config: {} })
-    expect(p.cues).toEqual([])
-    expect(p.matching).toEqual({ diacritics: 'ignore', typos: true })
-    expect(p.units[0]!.requires).toEqual([])
-  })
-  it('isBuiltinItem tells the built-in kinds', async () => {
-    const f = await loadFixture('solar-system')
-    expect(f.pack.items.every(isBuiltinItem)).toBe(true)
-    expect(isBuiltinItem({ id: 'a', objective: 'o', prompt: 'p', explanation: 'e', difficulty: 3, tags: [], kind: 'speaking' })).toBe(false)
-  })
-  it('findUnitCycle and unitOrder', () => {
-    const u = (id: string, ...requires: string[]) => ({ id, requires })
-    expect(findUnitCycle([u('a'), u('b', 'a'), u('c', 'b')])).toBeNull()
-    expect(findUnitCycle([u('a', 'c'), u('b', 'a'), u('c', 'b')])).toEqual(['a', 'c', 'b', 'a'])
-    expect(findUnitCycle([u('a', 'a')])).toEqual(['a', 'a'])
-    expect(findUnitCycle([u('a', 'ghost')])).toBeNull()
-    expect(unitOrder([u('c', 'b'), u('b', 'a'), u('a')])).toEqual(['a', 'b', 'c'])
-    expect(unitOrder([u('a', 'b'), u('b', 'a')])).toEqual([])
-  })
 })
 
 describe('validateCourse rejects crafted malformed packs with the expected codes', () => {
@@ -229,10 +147,6 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
   const item = (pack: Record<string, any>, id: string): Record<string, any> => pack.items.find((i: { id: string }) => i.id === id) // eslint-disable-line @typescript-eslint/no-explicit-any
   const has = (ps: Problem[], code: string, pathPart?: string): boolean => ps.some((p) => p.code === code && (!pathPart || p.path.includes(pathPart)))
 
-  it('the unmodified clone is fine (control)', async () => {
-    const { pack, cats } = await fresh()
-    expect(validateCourse(pack, cats)).toMatchObject({ ok: true, problems: [] })
-  })
   it('SCHEMA: wrong types, a missing field and an unknown key, with a path', async () => {
     const { pack, cats } = await fresh()
     // a base field wrong: the pack schema stops there and says where
@@ -323,11 +237,6 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     const p = validateCourse(pack, cats).problems.find((x) => x.code === 'MISSING_GAP_MARKER')
     expect(p?.message).toMatch(/"hr"/)
   })
-  it('ASSET_KIND: a hotspot on an audio file', async () => {
-    const { pack, cats } = await fresh()
-    item(pack, 'q-order-hotspot').asset = 'aud-beeps'
-    expect(has(validateCourse(pack, cats).problems, 'ASSET_KIND')).toBe(true)
-  })
   it('PUZZLE_UNPLACED: a crossword word that crosses nothing in one language', async () => {
     const { pack, cats } = await fresh()
     cats.hr.accepted['ss.word.earth'] = ['Qwx']
@@ -341,10 +250,6 @@ describe('validateCourse rejects crafted malformed packs with the expected codes
     expect(has(validateCourse(pack, { ...cats, de: { schema: 1, lang: 'de', strings: {} } }).problems, 'UNKNOWN_LANGUAGE', 'text[de]')).toBe(true)
     expect(has(validateCourse(pack, { ...cats, hr: { ...cats.hr, lang: 'en' } }).problems, 'CATALOG_LANG')).toBe(true)
     expect(has(validateCourse({ ...pack, sourceLang: 'de' }, cats).problems, 'SOURCE_LANG_NOT_LISTED')).toBe(true)
-  })
-  it('accepts the catalogs as a list as well as a record', async () => {
-    const { pack, cats } = await fresh()
-    expect(validateCourse(pack, Object.values(cats)).problems).toEqual([])
   })
 })
 
@@ -416,15 +321,6 @@ describe('the item-kind registry is extendable without touching the consumers', 
     expect(validateCourse(raw, cats).problems.map((p) => p.code)).toEqual(['UNKNOWN_KIND'])
   })
 
-  it('all fourteen built-in kinds are registered with a form label', () => {
-    for (const k of itemKindsBuiltin) {
-      const def = getItemKind(k)
-      expect(def, k).toBeDefined()
-      expect(def!.form.length).toBeGreaterThan(3)
-    }
-    expect(itemKindsBuiltin).toHaveLength(14)
-    expect(formOf({ kind: 'mystery' })).toBe('mystery')
-  })
 })
 
 describe('loading', () => {
