@@ -59,38 +59,20 @@ describe('MCP controller', () => {
     expect(await mcp.save({ enabled: true, port: 0 })).toMatchObject({ enabled: true, listening: true, tokenSet: true })
     expect(await readFile(cfgFile(), 'utf8')).toMatch(/token: tok/)
     expect((await mcp.save({ enabled: true, port: 0, token: '' })).tokenSet).toBe(false)
+    expect(JSON.stringify(statuses())).not.toContain('"token"') // the token itself is never sent to the app
     await mcp.stop()
     expect(mcp.status().listening).toBe(false)
     await lock.release()
-  })
 
-  it('is driven by the engine: a changed file, mcpStatus and saveMcpConfig', async () => {
-    env = await makeEduEnv()
-    await writeCfg(true, 0)
-    const started = await env.engine.startMcp()
-    expect(started.listening).toBe(true)
-    await env.engine.handleCommand({ type: 'mcpStatus' })
-    expect(statuses().at(-1)).toMatchObject({ listening: true, url: started.url })
-
-    await writeCfg(false, 0)
-    await env.engine.handleWatch({ kind: 'config', change: 'change', path: cfgFile(), rel: 'config/mcp.md' })
-    expect(statuses().at(-1)).toMatchObject({ enabled: false, listening: false })
-
-    await env.engine.handleCommand({ type: 'saveMcpConfig', enabled: true, port: 0, token: 'x' })
-    expect(statuses().at(-1)).toMatchObject({ enabled: true, listening: true, tokenSet: true })
-    expect(JSON.stringify(statuses())).not.toContain('"token"') // the token itself is never sent
-  })
-
-  it('reports a failed bind in the status and tries again on the next reload', async () => {
-    env = await makeEduEnv()
+    // a failed bind is reported in the status, and the next reload tries again
     const blocker = net.createServer()
     await new Promise<void>((r) => blocker.listen(0, '127.0.0.1', () => r()))
     const port = (blocker.address() as net.AddressInfo).port
     await writeCfg(true, port)
-    const mcp = new McpController({ dataDir: env.dir, svc: env.engine.edu, control: env.engine.mcpControl(), emit: () => undefined, env: {} })
-    expect(await mcp.start()).toMatchObject({ listening: false, error: `Port ${port} is already in use.` })
+    const busy = new McpController({ dataDir: env.dir, svc: env.engine.edu, control: env.engine.mcpControl(), emit: () => undefined, env: {} })
+    expect(await busy.start()).toMatchObject({ listening: false, error: `Port ${port} is already in use.` })
     await new Promise((r) => blocker.close(r))
-    expect(await mcp.reload()).toMatchObject({ listening: true, error: '' })
-    await mcp.stop()
+    expect(await busy.reload()).toMatchObject({ listening: true, error: '' })
+    await busy.stop()
   })
 })

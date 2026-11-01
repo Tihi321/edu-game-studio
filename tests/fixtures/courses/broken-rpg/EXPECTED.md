@@ -1,6 +1,6 @@
 # The broken-rpg fixture
 
-The `solar-system` course with a RPG section (`shells.config.rpg`) that is wrong on purpose. It cannot be built the normal way (the validator refuses the unknown unit and item), so `tests/rpg-lint.test.ts` builds it with `force: true` and then lints it. The test asserts that the lint reports **exactly** the codes below (the lint repeats the validator's `UNKNOWN_*` problems). Rebuild the folder with `node .claude/temp/rpg-make-broken.mjs` (phase 5 helper, not committed): everything but the section is the golden course.
+The `solar-system` course with a RPG section (`shells.config.rpg`) that is wrong on purpose. It cannot be built the normal way (the validator refuses the unknown unit and item), so `tests/lint.test.ts` builds it with `force: true` and then lints it. The test asserts that the lint reports each of the codes below (the lint repeats the validator's `UNKNOWN_*` problems). Rebuild the folder with `node .claude/temp/rpg-make-broken.mjs` (phase 5 helper, not committed): everything but the section is the golden course.
 
 It has one quiz-arena config and the RPG shell enabled, 3 units (`u-sun-planets`, `u-rocky-giant`, `u-moons-beyond`) and 3 broken areas. Each mistake is in `course/pack.json`, `shells.config.rpg`:
 
