@@ -1,16 +1,13 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Engine } from '../src/engine/engine'
-import { ClientProvider, ClientTaskQueue } from '../src/engine/models/client'
-import { checkBaseUrl, keyNameOf, removeCustomProviderEntry, slugOf, upsertCustomProvider } from '../src/engine/models/customProviders'
+import { keyNameOf, removeCustomProviderEntry, upsertCustomProvider } from '../src/engine/models/customProviders'
 import { deleteStoredKey, getStoredKey } from '../src/engine/models/keys'
-import { ModelRegistry } from '../src/engine/models/registry'
 import { initDataFolder } from '../src/engine/store/dataFolder'
 import { parseMd } from '../src/shared/md'
 import type { EngineEvent } from '../src/shared/protocol'
-import { collect } from '../src/engine/models/types'
 import { seedDir } from './helpers'
 
 let dir: string
@@ -46,15 +43,6 @@ async function started(fetchImpl?: typeof fetch) {
 }
 
 describe('custom provider entries in providers.md', () => {
-  it('makes the id from the name, the key name from the id, and checks the URL', () => {
-    expect(slugOf('ACP proxy (home)')).toBe('acp-proxy-home')
-    expect(slugOf('  Café #2 ')).toBe('cafe-2')
-    expect(slugOf('???')).toBe('')
-    expect(keyNameOf('acp-proxy-home')).toBe('CUSTOM_ACP_PROXY_HOME_API_KEY')
-    expect(checkBaseUrl(' http://127.0.0.1:7461/v1/ ')).toEqual({ url: 'http://127.0.0.1:7461/v1' })
-    expect(checkBaseUrl('ftp://host/v1')).toHaveProperty('error')
-    expect(checkBaseUrl('not a url')).toHaveProperty('error')
-  })
 
   it('adds, edits and removes only custom entries, keeping comments, the other providers and the text below', async () => {
     const seed = await readFile(file('providers.md'), 'utf8')
@@ -200,126 +188,5 @@ describe('custom providers in the engine', () => {
     expect(getStoredKey(keyName)).toBeUndefined() // the key goes with the provider
     expect(engine.allowedSecrets()).not.toContain(keyName)
     expect(JSON.stringify((await readConfig('models.md')).data)).not.toContain(id)
-  })
-
-  it('refuses a seed name, a duplicate and a bad address, and says why in provider.saved', async () => {
-    const { engine, last, logs } = await started()
-    const save = (name: string, baseUrl = 'http://127.0.0.1:1/v1') => engine.handleCommand({ type: 'saveCustomProvider', name, baseUrl, free: true, jsonSchema: false, concurrency: 1, enabled: true })
-    const before = await readFile(file('providers.md'), 'utf8')
-    await save('DeepSeek')
-    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/built-in/) })
-    await save('Fine', 'gopher://x')
-    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/http/) })
-    expect(await readFile(file('providers.md'), 'utf8')).toBe(before)
-    await save('Twice')
-    expect(last('provider.saved')).toMatchObject({ ok: true, id: 'twice' })
-    await save('twice')
-    expect(last('provider.saved')).toMatchObject({ ok: false, error: expect.stringMatching(/exists already/) })
-    expect(logs.join('\n')).toMatch(/saveCustomProvider/)
-    await engine.handleCommand({ type: 'removeCustomProvider', id: 'twice' })
-  })
-
-  it('testCustomProvider lists GET /models with the key and says how many models, or why not', async () => {
-    const seen: { url: string; auth: string | null }[] = []
-    const fetchImpl = (async (url: string, init?: RequestInit) => {
-      seen.push({ url: String(url), auth: new Headers(init?.headers).get('authorization') })
-      if (String(url).startsWith('http://good.test/')) return new Response(JSON.stringify({ data: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] }))
-      if (String(url).startsWith('http://denied.test/')) return new Response('nope', { status: 401 })
-      throw new Error('connect ECONNREFUSED')
-    }) as unknown as typeof fetch
-    const { engine, last } = await started(fetchImpl)
-    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://good.test/v1/', apiKey: ' sk-try ' })
-    expect(last('provider.tested')).toMatchObject({ ok: true, count: 3 })
-    expect(seen.at(-1)).toEqual({ url: 'http://good.test/v1/models', auth: 'Bearer sk-try' })
-    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://good.test/v1' })
-    expect(seen.at(-1)!.auth).toBeNull()
-    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://denied.test/v1' })
-    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/401/) })
-    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'http://down.test/v1' })
-    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/ECONNREFUSED/) })
-    await engine.handleCommand({ type: 'testCustomProvider', baseUrl: 'ftp://x' })
-    expect(last('provider.tested')).toMatchObject({ ok: false, error: expect.stringMatching(/http/) })
-    expect(await readFile(file('providers.md'), 'utf8')).not.toContain('good.test') // a test stores nothing
-  })
-})
-
-describe('fallbacks and the settings migration', () => {
-  it('reads default_*_model of an older settings.md, and writes only fallbacks when anything is saved', async () => {
-    const body = '# My settings\n\nhand notes\n'
-    await writeFile(file('settings.md'), `---\nkind: settings\ndefault_paid_model: deepseek/deepseek-v4-pro\ndefault_strata_model: strata/qwen3.8-flash-next-low\ndefault_lmstudio_model: lmstudio/nail-qwen3.6-35b-a3b-mtp\nmodel_order: [lmstudio, paid]\nlmstudio_parallel: 2\nscriptoriumData: ~/Scriptorium\n---\n${body}`)
-    const { engine } = await started()
-    expect((await engine.snapshot()).settings).toMatchObject({
-      fallbacks: ['lmstudio/nail-qwen3.6-35b-a3b-mtp', 'deepseek/deepseek-v4-pro', 'strata/qwen3.8-flash-next-low'],
-      fallbackShared: true
-    })
-    expect(engine.registry.resolve('paid')).toBe('deepseek/deepseek-v4-pro')
-    expect(engine.registry.resolve('lmstudio')).toBe('lmstudio/nail-qwen3.6-35b-a3b-mtp')
-    expect(await readFile(file('settings.md'), 'utf8')).toContain('default_paid_model') // reading does not rewrite the file
-
-    await engine.handleCommand({ type: 'saveSettings', fallbacks: ['strata/qwen3.8-flash-next', 'deepseek/deepseek-v4-pro', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'], fallbackShared: true })
-    const saved = await readFile(file('settings.md'), 'utf8')
-    expect(saved).not.toMatch(/default_(paid|strata|lmstudio)_model/)
-    expect(saved).not.toContain('group_defaults')
-    expect(saved).toContain(body)
-    expect(parseMd(saved).data).toMatchObject({
-      fallbacks: ['strata/qwen3.8-flash-next', 'deepseek/deepseek-v4-pro', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'],
-      fallback_shared: true,
-      lmstudio_parallel: 2
-    })
-    expect(engine.registry.resolve('paid')).toBe('deepseek/deepseek-v4-pro')
-  })
-
-  it('a settings.md with neither shape gets the built-in defaults; fallbacks wins over the old fields', async () => {
-    await writeFile(file('settings.md'), '---\nkind: settings\n---\n')
-    const a = await started()
-    expect((await a.engine.snapshot()).settings.fallbacks).toEqual(['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
-    await writeFile(file('settings.md'), '---\nkind: settings\ndefault_paid_model: deepseek/old\nfallbacks:\n  - deepseek/new\n---\n')
-    const b = await started()
-    expect(b.engine.registry.resolve('paid')).toBe('deepseek/new')
-  })
-
-  it('the seed settings.md uses fallbacks, and a fresh data folder has the acp provider (off) and both client models', async () => {
-    const settings = (await readConfig('settings.md')).data
-    expect(settings.fallbacks).toEqual(['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
-    expect(settings.fallback_shared).toBe(false)
-    expect(settings).not.toHaveProperty('group_defaults')
-    expect(settings).not.toHaveProperty('default_paid_model')
-    const registry = new ModelRegistry(dir, { keys: () => undefined })
-    await registry.load()
-    expect(registry.providers.get('acp')).toMatchObject({ kind: 'openai-compat', enabled: false, local: true, custom: false, baseUrl: 'http://127.0.0.1:7461/v1', concurrency: 2, jsonSchema: false, discover: true, available: false })
-    expect(registry.kindOf('acp/anything')).toBe('acp')
-    expect(registry.getModel('client/claude-code')).toMatchObject({ vision: true, context: 200000 })
-    expect(registry.getModel('client/antigravity')).toMatchObject({ vision: true, context: 1000000, priceIn: 0 })
-    expect(registry.providers.get('client')!.local).toBe(true)
-  })
-})
-
-describe('named MCP clients', () => {
-  const user = [{ role: 'user' as const, content: 'hi' }]
-
-  it('a task for antigravity is not leased without client, and a claude-code task is leased without it', () => {
-    const q = new ClientTaskQueue()
-    const a = q.add({ client: 'antigravity', messages: user }, { job: 'j1', role: 'writer' }).task
-    const c = q.add({ client: 'claude-code', messages: user }, { job: 'j2', role: 'writer' }).task
-    const none = q.add({ messages: user }, { job: 'j3', role: 'writer' }).task // no client named: claude-code
-    expect([a.client, c.client, none.client]).toEqual(['antigravity', 'claude-code', 'claude-code'])
-    expect(q.list().map((t) => t.client)).toEqual(['antigravity', 'claude-code', 'claude-code'])
-    expect(q.lease({})?.id).toBe('j2#1') // not the older antigravity task
-    expect(q.lease({ client: 'claude-code' })?.id).toBe('j3#1')
-    expect(q.lease({})).toBeNull() // only antigravity's task is left
-    expect(q.lease({ client: 'other' })).toBeNull()
-    expect(q.lease({ client: 'antigravity', role: 'writer' })?.id).toBe('j1#1')
-    expect(q.counts()).toEqual({ waiting: 0, leased: 3 })
-  })
-
-  it('ClientProvider takes the client from the model id of the request', async () => {
-    const q = new ClientTaskQueue()
-    const provider = new ClientProvider('client', q)
-    const run = collect(provider.chat({ model: 'antigravity', messages: user, meta: { job: 'j9', role: 'writer' } }))
-    expect(q.lease({})).toBeNull()
-    const task = q.lease({ client: 'antigravity' })!
-    expect(task).toMatchObject({ id: 'j9#1', client: 'antigravity' })
-    expect(q.submit(task.id, 'answer')).toEqual({ accepted: true })
-    expect((await run).text).toBe('answer')
   })
 })

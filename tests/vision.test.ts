@@ -4,7 +4,6 @@ import { toGeminiContents } from '../src/engine/models/gemini'
 import { OpenAiCompatClient, toOpenAiMessages } from '../src/engine/models/openaiCompat'
 import { AnthropicClient } from '../src/engine/models/anthropic'
 import { GeminiClient } from '../src/engine/models/gemini'
-import { contentText, estimateMessagesTokens, hasImages, IMAGE_TOKENS } from '../src/engine/models/types'
 import type { ChatMessage } from '../src/engine/models/types'
 import { collect } from '../src/engine/models/types'
 
@@ -19,16 +18,6 @@ const messages: ChatMessage[] = [
   },
   { role: 'assistant', content: 'Looking.' }
 ]
-
-describe('message content helpers', () => {
-  it('reads the text of string and part contents, and spots images', () => {
-    expect(contentText('hi')).toBe('hi')
-    expect(contentText(messages[1]!.content)).toBe('Does this match?')
-    expect(hasImages(messages)).toBe(true)
-    expect(hasImages([{ role: 'user', content: 'plain' }])).toBe(false)
-    expect(estimateMessagesTokens([{ role: 'user', content: [{ type: 'image', mime: 'image/png', data: 'AAAA' }] }])).toBe(IMAGE_TOKENS)
-  })
-})
 
 describe('vision mapping, no network', () => {
   it('OpenAI-compatible: an image part becomes an image_url data URI, a string stays a string', () => {

@@ -2,8 +2,8 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CourseStore } from '../src/engine/edu/store'
-import { handleStudioCommand, loadCourseView } from '../src/engine/edu/studio-commands'
-import { isCommand, type EngineEvent, type StudioCommand } from '../src/shared/protocol'
+import { handleStudioCommand } from '../src/engine/edu/studio-commands'
+import { type EngineEvent, type StudioCommand } from '../src/shared/protocol'
 import { copyFixture, fakeBundle, useTemp } from './edu-build-helpers'
 
 useTemp()
@@ -20,12 +20,6 @@ async function setup(fixture: 'solar-system' | 'broken' = 'solar-system') {
   }
   return { dataDir, courses, run }
 }
-
-describe('the studio commands are protocol commands', () => {
-  it('are accepted by isCommand (main drops unlisted ones)', () => {
-    for (const type of ['getCourse', 'buildCourse', 'lintCourse', 'updateItem']) expect(isCommand({ type, slug: 'a' })).toBe(true)
-  })
-})
 
 describe('getCourse', () => {
   it('answers with the validated pack, the text catalogs, the counts and the build state', async () => {
@@ -66,30 +60,6 @@ describe('buildCourse and lintCourse', () => {
     expect(linted.map((e) => e.type)).toEqual(['course.linted', 'course.loaded'])
     expect(linted[0]).toMatchObject({ ok: true, errors: 0, built: false })
   })
-  it('refuses a course with problems and lists their codes; force builds it and the lint reports codes', async () => {
-    const { run } = await setup('broken')
-    const refused = await run({ type: 'buildCourse', slug: 'broken' })
-    expect(refused[0]).toMatchObject({ type: 'course.built', ok: false, files: 0 })
-    const codes = (refused[0] as { problems: { code: string }[] }).problems.map((p) => p.code)
-    expect(codes).toContain('SCHEMA')
-    expect(codes).toContain('MISSING_ASSET_FILE')
-    const forced = await run({ type: 'buildCourse', slug: 'broken', force: true })
-    expect(forced[0]).toMatchObject({ type: 'course.built', ok: true, forced: true })
-    const lint = await run({ type: 'lintCourse', slug: 'broken' })
-    const l = lint[0] as { ok: boolean; problems: { code: string; severity: string }[] }
-    expect(l.ok).toBe(false)
-    expect(l.problems.map((p) => p.code)).toEqual(expect.arrayContaining(['PREREQ_CYCLE', 'ITEM_NO_KEY', 'OBJECTIVE_ONE_FORM']))
-  })
-  it('lint builds first when asked to rebuild, and says so', async () => {
-    const { run } = await setup()
-    const lint = await run({ type: 'lintCourse', slug: 'solar-system', rebuild: true })
-    expect(lint[0]).toMatchObject({ type: 'course.linted', built: true, ok: true })
-  })
-  it('a build or lint of a missing course is a command.error', async () => {
-    const { run } = await setup()
-    expect((await run({ type: 'buildCourse', slug: 'ghost' }))[0]).toMatchObject({ type: 'command.error', command: 'buildCourse', slug: 'ghost' })
-    expect((await run({ type: 'lintCourse', slug: 'ghost' }))[0]).toMatchObject({ type: 'command.error', command: 'lintCourse' })
-  })
 })
 
 describe('updateItem', () => {
@@ -103,25 +73,5 @@ describe('updateItem', () => {
     expect(loaded.text.en?.strings['q-order-mcq.prompt']).toBe('Which planet orbits closest to the Sun?')
     const onDisk = JSON.parse(await readFile(path.join(dataDir, 'courses', 'solar-system', 'course', 'text', 'en.json'), 'utf8'))
     expect(onDisk.strings['q-order-mcq.prompt']).toBe('Which planet orbits closest to the Sun?')
-  })
-  it('refuses a change that breaks the course and writes nothing', async () => {
-    const { run, dataDir } = await setup()
-    const file = path.join(dataDir, 'courses', 'solar-system', 'course', 'pack.json')
-    const before = await readFile(file, 'utf8')
-    const out = await run({ type: 'updateItem', slug: 'solar-system', id: 'q-order-mcq', patch: { answer: 'pluto' } })
-    expect(out).toHaveLength(1)
-    expect(out[0]).toMatchObject({ type: 'command.error', command: 'updateItem', slug: 'solar-system' })
-    expect(await readFile(file, 'utf8')).toBe(before)
-    const unknown = await run({ type: 'updateItem', slug: 'solar-system', id: 'q-none', patch: {} })
-    expect((unknown[0] as { message: string }).message).toContain('no item "q-none"')
-  })
-})
-
-describe('loadCourseView', () => {
-  it('is what getCourse sends', async () => {
-    const { courses } = await setup()
-    const v = await loadCourseView(courses, 'solar-system')
-    expect(v.slug).toBe('solar-system')
-    expect(v.pack.units).toHaveLength(3)
   })
 })

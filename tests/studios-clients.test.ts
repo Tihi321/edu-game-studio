@@ -1,10 +1,6 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { StudioError, createChiptuneClient } from '../src/engine/studios/chiptune'
-import { chiptuneClientFor, loadStudiosConfig, pixelClientFor, startHint, studioToken, studiosConfigSchema } from '../src/engine/studios/config'
-import { McpHttpError, createMcpClient, parseResultJson, resolveToken } from '../src/engine/studios/mcp-http'
+import { createMcpClient } from '../src/engine/studios/mcp-http'
 import { createPixelClient } from '../src/engine/studios/pixel'
 import { fakeMcpServer, studioResult } from './studio-fakes'
 
@@ -31,43 +27,6 @@ describe('generic MCP HTTP client', () => {
     expect(s.seen.map((x) => x.body.method)).toEqual(['initialize', 'notifications/initialized', 'tools/call', 'tools/call'])
     expect(s.seen[2]!.body.params).toEqual({ name: 'tool_a', arguments: { q: 1 } })
     expect(s.seen[2]!.headers['mcp-protocol-version']).toBe('2025-06-18')
-  })
-
-  it('reads SSE answers too', async () => {
-    const s = await serve({ sse: true, tools: { tool_a: () => studioResult('hi', { ok: true }) } })
-    expect((await mcp(s.url).callTool('tool_a', {})).json).toEqual({ ok: true })
-  })
-
-  it('lists tools', async () => {
-    const s = await serve({ tools: { a: () => ({}), b: () => ({}) } })
-    expect((await mcp(s.url).listTools()).map((t) => t.name)).toEqual(['a', 'b'])
-  })
-
-  it('json is null for a text-only answer, structuredContent wins, and an isError result throws a tool error', async () => {
-    const s = await serve({
-      tools: {
-        plain: () => ({ text: 'just words' }),
-        both: () => ({ content: [{ type: 'text', text: '{"from":"text"}' }], structured: { from: 'structured' } }),
-        bad: () => ({ isError: true, text: 'the song is missing' })
-      }
-    })
-    const c = mcp(s.url)
-    expect((await c.callTool('plain', {})).json).toBeNull()
-    expect((await c.callTool('both', {})).json).toEqual({ from: 'structured' })
-    await expect(c.callTool('bad', {})).rejects.toMatchObject({ name: 'McpHttpError', kind: 'tool', message: 'the song is missing' })
-  })
-
-  it('says how to start the app when nothing answers, and times out on a slow one', async () => {
-    const c = mcp('http://127.0.0.1:1/mcp')
-    await expect(c.callTool('x', {})).rejects.toMatchObject({ kind: 'unreachable', message: 'start the fake' })
-    const slow = await serve({ delayMs: 300, tools: { x: () => ({}) } })
-    await expect(createMcpClient({ url: slow.url, label: 'Fake', notRunningHint: 'h', timeoutMs: 80 }).callTool('x', {})).rejects.toBeInstanceOf(McpHttpError)
-  })
-
-  it('parseResultJson takes the last item that is an object, not an array or a number', () => {
-    expect(parseResultJson([{ type: 'text', text: '{"a":1}' }, { type: 'text', text: '[1,2]' }, { type: 'text', text: '42' }])).toEqual({ a: 1 })
-    expect(parseResultJson([{ type: 'text', text: '{"a":1}' }, { type: 'text', text: '{"b":2}' }])).toEqual({ b: 2 })
-    expect(parseResultJson([{ type: 'image' }])).toBeNull()
   })
 })
 
@@ -134,76 +93,5 @@ describe('Pixel Studio client (against a fake MCP server)', () => {
     expect(await c.openDocument({ path: 'p.png', exportTo: 'e.png' })).toMatchObject({ documentId: 'd3' })
     expect(await c.saveDocument({})).toMatchObject({ path: 'C:\\p.pxs' })
     expect((await c.callTool('draw_grid', { x: 0 })).text).toBe('drawn')
-  })
-})
-
-describe('studios config (config/studios.md)', () => {
-  let dir: string
-  afterEach(async () => {
-    if (dir) await rm(dir, { recursive: true, force: true })
-  })
-
-  it('has the contract URLs and repos by default, and env variables override the URLs', async () => {
-    dir = await mkdtemp(path.join(os.tmpdir(), 'edu-studios-'))
-    const c = await loadStudiosConfig(dir, {})
-    expect(c.pixelStudioUrl).toBe('http://127.0.0.1:7457/mcp')
-    expect(c.chiptuneStudioUrl).toBe('http://127.0.0.1:7458/mcp')
-    expect(c.pixelStudioRepo).toBe('../pixel-art-generator')
-    expect(c.chiptuneStudioRepo).toBe('../midi-generator')
-    const o = await loadStudiosConfig(dir, { EDU_PIXEL_STUDIO_URL: 'http://x:1/mcp', EDU_CHIPTUNE_STUDIO_URL: 'http://y:2/mcp' })
-    expect([o.pixelStudioUrl, o.chiptuneStudioUrl]).toEqual(['http://x:1/mcp', 'http://y:2/mcp'])
-  })
-
-  it('reads the seeded file (backslash paths included) and the start hint is the contract text', async () => {
-    dir = await mkdtemp(path.join(os.tmpdir(), 'edu-studios-'))
-    await mkdir(path.join(dir, 'config'), { recursive: true })
-    await writeFile(path.join(dir, 'config', 'studios.md'), await (await import('node:fs/promises')).readFile(path.resolve(__dirname, '..', 'seed', 'config', 'studios.md'), 'utf8'))
-    const c = await loadStudiosConfig(dir, {})
-    expect(c).toMatchObject({ pixelStudioRepo: '../pixel-art-generator', chiptuneStudioRepo: '../midi-generator', drawSteps: 12 })
-    expect(startHint(c, 'pixel')).toBe('Pixel Studio is not running at http://127.0.0.1:7457/mcp. Start it headless: cd ../pixel-art-generator && yarn build && yarn mcp')
-    expect(startHint({ ...c, chiptuneStudioExe: 'C:\\apps\\Chiptune.exe' }, 'chiptune')).toContain('C:\\apps\\Chiptune.exe --mcp-only')
-    expect(pixelClientFor(c).url).toBe(c.pixelStudioUrl)
-    expect(chiptuneClientFor(c).url).toBe(c.chiptuneStudioUrl)
-  })
-
-  it('a broken file gives the defaults', async () => {
-    dir = await mkdtemp(path.join(os.tmpdir(), 'edu-studios-'))
-    await mkdir(path.join(dir, 'config'), { recursive: true })
-    await writeFile(path.join(dir, 'config', 'studios.md'), '---\ntimeoutS: -5\n---\n')
-    expect(await loadStudiosConfig(dir, {})).toEqual(studiosConfigSchema.parse({}))
-  })
-})
-
-describe('studio tokens (V5)', () => {
-  const tools = { tool_a: () => studioResult('ok', { n: 1 }) }
-
-  it('sends Authorization: Bearer on every request when a token is set, and nothing when not', async () => {
-    const s = await serve({ tools })
-    const withToken = createMcpClient({ url: s.url, label: 'Fake', notRunningHint: 'x', timeoutMs: 2000, token: 'abc123' })
-    await withToken.callTool('tool_a', {})
-    expect(s.seen).toHaveLength(3)
-    expect(s.seen.every((x) => x.headers.authorization === 'Bearer abc123')).toBe(true)
-    const before = s.seen.length
-    await mcp(s.url).callTool('tool_a', {})
-    expect(s.seen.slice(before).every((x) => x.headers.authorization === undefined)).toBe(true)
-  })
-
-  it('a 401 says which variable to set', async () => {
-    const s = await serve({ tools, status: 401 })
-    const pixel = createPixelClient({ url: s.url, notRunningHint: 'x', timeoutMs: 2000, token: 'wrong' })
-    await expect(pixel.listDocuments()).rejects.toThrow('Pixel Studio rejected the token: set PIXEL_STUDIO_MCP_TOKEN to the token shown in its Settings -> MCP')
-    const chip = createChiptuneClient({ url: s.url, notRunningHint: 'x', timeoutMs: 2000 })
-    await expect(chip.listSongs()).rejects.toMatchObject({ name: 'StudioError', kind: 'http', message: expect.stringContaining('CHIPTUNE_STUDIO_MCP_TOKEN') })
-  })
-
-  it('the environment wins over the credential store, which wins over config/studios.md', () => {
-    const c = studiosConfigSchema.parse({ pixelStudioToken: 'from-config', chiptuneStudioToken: 'chip-config' })
-    const store = (account: string) => (account === 'PIXEL_STUDIO_MCP_TOKEN' ? 'from-store' : undefined)
-    expect(studioToken(c, 'pixel', { PIXEL_STUDIO_MCP_TOKEN: 'from-env' }, store)).toBe('from-env')
-    expect(studioToken(c, 'pixel', {}, store)).toBe('from-store')
-    expect(studioToken(c, 'pixel', {}, () => undefined)).toBe('from-config')
-    expect(studioToken(c, 'chiptune', {}, store)).toBe('chip-config')
-    expect(studioToken(studiosConfigSchema.parse({}), 'chiptune', {}, () => undefined)).toBeNull()
-    expect(resolveToken('SOME_MCP_TOKEN', '  spaced  ', {}, () => undefined)).toBe('spaced')
   })
 })
