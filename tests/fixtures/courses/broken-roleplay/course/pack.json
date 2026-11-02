@@ -1247,6 +1247,18 @@
             "item": "g-formal-typed"
           },
           {
+            "id": "w-unused-1",
+            "text": "rp.w.unused1",
+            "gloss": "rp.w.unused1.gloss",
+            "item": "g-name-cloze"
+          },
+          {
+            "id": "w-unused-2",
+            "text": "rp.w.unused2",
+            "gloss": "rp.w.unused2.gloss",
+            "item": "g-how-typed"
+          },
+          {
             "id": "w-ghost",
             "text": "rp.w.dobar-dan",
             "gloss": "rp.w.dobar-dan.gloss",

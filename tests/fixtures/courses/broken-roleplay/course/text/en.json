@@ -164,6 +164,8 @@
     "rp.w.kako-ste.gloss": "How are you? (polite)",
     "course.title": "Broken role-play (a lint test fixture)",
     "rp.bad.title": "A scene that is wrong on purpose",
-    "rp.bad.en-only": "Good day! (only in the English catalog)"
+    "rp.bad.en-only": "Good day! (only in the English catalog)",
+    "rp.w.unused1.gloss": "Surname",
+    "rp.w.unused2.gloss": "Excellent"
   }
 }

@@ -19,6 +19,11 @@ The course of `hr-a1-greetings` (3 units, 30 items, editions `en`, target langua
 | scene `sc-choices` | level `B2` in an `A1` course | `RP_CEFR_ABOVE_COURSE` (warning) |
 | scene `sc-choices` | the line's text exists only in the English catalog | `RP_TEXT_NOT_TARGET` (warning) |
 | unit `u-introductions` | every reply of its scenes is a choice: nothing is typed | `RP_REPLY_NOT_PRODUCTION` (warning) |
+| scenes `sc-ghost`, `sc-nostart` ... `sc-choices` | a reply with no `help` | `RP_REPLY_NO_HELP` (warning, EGS-56) |
+| the same short scenes | 2 or 3 lines and one or two turns, outside 6 to 14 lines with 2 to 6 turns | `RP_SCENE_LENGTH` (warning) |
+| scene `sc-badspeaker` | the line says "Dobar dan!", which is the answer of the turn after it | `RP_SAY_GIVES_ANSWER` (warning) |
+| garden words `w-unused-1`, `w-unused-2` | two of the six words of `u-introductions` that no scene of the unit uses (less than half are used) | `RP_UNIT_VOCAB_UNUSED` (warning) |
+| (German courses only) | du and Sie in one scene: not shown by this Croatian fixture; `tests/lint.test.ts` builds it from the German variant | `RP_REGISTER_MIXED` (warning) |
 
 ## Expected problem codes of the forced build
 
@@ -47,3 +52,7 @@ The lint repeats the validator's code and adds its own.
 - `RP_CEFR_ABOVE_COURSE`
 - `RP_TEXT_NOT_TARGET`
 - `RP_REPLY_NOT_PRODUCTION`
+- `RP_REPLY_NO_HELP`
+- `RP_SCENE_LENGTH`
+- `RP_SAY_GIVES_ANSWER`
+- `RP_UNIT_VOCAB_UNUSED`

@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { CEFR_LEVELS, idSchema, keySchema, unitOfItem, type CourseItem, type CoursePack } from '../course'
+import { normalizeText } from '../edu/match'
 import type { Problem, TextRef } from '../edu/registry'
+import type { TextResolver } from '../edu/text'
+import { registerOf } from '../lang/de/register'
 import type { ShellDef, ShellLintContext, ShellLintProblem } from './types'
 
 /**
@@ -158,6 +161,10 @@ export function isProduction(item: CourseItem | undefined): boolean {
 
 /** The share of a unit's vocabulary its scenes must use (EGS-39 `checkScenes` at generation, `RP_UNIT_VOCAB_UNUSED` in the lint). */
 export const ROLEPLAY_VOCAB_COVERAGE = 0.5
+/** The lint's bounds of a scene (looser than what the generator is asked for): lines in all, and turns of the learner. */
+export const ROLEPLAY_SCENE_LINES: readonly [number, number] = [6, 14]
+export const ROLEPLAY_SCENE_REPLIES: readonly [number, number] = [2, 6]
+
 const CEFR_RANK = new Map(CEFR_LEVELS.map((l, i) => [l as string, i]))
 
 // ---- the shell definition ----
@@ -176,10 +183,37 @@ export const ROLEPLAY_CODES = [
   'RP_FINALE_MISSING',
   'RP_TEXT_NOT_TARGET',
   'RP_REPLY_NOT_PRODUCTION',
-  'RP_CEFR_ABOVE_COURSE'
+  'RP_CEFR_ABOVE_COURSE',
+  // EGS-56: warnings that catch hand-edited and imported courses (the scene generator refuses the same faults in its own output)
+  'RP_REPLY_NO_HELP',
+  'RP_UNIT_VOCAB_UNUSED',
+  'RP_SCENE_LENGTH',
+  'RP_SAY_GIVES_ANSWER',
+  'RP_REGISTER_MIXED'
 ] as const
 
-const ROLEPLAY_WARNINGS = ['RP_TEXT_NOT_TARGET', 'RP_REPLY_NOT_PRODUCTION', 'RP_CEFR_ABOVE_COURSE'] as const
+const ROLEPLAY_WARNINGS = ['RP_TEXT_NOT_TARGET', 'RP_REPLY_NOT_PRODUCTION', 'RP_CEFR_ABOVE_COURSE', 'RP_REPLY_NO_HELP', 'RP_UNIT_VOCAB_UNUSED', 'RP_SCENE_LENGTH', 'RP_SAY_GIVES_ANSWER', 'RP_REGISTER_MIXED'] as const
+
+/** What the learner types or picks to answer an item, as text (typed, cloze gaps and the right choice). Empty for kinds without a short answer. */
+export function replyAnswerTexts(item: CourseItem | undefined, r: TextResolver): string[] {
+  if (!item) return []
+  const it = item as unknown as { kind: string; answer?: string; options?: { id: string; text: string }[]; gaps?: { answer: string }[] }
+  switch (it.kind) {
+    case 'typed':
+      return it.answer ? r.accepted(it.answer) : []
+    case 'mcq': {
+      const right = it.options?.find((o) => o.id === it.answer)
+      const t = right ? r.text(right.text) : undefined
+      return t ? [t] : []
+    }
+    case 'cloze':
+      return (it.gaps ?? []).flatMap((g) => r.accepted(g.answer))
+    default:
+      return []
+  }
+}
+
+const fold = (s: string): string => normalizeText(s, { fold: true })
 
 function textRefs(s: RoleplaySection): TextRef[] {
   const out: TextRef[] = []
@@ -285,6 +319,47 @@ function lint(section: RoleplaySection | undefined, ctx: ShellLintContext): Shel
       if (turns.length === 0) err('RP_SCENE_NO_REPLY', `${at}.lines`, `the scene "${sc.id}" has no turn for the learner: nothing is asked, so nothing is retrieved`)
     } else if (!sc.lines.some(isReply)) err('RP_SCENE_NO_REPLY', `${at}.lines`, `the scene "${sc.id}" has no turn for the learner: nothing is asked, so nothing is retrieved`)
   })
+
+  // ---- EGS-56 warnings ----
+  // the target-language keys resolve through any edition's resolver (it falls back to the target catalog)
+  const resolver = (pack.targetLang ? ctx.resolvers[pack.targetLang] : undefined) ?? ctx.resolvers[ctx.editions[0] ?? pack.sourceLang] ?? Object.values(ctx.resolvers)[0]
+  section.scenes.forEach((sc, i) => {
+    const at = `scenes[${i}]`
+    const replies = sc.lines.filter(isReply)
+    replies.forEach((l) => {
+      if (!l.help) warn('RP_REPLY_NO_HELP', `${at}.lines[${sc.lines.indexOf(l)}].help`, `the reply "${l.id}" has no help: after a miss the other speaker has nothing to say`)
+    })
+    const [lo, hi] = ROLEPLAY_SCENE_LINES
+    const [rlo, rhi] = ROLEPLAY_SCENE_REPLIES
+    if (sc.lines.length < lo || sc.lines.length > hi || replies.length < rlo || replies.length > rhi)
+      warn('RP_SCENE_LENGTH', `${at}.lines`, `the scene "${sc.id}" has ${sc.lines.length} lines and ${replies.length} turns for the learner; a scene runs ${lo} to ${hi} lines with ${rlo} to ${rhi} turns`)
+    if (!resolver) return
+    const answers = replies.flatMap((l) => replyAnswerTexts(items.get(l.reply), resolver))
+    const said = new Set(answers.map(fold))
+    for (const l of sc.lines) {
+      // a line the learner has to type back after hearing it (`listen`) is a dictation, not a leak
+      const t = isSay(l) && !l.listen ? resolver.text(l.text) : undefined
+      if (t && said.has(fold(t))) warn('RP_SAY_GIVES_ANSWER', `${at}.lines[${sc.lines.indexOf(l)}].text`, `the line "${l.id}" says "${t}", which is also the answer to a turn of the scene: the learner can copy it`)
+    }
+    if (pack.targetLang === 'de') {
+      const texts = [...sc.lines.filter(isSay).map((l) => resolver.text(l.text) ?? ''), ...answers, ...replies.map((l) => (l.youSay ? resolver.text(l.youSay) ?? '' : ''))]
+      const regs = texts.map(registerOf)
+      if (regs.some((x) => x.du) && regs.some((x) => x.sie)) warn('RP_REGISTER_MIXED', `${at}.lines`, `the scene "${sc.id}" addresses people with both du and Sie: one scene keeps one register`)
+    }
+  })
+  if (resolver) {
+    for (const u of pack.units) {
+      const mine = scenesOfUnit(section, u.id)
+      const words = section.garden.filter((w) => unitOfWord(pack, w) === u.id)
+      if (mine.length === 0 || words.length < 2) continue
+      const corpus = ` ${mine.flatMap((sc) => sc.lines.flatMap((l) => (isSay(l) ? [resolver.text(l.text) ?? ''] : [...replyAnswerTexts(items.get(l.reply), resolver), l.youSay ? resolver.text(l.youSay) ?? '' : '']))).map(fold).join(' ')} `
+      const used = words.filter((w) => {
+        const t = resolver.text(w.text)
+        return t !== undefined && corpus.includes(` ${fold(t)} `)
+      }).length
+      if (used / words.length < ROLEPLAY_VOCAB_COVERAGE) warn('RP_UNIT_VOCAB_UNUSED', 'scenes', `the scenes of the unit "${u.id}" use ${used} of its ${words.length} garden words: the conversation hardly practises what the unit teaches`)
+    }
+  }
 
   // ---- production: a unit whose replies are all choices never makes the learner type ----
   for (const u of pack.units) {

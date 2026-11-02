@@ -62,7 +62,9 @@
     "rp.w.hvala": "Hvala",
     "rp.w.molim": "Molim",
     "rp.w.kako-ste": "Kako ste?",
-    "rp.bad.line": "Dobar dan!"
+    "rp.bad.line": "Dobar dan!",
+    "rp.w.unused1": "Prezime",
+    "rp.w.unused2": "Odlično"
   },
   "accepted": {
     "g-hello-typed.answer": [

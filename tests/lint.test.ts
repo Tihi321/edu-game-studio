@@ -471,6 +471,16 @@ const CASES: Record<string, () => Promise<void> | void> = {
     expect(ps.filter((p) => p.code === 'SHELL_SECTION_MISSING').map((p) => p.path)).toEqual(['shells.config.roleplay'])
   },
 
+  // ----- role-play register (EGS-56): German courses only, so the Croatian broken fixture cannot show it -----
+  async RP_REGISTER_MIXED() {
+    const data = await germanGame([{ person: 'ich', answer: 'gehe' }, { person: 'du', answer: 'gehst' }])
+    for (const lang of ['de', 'hr']) {
+      str(data, lang, 'rp.sc.cafe.l1', 'Möchtest du einen Kaffee?')
+      str(data, lang, 'rp.sc.cafe.l3', 'Haben Sie auch Zeit?')
+    }
+    expect(only(lint(data), 'RP_REGISTER_MIXED').map((p) => [p.path, p.severity])).toEqual([['shells.config.roleplay.scenes[0].lines', 'warning']])
+  },
+
   // ----- the glossary of a reading (EGS-35) -----
   async GLOSS_TERM_NOT_IN_TEXT() {
     const r = await lintReading((_p, c) => {
