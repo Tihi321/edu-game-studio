@@ -156,6 +156,8 @@ export function isProduction(item: CourseItem | undefined): boolean {
   }
 }
 
+/** The share of a unit's vocabulary its scenes must use (EGS-39 `checkScenes` at generation, `RP_UNIT_VOCAB_UNUSED` in the lint). */
+export const ROLEPLAY_VOCAB_COVERAGE = 0.5
 const CEFR_RANK = new Map(CEFR_LEVELS.map((l, i) => [l as string, i]))
 
 // ---- the shell definition ----

@@ -36,7 +36,7 @@ export function dropNulls(v: unknown): unknown {
 const lenient = <S extends z.ZodType>(s: S) => z.preprocess(dropNulls, s) as unknown as S
 
 const text = (what = 'a text') => z.string({ error: `${what} must be a string` }).trim().min(1, `${what} must not be empty`)
-const ident = z.string({ error: 'an id must be a string' }).regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, 'an id may only have letters, digits, - and _ (no spaces, dots or accents), and starts with a letter or digit')
+export const ident = z.string({ error: 'an id must be a string' }).regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/, 'an id may only have letters, digits, - and _ (no spaces, dots or accents), and starts with a letter or digit')
 const ids = (what: string) => z.array(ident, { error: `${what} must be a list of ids` })
 
 /** A problem found by a `check...` function: `ref` is an id (item, article, objective, unit) or '' for the whole answer. */
@@ -880,6 +880,8 @@ export const PROMPT_VARS = {
   'art-critic/review': ['title', 'asset_id', 'kind', 'target', 'prompt', 'alt', 'style', 'round', 'scores_example'],
   'composer/plan': ['title', 'subject', 'audience', 'age', 'language', 'style', 'units', 'areas', 'events', 'moods', 'chips', 'chip', 'sounds', 'min_seconds', 'max_seconds', 'shells', 'sfx_engine'],
   'voice-director/plan': ['title', 'subject', 'audience', 'age', 'language', 'source_lang', 'target_lang', 'target_language', 'units', 'narration', 'candidates', 'listening', 'max_narration', 'per_unit'],
+  'scene-writer/scenes': ['title', 'audience', 'cefr', 'language', 'target_language', 'unit_id', 'unit_title', 'unit_summary', 'objectives', 'factbase', 'scope', 'items', 'speakers', 'language_rules', 'scene_count', 'scene_id_prefix', 'finale_note', 'scene_lines', 'scene_replies', 'typed_replies', 'new_items_rule', 'item_id_prefix', 'gap_marker'],
+  'scene-writer/scenes_revise': ['title', 'audience', 'cefr', 'language', 'target_language', 'unit_id', 'unit_title', 'unit_summary', 'objectives', 'factbase', 'scope', 'items', 'speakers', 'language_rules', 'scene_count', 'scene_id_prefix', 'finale_note', 'scene_lines', 'scene_replies', 'typed_replies', 'new_items_rule', 'item_id_prefix', 'gap_marker', 'previous', 'problems'],
   'translator/edition': ['title', 'audience', 'source_language', 'edition_language', 'gap_marker', 'taught_note', 'entries'],
   'playtester/report': ['title', 'audience', 'age', 'units', 'personas', 'lint', 'scores_example'],
   'accessibility-reviewer/review': ['title', 'round', 'audience', 'age', 'level', 'language', 'content', 'scores_example'],
