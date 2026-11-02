@@ -36,11 +36,12 @@ The phase numbers are the ones of the hub plan.
 - **EGS-57** German role-play fixture and bot (HUB-23): fixture `de-roleplay-a1` (hr and en editions, target `de`), bot runs perfect, wrong, random and keyboard-only on it. Implemented on branch `EGS-39_roleplay-generator`, not committed. Plan `.claude/tickets/EGS-57-de-roleplay-fixture/`.
 - **EGS-58** live-check fixes (HUB-23, reserved): whatever the live check of `deutsch-roleplay-a1` and `deutsch-roleplay-b2` finds. Reserved and not needed unless the live check finds something (the changelog of EGS-57 says it is not needed yet). Created only if needed.
 - **EGS-19** hub wiring support: whatever the hub's registration needs from this repo (a `hub.ps1 check` handshake, the tool count, a skill that makes a course from one sentence).
-- **EGS-20** packaging: the Windows installer and portable exe (electron-builder, icons, a package check), CI (CI runs `yarn test` and, as a separate job, `yarn test:e2e`).
+- **CI** (was listed as part of the packaging row): CI runs `yarn test` and, as a separate job, `yarn test:e2e`. Not started.
 - **EGS-21** Android through Capacitor, later.
 
 ## Done
 
+- **EGS-59** packaging (listed earlier as EGS-20, a number classroom mode already uses): electron-builder 26.15.3 (`electron-builder.config.cjs`), the NSIS installer and the portable exe for Windows x64, the generated icon (`yarn icons`), the package check (`yarn verify:package`); `yarn dist`. Not code-signed with a certificate. Plan `.claude/tickets/EGS-59-packaging/`.
 - **EGS-01** the repository skeleton: VN Studio's generic engine core (models, router, queue, budget, agents, MCP, client provider, ComfyUI and studio clients), renamed to Edu Studio, MCP on port 7463. Plan `.claude/tickets/EGS-01-skeleton/`.
 - **EGS-02** the course contract (`src/shared/course.ts`), 13 item kinds with pure-TS checkers in a registry, tolerant matching, SM-2, adaptive difficulty, seeded crossword and word search, the validator, and the golden fixtures (solar system en + hr, Croatian A1 greetings). Plan `.claude/tickets/EGS-02-course-contract/`.
 - **EGS-03** the player runtime (`window.EduEngine`, quiz arena, all item renderers, localStorage progress with export and import), the build into a `file://` folder, `edu_lint` with a broken fixture, the course MCP tools and CLI. Plan `.claude/tickets/EGS-03-player-runtime/`.

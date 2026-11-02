@@ -56,6 +56,9 @@ yarn install
 | --- | --- |
 | `yarn dev` | Builds the engine and starts the desktop app with hot reload |
 | `yarn build` | Builds the engine, main, preload and renderer into `out/` |
+| `yarn dist` | `yarn build`, then electron-builder (`electron-builder.config.cjs`): the Windows installer `release/Edu-Studio-Setup-<version>-x64.exe` and the portable `release/Edu-Studio-Portable-<version>-x64.exe`, then `yarn verify:package`. `dist:installer`, `dist:portable` build one of them; `dist:dir` only `release/win-unpacked/` |
+| `yarn verify:package` | Checks `release/win-unpacked/`: the archive's files, the seed, themes and icon in `resources/`, and that sharp and the keyring load from `app.asar.unpacked` (runs the exe as Node, no window) |
+| `yarn icons` | Writes `build/icon.png` and `build/icon.ico` from a 16x16 sprite (`scripts/make-icons.mjs`; the outputs are committed) |
 | `yarn build:engine` | Builds the headless engine to `out/engine/index.js` |
 | `yarn engine [-- probe]` | Runs the headless engine; `probe` sends one short request to a model |
 | `yarn engine -- <command>` | The course CLI (no engine is started; `--data <dir>` or `EDU_DATA` picks the data folder): `courses`, `import-course <folder> [--slug s] [--overwrite]`, `validate <slug>`, `build <slug> [--force]` (writes `courses/<slug>/build/`, needs the player bundle), `lint <slug> [--json]` (exit 0 clean, 1 errors), `help` |
