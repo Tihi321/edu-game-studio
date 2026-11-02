@@ -1,0 +1,592 @@
+{
+  "schema": 1,
+  "id": "de-roleplay-a1",
+  "slug": "de-roleplay-a1",
+  "sourceLang": "hr",
+  "languages": [
+    "hr",
+    "en"
+  ],
+  "targetLang": "de",
+  "subject": "Deutsch A1: Gespräche",
+  "audience": "Croatian and English speakers learning German conversation",
+  "cefr": "A1",
+  "matching": {
+    "diacritics": "warn",
+    "typos": true
+  },
+  "units": [
+    {
+      "id": "u-sein",
+      "title": "unit.sein.title",
+      "summary": "unit.sein.summary",
+      "requires": []
+    },
+    {
+      "id": "u-cafe",
+      "title": "unit.cafe.title",
+      "summary": "unit.cafe.summary",
+      "requires": [
+        "u-sein"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj-sein",
+      "unit": "u-sein",
+      "bloom": "apply",
+      "text": "obj.sein",
+      "facts": []
+    },
+    {
+      "id": "obj-cafe",
+      "unit": "u-cafe",
+      "bloom": "apply",
+      "text": "obj.cafe",
+      "facts": []
+    }
+  ],
+  "items": [
+    {
+      "id": "q-name-typed",
+      "kind": "typed",
+      "objective": "obj-sein",
+      "prompt": "item.q-name-typed.prompt",
+      "explanation": "item.q-name-typed.expl",
+      "difficulty": 2,
+      "tags": [
+        "unit:u-sein",
+        "intro"
+      ],
+      "answer": "item.q-name-typed.answer"
+    },
+    {
+      "id": "q-gut-mcq",
+      "kind": "mcq",
+      "objective": "obj-sein",
+      "prompt": "item.q-gut-mcq.prompt",
+      "explanation": "item.q-gut-mcq.expl",
+      "difficulty": 1,
+      "tags": [
+        "unit:u-sein",
+        "intro"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "item.q-gut-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "item.q-gut-mcq.opt.b",
+          "why": "item.q-gut-mcq.opt.b.why"
+        },
+        {
+          "id": "c",
+          "text": "item.q-gut-mcq.opt.c",
+          "why": "item.q-gut-mcq.opt.c.why"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "q-herkunft-typed",
+      "kind": "typed",
+      "objective": "obj-sein",
+      "prompt": "item.q-herkunft-typed.prompt",
+      "explanation": "item.q-herkunft-typed.expl",
+      "difficulty": 2,
+      "tags": [
+        "unit:u-sein",
+        "intro",
+        "umlaut"
+      ],
+      "answer": "item.q-herkunft-typed.answer"
+    },
+    {
+      "id": "q-sein-mcq",
+      "kind": "mcq",
+      "objective": "obj-sein",
+      "prompt": "item.q-sein-mcq.prompt",
+      "explanation": "item.q-sein-mcq.expl",
+      "difficulty": 1,
+      "tags": [
+        "unit:u-sein",
+        "verbs"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "item.q-sein-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "item.q-sein-mcq.opt.b",
+          "why": "item.q-sein-mcq.opt.b.why"
+        },
+        {
+          "id": "c",
+          "text": "item.q-sein-mcq.opt.c",
+          "why": "item.q-sein-mcq.opt.c.why"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "q-kaffee-typed",
+      "kind": "typed",
+      "objective": "obj-cafe",
+      "prompt": "item.q-kaffee-typed.prompt",
+      "explanation": "item.q-kaffee-typed.expl",
+      "difficulty": 2,
+      "tags": [
+        "unit:u-cafe",
+        "order",
+        "umlaut"
+      ],
+      "answer": "item.q-kaffee-typed.answer"
+    },
+    {
+      "id": "q-kuchen-mcq",
+      "kind": "mcq",
+      "objective": "obj-cafe",
+      "prompt": "item.q-kuchen-mcq.prompt",
+      "explanation": "item.q-kuchen-mcq.expl",
+      "difficulty": 1,
+      "tags": [
+        "unit:u-cafe",
+        "order"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "item.q-kuchen-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "item.q-kuchen-mcq.opt.b",
+          "why": "item.q-kuchen-mcq.opt.b.why"
+        },
+        {
+          "id": "c",
+          "text": "item.q-kuchen-mcq.opt.c",
+          "why": "item.q-kuchen-mcq.opt.c.why"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "q-zahlen-mcq",
+      "kind": "mcq",
+      "objective": "obj-cafe",
+      "prompt": "item.q-zahlen-mcq.prompt",
+      "explanation": "item.q-zahlen-mcq.expl",
+      "difficulty": 1,
+      "tags": [
+        "unit:u-cafe",
+        "order"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "item.q-zahlen-mcq.opt.a"
+        },
+        {
+          "id": "b",
+          "text": "item.q-zahlen-mcq.opt.b",
+          "why": "item.q-zahlen-mcq.opt.b.why"
+        },
+        {
+          "id": "c",
+          "text": "item.q-zahlen-mcq.opt.c",
+          "why": "item.q-zahlen-mcq.opt.c.why"
+        }
+      ],
+      "answer": "a",
+      "shuffle": true
+    },
+    {
+      "id": "rp-u-cafe-1",
+      "kind": "typed",
+      "objective": "obj-cafe",
+      "prompt": "item.rp-u-cafe-1.prompt",
+      "explanation": "item.rp-u-cafe-1.expl",
+      "difficulty": 2,
+      "tags": [
+        "unit:u-cafe",
+        "scene",
+        "umlaut"
+      ],
+      "answer": "item.rp-u-cafe-1.answer"
+    }
+  ],
+  "shells": {
+    "enabled": [
+      "quiz-arena",
+      "roleplay"
+    ],
+    "config": {
+      "roleplay": {
+        "speakers": [
+          {
+            "id": "anna",
+            "name": "rp.sp.anna",
+            "learner": false
+          },
+          {
+            "id": "jonas",
+            "name": "rp.sp.jonas",
+            "learner": false
+          },
+          {
+            "id": "you",
+            "name": "rp.sp.you",
+            "learner": true
+          }
+        ],
+        "scenes": [
+          {
+            "id": "u-sein-kennenlernen",
+            "unit": "u-sein",
+            "title": "rp.sc.u-sein-kennenlernen.title",
+            "setting": "rp.sc.u-sein-kennenlernen.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l1",
+                "translation": "rp.sc.u-sein-kennenlernen.l1.tr",
+                "listen": false,
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l2",
+                "translation": "rp.sc.u-sein-kennenlernen.l2.tr",
+                "listen": false,
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "reply": "q-name-typed",
+                "help": "rp.sc.u-sein-kennenlernen.l3.help",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l4",
+                "translation": "rp.sc.u-sein-kennenlernen.l4.tr",
+                "listen": false,
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l5",
+                "translation": "rp.sc.u-sein-kennenlernen.l5.tr",
+                "listen": false,
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "q-gut-mcq",
+                "help": "rp.sc.u-sein-kennenlernen.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l7",
+                "translation": "rp.sc.u-sein-kennenlernen.l7.tr",
+                "listen": false,
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "q-herkunft-typed",
+                "help": "rp.sc.u-sein-kennenlernen.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l9",
+                "translation": "rp.sc.u-sein-kennenlernen.l9.tr",
+                "listen": false,
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "reply": "q-sein-mcq",
+                "help": "rp.sc.u-sein-kennenlernen.l10.help",
+                "youSay": "rp.sc.u-sein-kennenlernen.l10.you",
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "say": "anna",
+                "text": "rp.sc.u-sein-kennenlernen.l11",
+                "translation": "rp.sc.u-sein-kennenlernen.l11.tr",
+                "listen": false,
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "u-cafe-bestellen",
+            "unit": "u-cafe",
+            "title": "rp.sc.u-cafe-bestellen.title",
+            "setting": "rp.sc.u-cafe-bestellen.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "jonas",
+                "text": "rp.sc.u-cafe-bestellen.l1",
+                "translation": "rp.sc.u-cafe-bestellen.l1.tr",
+                "listen": false,
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "reply": "q-kaffee-typed",
+                "help": "rp.sc.u-cafe-bestellen.l2.help",
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "say": "jonas",
+                "text": "rp.sc.u-cafe-bestellen.l3",
+                "translation": "rp.sc.u-cafe-bestellen.l3.tr",
+                "listen": false,
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "reply": "q-kuchen-mcq",
+                "help": "rp.sc.u-cafe-bestellen.l4.help",
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "say": "jonas",
+                "text": "rp.sc.u-cafe-bestellen.l5",
+                "translation": "rp.sc.u-cafe-bestellen.l5.tr",
+                "listen": false,
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "reply": "q-zahlen-mcq",
+                "help": "rp.sc.u-cafe-bestellen.l6.help",
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "say": "jonas",
+                "text": "rp.sc.u-cafe-bestellen.l7",
+                "translation": "rp.sc.u-cafe-bestellen.l7.tr",
+                "listen": false,
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "reply": "rp-u-cafe-1",
+                "help": "rp.sc.u-cafe-bestellen.l8.help",
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "say": "jonas",
+                "text": "rp.sc.u-cafe-bestellen.l9",
+                "translation": "rp.sc.u-cafe-bestellen.l9.tr",
+                "listen": false,
+                "next": null
+              }
+            ]
+          },
+          {
+            "id": "finale",
+            "title": "rp.sc.finale.title",
+            "setting": "rp.sc.finale.setting",
+            "cefr": "A1",
+            "start": "l1",
+            "lines": [
+              {
+                "id": "l1",
+                "say": "anna",
+                "text": "rp.sc.finale.l1",
+                "translation": "rp.sc.finale.l1.tr",
+                "listen": false,
+                "next": "l2"
+              },
+              {
+                "id": "l2",
+                "say": "anna",
+                "text": "rp.sc.finale.l2",
+                "translation": "rp.sc.finale.l2.tr",
+                "listen": false,
+                "next": "l3"
+              },
+              {
+                "id": "l3",
+                "reply": "q-name-typed",
+                "help": "rp.sc.finale.l3.help",
+                "next": "l4"
+              },
+              {
+                "id": "l4",
+                "say": "anna",
+                "text": "rp.sc.finale.l4",
+                "translation": "rp.sc.finale.l4.tr",
+                "listen": false,
+                "next": "l5"
+              },
+              {
+                "id": "l5",
+                "reply": "q-kaffee-typed",
+                "help": "rp.sc.finale.l5.help",
+                "next": "l6"
+              },
+              {
+                "id": "l6",
+                "say": "anna",
+                "text": "rp.sc.finale.l6",
+                "translation": "rp.sc.finale.l6.tr",
+                "listen": false,
+                "next": "l7"
+              },
+              {
+                "id": "l7",
+                "reply": "q-gut-mcq",
+                "help": "rp.sc.finale.l7.help",
+                "next": "l8"
+              },
+              {
+                "id": "l8",
+                "say": "anna",
+                "text": "rp.sc.finale.l8",
+                "translation": "rp.sc.finale.l8.tr",
+                "listen": false,
+                "next": "l9"
+              },
+              {
+                "id": "l9",
+                "reply": "q-sein-mcq",
+                "help": "rp.sc.finale.l9.help",
+                "youSay": "rp.sc.finale.l9.you",
+                "next": "l10"
+              },
+              {
+                "id": "l10",
+                "say": "anna",
+                "text": "rp.sc.finale.l10",
+                "translation": "rp.sc.finale.l10.tr",
+                "listen": false,
+                "next": "l11"
+              },
+              {
+                "id": "l11",
+                "reply": "rp-u-cafe-1",
+                "help": "rp.sc.finale.l11.help",
+                "next": "l12"
+              },
+              {
+                "id": "l12",
+                "say": "anna",
+                "text": "rp.sc.finale.l12",
+                "translation": "rp.sc.finale.l12.tr",
+                "listen": false,
+                "next": null
+              }
+            ]
+          }
+        ],
+        "garden": [
+          {
+            "id": "w-ich-heisse",
+            "text": "rp.w.ich-heisse",
+            "gloss": "rp.w.ich-heisse.gloss",
+            "item": "q-name-typed"
+          },
+          {
+            "id": "w-wie-heisst-du",
+            "text": "rp.w.wie-heisst-du",
+            "gloss": "rp.w.wie-heisst-du.gloss",
+            "item": "q-name-typed"
+          },
+          {
+            "id": "w-wie-geht-es-dir",
+            "text": "rp.w.wie-geht-es-dir",
+            "gloss": "rp.w.wie-geht-es-dir.gloss",
+            "item": "q-gut-mcq"
+          },
+          {
+            "id": "w-ich-komme-aus",
+            "text": "rp.w.ich-komme-aus",
+            "gloss": "rp.w.ich-komme-aus.gloss",
+            "item": "q-herkunft-typed"
+          },
+          {
+            "id": "w-ich-bin",
+            "text": "rp.w.ich-bin",
+            "gloss": "rp.w.ich-bin.gloss",
+            "item": "q-sein-mcq"
+          },
+          {
+            "id": "w-muede",
+            "text": "rp.w.muede",
+            "gloss": "rp.w.muede.gloss",
+            "item": "q-sein-mcq"
+          },
+          {
+            "id": "w-ich-moechte",
+            "text": "rp.w.ich-moechte",
+            "gloss": "rp.w.ich-moechte.gloss",
+            "item": "q-kaffee-typed"
+          },
+          {
+            "id": "w-einen-kaffee",
+            "text": "rp.w.einen-kaffee",
+            "gloss": "rp.w.einen-kaffee.gloss",
+            "item": "q-kaffee-typed"
+          },
+          {
+            "id": "w-was-moechten-sie",
+            "text": "rp.w.was-moechten-sie",
+            "gloss": "rp.w.was-moechten-sie.gloss",
+            "item": "q-kaffee-typed"
+          },
+          {
+            "id": "w-das-macht",
+            "text": "rp.w.das-macht",
+            "gloss": "rp.w.das-macht.gloss",
+            "item": "q-zahlen-mcq"
+          },
+          {
+            "id": "w-hier-bitte",
+            "text": "rp.w.hier-bitte",
+            "gloss": "rp.w.hier-bitte.gloss",
+            "item": "q-zahlen-mcq"
+          },
+          {
+            "id": "w-tschuess",
+            "text": "rp.w.tschuess",
+            "gloss": "rp.w.tschuess.gloss",
+            "item": "rp-u-cafe-1"
+          }
+        ],
+        "finale": "finale"
+      }
+    }
+  }
+}

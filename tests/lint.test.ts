@@ -562,7 +562,7 @@ describe('lint: the golden fixtures are clean', () => {
   })
 
   it('every golden fixture builds and lints end to end with no shell problem, with and without its section (the automatic layout)', async () => {
-    for (const name of ['solar-system', 'european-capitals', 'hr-a1-greetings'] as const) {
+    for (const name of ['solar-system', 'european-capitals', 'hr-a1-greetings', 'de-roleplay-a1'] as const) {
       for (const dropSections of [false, true]) {
         const bundle = await fakeBundle()
         const { root } = await copyFixture(name)

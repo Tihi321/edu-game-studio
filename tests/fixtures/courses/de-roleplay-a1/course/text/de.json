@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "lang": "de",
+  "strings": {
+    "item.q-name-typed.answer": "Ich heiße Tom",
+    "item.q-gut-mcq.opt.a": "Gut, danke.",
+    "item.q-gut-mcq.opt.b": "Guten Tag.",
+    "item.q-gut-mcq.opt.c": "Auf Wiedersehen.",
+    "item.q-herkunft-typed.answer": "Ich komme aus Österreich",
+    "item.q-sein-mcq.opt.a": "bin",
+    "item.q-sein-mcq.opt.b": "bist",
+    "item.q-sein-mcq.opt.c": "ist",
+    "item.q-kaffee-typed.answer": "Ich möchte einen Kaffee, bitte",
+    "item.q-kuchen-mcq.opt.a": "Nein, danke.",
+    "item.q-kuchen-mcq.opt.b": "Guten Morgen.",
+    "item.q-kuchen-mcq.opt.c": "Ich heiße Kuchen.",
+    "item.q-zahlen-mcq.opt.a": "Hier, bitte.",
+    "item.q-zahlen-mcq.opt.b": "Ich bin drei.",
+    "item.q-zahlen-mcq.opt.c": "Wie heißt du?",
+    "item.rp-u-cafe-1.answer": "Tschüss",
+    "rp.sc.u-sein-kennenlernen.l1": "Hallo! Ich bin Anna.",
+    "rp.sc.u-sein-kennenlernen.l2": "Wie heißt du?",
+    "rp.sc.u-sein-kennenlernen.l4": "Schön, dich kennenzulernen, Tom!",
+    "rp.sc.u-sein-kennenlernen.l5": "Wie geht es dir?",
+    "rp.sc.u-sein-kennenlernen.l7": "Das freut mich! Und woher kommst du?",
+    "rp.sc.u-sein-kennenlernen.l9": "Ich bin heute sehr müde.",
+    "rp.sc.u-sein-kennenlernen.l10.you": "Ich bin auch müde.",
+    "rp.sc.u-sein-kennenlernen.l11": "Dann bis später!",
+    "rp.sc.u-cafe-bestellen.l1": "Guten Tag! Was möchten Sie?",
+    "rp.sc.u-cafe-bestellen.l3": "Gern. Möchten Sie auch einen Kuchen?",
+    "rp.sc.u-cafe-bestellen.l5": "Bitte sehr. Das macht drei Euro.",
+    "rp.sc.u-cafe-bestellen.l7": "Vielen Dank! Bis bald!",
+    "rp.sc.u-cafe-bestellen.l9": "Einen schönen Tag noch!",
+    "rp.sc.finale.l1": "Hallo! Schön, dich hier zu sehen.",
+    "rp.sc.finale.l2": "Wie heißt du noch mal?",
+    "rp.sc.finale.l4": "Ich habe Durst. Gehen wir einen Kaffee trinken?",
+    "rp.sc.finale.l6": "Und wie geht es dir heute?",
+    "rp.sc.finale.l8": "Ich bin müde. Und du?",
+    "rp.sc.finale.l9.you": "Ich bin auch müde.",
+    "rp.sc.finale.l10": "Dann gehen wir nach Hause.",
+    "rp.sc.finale.l12": "Bis morgen, Tom!",
+    "rp.w.ich-heisse": "Ich heiße",
+    "rp.w.wie-heisst-du": "Wie heißt du",
+    "rp.w.wie-geht-es-dir": "Wie geht es dir",
+    "rp.w.ich-komme-aus": "Ich komme aus",
+    "rp.w.ich-bin": "Ich bin",
+    "rp.w.muede": "müde",
+    "rp.w.ich-moechte": "Ich möchte",
+    "rp.w.einen-kaffee": "einen Kaffee",
+    "rp.w.was-moechten-sie": "Was möchten Sie",
+    "rp.w.das-macht": "Das macht",
+    "rp.w.hier-bitte": "Hier, bitte",
+    "rp.w.tschuess": "Tschüss"
+  },
+  "accepted": {
+    "item.q-name-typed.answer": [
+      "Ich heiße Tom",
+      "Ich bin Tom"
+    ],
+    "item.q-herkunft-typed.answer": [
+      "Ich komme aus Österreich"
+    ],
+    "item.q-kaffee-typed.answer": [
+      "Ich möchte einen Kaffee, bitte",
+      "Ich möchte einen Kaffee"
+    ],
+    "item.rp-u-cafe-1.answer": [
+      "Tschüss",
+      "Tschüs",
+      "Auf Wiedersehen"
+    ]
+  }
+}
