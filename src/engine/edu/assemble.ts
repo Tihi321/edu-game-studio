@@ -6,6 +6,9 @@ import { applyExplain, citationsOf, mergeAccepted, numberCitations } from './aut
 import type { AcceptedOutput, Article, AuthoredItem, Curriculum, DesignData, ExplainOutput, Frame } from './authoring'
 import type { FactPack } from './factbase'
 import { applyMedia } from './media-link'
+import { toRoleplaySection } from './scenes'
+import type { SceneDraft, SceneSpeaker } from './scenes'
+import type { GardenWord } from './scenes-stage'
 import type { MediaMerge } from './media-link'
 
 /**
@@ -51,6 +54,12 @@ export interface AssembleInput {
   accepted?: AcceptedOutput
   design?: DesignData
   story?: Frame
+  /**
+   * The role-play section of a German language course (EGS-55, HUB-23): the accepted scenes (the finale last), the speakers of all calls, the garden
+   * derived in code and the reply items the scene-writer added (tagged `scene`, with their accepted lists merged). Assemble writes
+   * `shells.config.roleplay`, the German lines into the target catalog and the rest into the source catalog, and enables the `roleplay` shell.
+   */
+  roleplay?: { speakers: SceneSpeaker[]; scenes: SceneDraft[]; finale: string; garden: GardenWord[]; items: AuthoredItem[] }
   /** Corrected strings from the polish round: `key -> text`, applied to keys that exist. */
   polish?: Record<string, string>
   /** The images of the course (EGS-15): the assets with files, and what each illustrates. Merged into ssets, the alt texts, rticle.asset, item.asset and shells.config[*].art. */
@@ -95,6 +104,8 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
   let authored = input.items
   if (input.explain) authored = applyExplain(authored, input.explain)
   if (input.accepted) authored = mergeAccepted(authored, input.accepted)
+  // the reply items the scene-writer added come last: they were written with their explanation, whys and accepted lists, so the explain and accepted steps skipped them
+  if (input.roleplay) authored = [...authored, ...input.roleplay.items]
   const itemKeys: Record<string, string[]> = {}
   const items = authored.map((it) => {
     const unit = unitOf.get(it.objective)
@@ -215,7 +226,9 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
 
   // ---- facts, story, shells ----
   for (const [key, value] of Object.entries(input.factbase.strings)) put(src, key, value)
-  const extensions: Record<string, unknown> = { pipeline: { run: input.run, generatedBy: 'edu-pipeline', ...(input.brief !== undefined ? { brief: input.brief } : {}), ...(input.design?.requested.length ? { requestedShells: input.design.requested } : {}) } }
+  // the designer may name the role-play for a course that has no scenes (not a language course, switched off): it is then only recorded as requested
+  const requested = [...(input.design?.requested ?? []), ...(input.design?.enabled.includes('roleplay') && !input.roleplay ? ['roleplay'] : [])]
+  const extensions: Record<string, unknown> = { pipeline: { run: input.run, generatedBy: 'edu-pipeline', ...(input.brief !== undefined ? { brief: input.brief } : {}), ...(requested.length ? { requestedShells: requested } : {}) } }
   if (input.story) {
     const f = input.story
     extensions.story = {
@@ -231,12 +244,23 @@ export function assembleCourse(input: AssembleInput): AssembledCourse {
   if (tgt && (verbUnits.length || (readings && input.reading))) extensions.language = { ...(verbUnits.length ? { verbUnits, verbsPerUnit: input.verbsPerUnit ?? 6 } : {}), ...(readings && input.reading ? { reading: input.reading } : {}) }
   const d = input.design
   const shells: { enabled: string[]; config: Record<string, unknown> } = d
-    ? { enabled: [...d.enabled], config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }
+    ? { enabled: d.enabled.filter((x) => x !== 'roleplay'), config: { 'quiz-arena': { ...d.quizArena }, ...(d.enabled.includes('rpg') && input.story ? { rpg: { story: { intro: ['story.intro'], outro: ['story.outro'] } } } : {}) } }
     : { enabled: ['quiz-arena'], config: {} }
   if (readings) {
     // the readings are read in the reader view of the encyclopedia shell (EGS-35): the glossary is its data, and the reader is its first screen
     if (!shells.enabled.includes('encyclopedia')) shells.enabled.push('encyclopedia')
     shells.config.encyclopedia = { glossary, reader: true }
+  }
+
+  if (input.roleplay) {
+    const rp = input.roleplay
+    const sec = toRoleplaySection({ speakers: rp.speakers, scenes: rp.scenes })
+    const german = tgt ?? src // the lines are German: in the target catalog, which every edition falls back to
+    for (const [key, value] of Object.entries(sec.target)) put(german, key, value)
+    for (const [key, value] of Object.entries(sec.source)) put(src, key, value)
+    const garden = rp.garden.map((w) => ({ id: `w-${w.slug}`, text: put(german, `rp.w.${w.slug}`, w.text), gloss: put(src, `rp.w.${w.slug}.gloss`, w.gloss), item: w.item }))
+    shells.enabled.push('roleplay')
+    shells.config.roleplay = { speakers: sec.speakers, scenes: sec.scenes, garden, finale: rp.finale }
   }
 
   for (const [key, value] of Object.entries(input.polish ?? {})) {

@@ -184,7 +184,11 @@ export const formatEntrySchema = z.looseObject({
   /** Words per reading, [min, max] (the writer's target; the lint warns outside 300 to 800). */
   reading_words: z.tuple([z.number().int().min(50).max(3000), z.number().int().min(50).max(3000)]).default([350, 700]),
   /** Glossary entries per reading, [min, max]. */
-  glossary_per_text: z.tuple([z.number().int().min(1).max(60), z.number().int().min(1).max(60)]).default([10, 20])
+  glossary_per_text: z.tuple([z.number().int().min(1).max(60), z.number().int().min(1).max(60)]).default([10, 20]),
+  /** A German language course gets role-play scenes (HUB-23, EGS-55): the pipeline stage `scenes` writes them and enables the `roleplay` shell. A brief can switch it off with `roleplay: false`. */
+  roleplay: z.boolean().default(false),
+  /** Scenes the scene-writer makes for each unit, [min, max] (default by level: A1 one, A2 one or two, B1 and B2 two); the finale comes on top. */
+  scenes_per_unit: z.tuple([z.number().int().min(1).max(4), z.number().int().min(1).max(4)]).optional()
 })
 
 export const formatsSchema = configBase('formats').extend({

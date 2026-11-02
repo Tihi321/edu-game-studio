@@ -62,7 +62,7 @@ describe('seed migrations', () => {
     // the client entry comes from the seed, so it already has antigravity
     expect(providers[1]).toMatchObject({ kind: 'client', models: [{ id: 'claude-code', context: 200000 }, { id: 'antigravity', vision: true, context: 1000000 }] })
     expect(providers[2]).toMatchObject({ id: 'acp', kind: 'openai-compat', enabled: false, local: true, base_url: 'http://127.0.0.1:7461/v1', concurrency: 2, json_schema: false, discover: true, models: [] })
-    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 
   it('gives a client model without context 200000 and never changes one that has a value', async () => {
@@ -88,7 +88,7 @@ describe('seed migrations', () => {
     const res = await initDataFolder(data, seedDir)
     expect(res.migrated).toEqual([])
     expect(await readFile(file(), 'utf8')).toBe(bad)
-    expect((await loadSeedState(data)).migrations).toEqual(['settings-fallbacks-v1', 'voice-local-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 
   it('an untouched file is updated by the seed refresh, and the migrations change nothing', async () => {
@@ -107,7 +107,22 @@ describe('seed migrations', () => {
     expect(res.updated).toContain('config/providers.md')
     expect(res.migrated).toEqual([])
     expect(await readFile(file(), 'utf8')).toBe(seedText)
-    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
+  })
+
+  it('adds the scene-writer role to an edited roles.md once, keeping the other roles and the body (EGS-55)', async () => {
+    await initDataFolder(data, seedDir)
+    const roles = path.join(data, 'config', 'roles.md')
+    const mine = '---\nkind: roles\nroles:\n  # my choice\n  director:\n    models: [lmstudio]\n---\nMy roles.\n'
+    await writeFile(roles, mine)
+    const state = JSON.parse(await readFile(path.join(data, SEED_HASHES_FILE), 'utf8')) as { migrations: string[] }
+    state.migrations = []
+    await writeFile(path.join(data, SEED_HASHES_FILE), JSON.stringify(state))
+    expect((await initDataFolder(data, seedDir)).migrated).toContain('roles-scene-writer-v1')
+    const text = await readFile(roles, 'utf8')
+    expect(text).toContain('# my choice')
+    expect(text.endsWith('---\nMy roles.\n')).toBe(true)
+    expect(parseYaml(splitFrontmatter(text).frontmatter!)).toMatchObject({ roles: { director: { models: ['lmstudio'] }, 'scene-writer': { models: ['paid', 'strata', 'lmstudio'] } } })
   })
 
   it('adds acp and the antigravity client model once, and does not bring them back when you delete them', async () => {

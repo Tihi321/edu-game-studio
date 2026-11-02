@@ -152,6 +152,20 @@ export const SEED_MIGRATIONS: SeedMigration[] = [
       }
       return changed
     }
+  },
+  {
+    id: 'roles-scene-writer-v1',
+    file: 'config/roles.md',
+    // HUB-23 (EGS-55): an edited roles.md without the scene-writer role gets the seed's entry (a role missing from the file has no model list).
+    apply(doc, seed) {
+      const roles = doc.get('roles', true)
+      if (!isMap(roles) || roles.has('scene-writer')) return false
+      const theirs = seed?.get('roles', true)
+      const entry = isMap(theirs) ? theirs.get('scene-writer', true) : undefined
+      if (!isMap(entry)) return false
+      roles.set('scene-writer', entry.clone())
+      return true
+    }
   }
 ]
 

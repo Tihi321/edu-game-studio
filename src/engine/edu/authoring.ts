@@ -774,11 +774,12 @@ export function mergeRevision<T extends { id: string }>(previous: T[], revised: 
 // ---- game-designer: design ----
 
 /**
- * The shells the pipeline switches on by itself: the quiz arena and the three that build an automatic layout from the units (EGS-10 to EGS-12).
- * The language role-play and the detective need authored sections (dialogues, cases) that no role writes yet, so they are only recorded as
- * requested (`extensions.pipeline.requestedShells`) and the course does not enable them.
+ * The shells the pipeline switches on by itself: the quiz arena, the three that build an automatic layout from the units (EGS-10 to EGS-12) and,
+ * for a German language course, the role-play (EGS-55: the stage `scenes` writes its section; assemble enables it whenever that section exists,
+ * whatever the game-designer names, and records it as requested when the course has none). The detective needs an authored section (cases) that no
+ * role writes yet, so it is only recorded as requested (`extensions.pipeline.requestedShells`) and the course does not enable it.
  */
-export const PIPELINE_SHELLS = ['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg'] as const
+export const PIPELINE_SHELLS = ['quiz-arena', 'encyclopedia', 'mindmaze', 'rpg', 'roleplay'] as const
 
 export const designSchema = lenient(
   z.object({

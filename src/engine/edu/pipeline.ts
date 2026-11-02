@@ -19,6 +19,7 @@ import { assertSlug, coursesDir } from './paths'
  * ```
  * plan -> research x N -> factbase -> curriculum -> scope (language courses)
  *   -> per unit: articles -> items -> distractors -> fact_check (must pass; revise rounds) -> explain -> accepted (language courses)
+ *   -> scenes (German language courses with role-play: per unit scenes -> scenes_check -> scenes_revise (once) -> scenes_accepted, then the finale; EGS-55)
  *   -> design -> story -> art_plan -> art_generate -> art_review (-> art_generate, art_review ... rounds) -> music_plan -> music_generate -> assemble
  *   -> audience reviews (accessibility, child safety for kids; polish and assemble again on revise)
  *   -> harvest (EGS-36: a flashcard for each glossary entry of the readings; readings only)
@@ -35,7 +36,7 @@ import { assertSlug, coursesDir } from './paths'
  * and the queue, never from memory, so it can be called any number of times (after every step, from `edu_run_pipeline`, after a restart).
  */
 
-export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'design', 'story', 'art', 'music', 'assemble', 'review', 'harvest', 'voice', 'editions', 'build', 'lint', 'playtest', 'publish'] as const
+export const STAGES = ['plan', 'research', 'factbase', 'curriculum', 'scope', 'articles', 'items', 'distractors', 'fact_check', 'explain', 'accepted', 'scenes', 'design', 'story', 'art', 'music', 'assemble', 'review', 'harvest', 'voice', 'editions', 'build', 'lint', 'playtest', 'publish'] as const
 export type Stage = (typeof STAGES)[number]
 
 /** The editions the translator has to make: the languages of the brief but the source language and the taught language. */
@@ -58,6 +59,10 @@ const STAGE_OF: Record<string, Stage> = {
   fact_check: 'fact_check',
   explain: 'explain',
   accepted: 'accepted',
+  scenes: 'scenes',
+  scenes_check: 'scenes',
+  scenes_revise: 'scenes',
+  scenes_accepted: 'scenes',
   design: 'design',
   story: 'story',
   art_plan: 'art',
@@ -90,6 +95,7 @@ const STAGE_FILES: Partial<Record<Stage, string[]>> = {
   fact_check: ['reviews/fact_check-*'],
   explain: ['units/*/explain.json'],
   accepted: ['units/*/accepted.json'],
+  scenes: ['scenes', 'reviews/scenes_check-*'],
   design: ['design.json'],
   story: ['story.json'],
   art: ['art.json', 'reviews/art_review-*'],
@@ -247,6 +253,8 @@ export class Pipeline {
     return this.readJson<ReviewFile>(slug, `reviews/${name}.json`)
   }
   factCheckName = (unit: string, round: number): string => `fact_check-${unit}-k${round}-fact-checker`
+  /** The fact-checker's review of the scenes of a unit (`null` = the finale) in a round. */
+  sceneCheckName = (unit: string | null, round: number): string => `scenes_check-${unit ?? 'all'}-k${round}-fact-checker`
   audienceName = (role: string, round: number): string => `review-${role}-k${round}`
 
   // ---- steps ----
@@ -487,6 +495,11 @@ export class Pipeline {
     if (outcomes.some((o) => o === 'wait')) return 'running' // a blocked unit does not stop the others: the run settles when none is left
     if (blocked) return this.settle(c, true)
 
+    // ---- the role-play scenes (EGS-55): after every unit has its final items ----
+    const scenes = await this.scenesFlow(c, cur.units.map((u) => u.id))
+    if (scenes === 'wait') return 'running'
+    if (scenes === 'blocked') return this.settle(c, true)
+
     // ---- the whole course ----
     if ((await this.ensure(c, { task: 'design', role: 'game-designer', label: 'design the game' })) !== 'done') return 'running'
     if (R.brief.story === 'none') this.skip(c, 'story', null, 'no story asked (story: none)')
@@ -684,6 +697,64 @@ export class Pipeline {
     if (R.language) {
       if ((await w({ task: 'accepted', role: 'language-coach', label: `accepted answers of ${U}` })) !== 'done') return 'wait'
     } else this.skip(c, 'accepted', U, 'not a language course')
+    return 'done'
+  }
+
+  /** Why the course gets no role-play scenes, or undefined when it does. */
+  private noScenes(R: ResolvedBrief): string | undefined {
+    if (!R.language) return 'not a language course'
+    if (!R.roleplay) return R.brief.roleplay === false ? 'role-play scenes are switched off in the brief (roleplay: false)' : 'the format has no role-play scenes (roleplay: false in config/formats.md)'
+    if (R.brief.targetLang !== 'de') return `role-play scenes are written for German courses only (the course teaches ${R.brief.targetLang})`
+    return undefined
+  }
+
+  /**
+   * The role-play scenes (EGS-55, HUB-23): for a German language course, after the units are done. Each unit's scenes are written in parallel
+   * (`unitScenes`), then the finale, which reuses the items of all units (the late ones included). A course that gets none records one skipped
+   * step `scenes:all` with the reason; `restart: true, from: 'scenes'` clears every file and step of the stage and runs it again.
+   */
+  private async scenesFlow(c: Ctx, unitIds: string[]): Promise<'done' | 'wait' | 'blocked'> {
+    const why = this.noScenes(c.st.resolved)
+    if (why) {
+      this.skip(c, 'scenes', null, why)
+      return 'done'
+    }
+    const outcomes: ('done' | 'wait' | 'blocked')[] = []
+    for (const u of unitIds) outcomes.push(await this.sceneFlow(c, u))
+    if (outcomes.includes('wait')) return 'wait'
+    if (outcomes.includes('blocked')) return 'blocked'
+    return this.sceneFlow(c, null) // the finale
+  }
+
+  /**
+   * The scenes of one unit (null = the finale): `scenes` (scene-writer), `scenes_check` (fact-checker, a must-pass gate like `fact_check`), at most one
+   * `scenes_revise` when it says revise (then checked again; a second revise blocks the run), and for a unit `scenes_accepted` (the language-coach
+   * widens the accepted answers of the new typed items).
+   */
+  private async sceneFlow(c: Ctx, U: string | null): Promise<'done' | 'wait' | 'blocked'> {
+    const { slug, st, q } = c
+    const label = U ?? 'the finale'
+    const w = (spec: { task: string; role: string; round?: number; avoidFamily?: string; label: string }) => this.ensure(c, { ...spec, unit: U })
+    if ((await w({ task: 'scenes', role: 'scene-writer', label: `role-play scenes of ${label}` })) !== 'done') return 'wait'
+    const last = Math.min(2, Math.max(1, q.max_rounds)) // one revise at most
+    for (let k = 1; ; k++) {
+      const fc = await w({ task: 'scenes_check', role: 'fact-checker', round: k, avoidFamily: st.steps[stepKey('scenes', U, 1)]?.family, label: `fact-check the scenes of ${label}${k > 1 ? ` (round ${k})` : ''}` })
+      if (fc === 'blocked') return 'blocked'
+      if (fc !== 'done') return 'wait'
+      const review = (await this.readReview(slug, this.sceneCheckName(U, k)))?.review
+      if (!review || !countsAsRevise(review, q)) break
+      if (k >= last) {
+        if (q.must_pass.includes(review.role)) {
+          const key = stepKey('scenes_check', U, k)
+          st.steps[key] = { ...st.steps[key], status: 'blocked', note: `must-pass gate: ${review.role} still says revise for the scenes of ${label} after ${k} round(s): ${review.notes.slice(0, 300)}`.trim(), at: iso() }
+          return 'blocked'
+        }
+        break
+      }
+      if ((await w({ task: 'scenes_revise', role: 'scene-writer', round: k + 1, label: `correct the scenes of ${label} (round ${k + 1})` })) !== 'done') return 'wait'
+    }
+    if (U === null) return 'done'
+    if ((await w({ task: 'scenes_accepted', role: 'language-coach', label: `accepted answers of the new replies of ${U}` })) !== 'done') return 'wait'
     return 'done'
   }
 

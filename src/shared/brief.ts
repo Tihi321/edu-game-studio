@@ -20,6 +20,7 @@ import type { FormatEntry } from './schemas'
  *   format       an id of config/formats.md (default quick; with targetLang: language-<cefr> for A1, A2, B1 and B2, language-a1 when no cefr is given)
  *   units, objectivesPerUnit, itemsPerObjective   override the format's numbers
  *   kids         a course for children: the child-safety reviewer must pass it (default: age < 13)
+ *   roleplay     a German language course: false switches the role-play scenes off (the format's `roleplay` says whether they are on; HUB-23)
  *   story        none (default), frame (a frame story written by the narrative designer) or scriptorium (hand a story idea to Scriptorium)
  *   model        provider/model for every role of this course (written to course.md `models['*']`), e.g. client/claude-code
  *   media        the media settings (written to course.md `media`): {art: {enabled, style, provider (comfy|flow|hand), review, palette ...}, music, voice, sound}
@@ -42,6 +43,7 @@ export const briefSchema = z.object({
   objectivesPerUnit: z.number().int().min(1).max(12).optional(),
   itemsPerObjective: z.number().int().min(2).max(12).optional(),
   kids: z.boolean().optional(),
+  roleplay: z.boolean().optional(),
   story: z.enum(STORY_MODES).default('none'),
   model: z.string().trim().regex(/^[^\s/]+\/\S+$/, 'a model is provider/model, for example client/claude-code').optional(),
   /** The media settings of the course (`art`, `music`, `voice`, `sound`; see `courseMediaSchema`): written to course.md `media`. Missing: the defaults. */
@@ -82,6 +84,10 @@ export interface ResolvedBrief {
   /** Words per reading [min, max], and glossary entries per reading [min, max]. */
   readingWords: [number, number]
   glossaryPerText: [number, number]
+  /** A language course gets role-play scenes (the format asks for them and the brief does not switch them off). The stage itself only runs for German. */
+  roleplay: boolean
+  /** The format's scenes per unit [min, max]; missing = the default of the level. */
+  scenesPerUnit?: [number, number]
 }
 
 /** The format a brief gets when it names none (EGS-29). */
@@ -117,6 +123,8 @@ export function resolveBrief(input: BriefInput | Brief, formats: readonly Format
     verbsPerUnit: format.verbs_per_unit,
     reading: !!brief.targetLang && format.reading,
     readingWords: format.reading_words,
-    glossaryPerText: format.glossary_per_text
+    glossaryPerText: format.glossary_per_text,
+    roleplay: !!brief.targetLang && (brief.roleplay ?? format.roleplay),
+    ...(format.scenes_per_unit ? { scenesPerUnit: format.scenes_per_unit } : {})
   }
 }

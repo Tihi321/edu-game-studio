@@ -36,6 +36,7 @@ import {
   frameSchema,
   GAP_MARKER,
   itemsSchema,
+  mergeAccepted,
   mergeRevision,
   normalizeDesign,
   objectiveLines,
@@ -50,6 +51,10 @@ import {
 import type { AcceptedOutput, Article, AuthoredItem, Curriculum, DesignData, ExplainOutput, Frame, Problem } from './authoring'
 import { factbaseText, PIPELINE_SHELLS } from './authoring'
 import { factCheck } from './fact-check'
+import { defaultScenesPerUnit, FINALE_LINES, FINALE_REPLIES, SCENE_LINES, SCENE_REPLIES, SCENE_WRITER_ROLE, checkScenes, isSceneReply, isSceneSay, sceneOutputSchema } from './scenes'
+import type { SceneContext, SceneDraft, SceneOutput, SceneSpeaker } from './scenes'
+import { FINALE_FILE, deriveGarden, gardenWarnings, itemInfo, itemLine, lateItems, mergeSpeakers, replyCandidates } from './scenes-stage'
+import type { GardenWord, StoredScenes } from './scenes-stage'
 import type { FactCheckItem } from './fact-check'
 import { playtestDigest } from './playtest'
 import type { PlaytestResult } from './playtest'
@@ -121,6 +126,20 @@ export function renderItemForCheck(it: AuthoredItem): FactCheckItem {
   }
   lines.push(`Explanation: ${it.explanation}`)
   return { id: it.id, kind: it.kind, facts: it.facts, text: lines.join('\n') }
+}
+
+/**
+ * A scene as text for the fact-checker (EGS-55): who says what in German with its translation, and for each turn of the learner the item it asks, the
+ * answer the learner gives and the help. `facts` are the fact ids of the unit (the checker's reference test wants every item to name one).
+ */
+export function renderSceneForReview(sc: SceneDraft, speakers: readonly SceneSpeaker[], answerOf: (itemId: string) => string, facts: string[]): FactCheckItem {
+  const name = (id: string): string => speakers.find((s) => s.id === id)?.name ?? id
+  const lines: string[] = [`Scene "${sc.title}"${sc.setting ? ` (${sc.setting})` : ''}. A line is in the taught language, its translation follows in brackets; at a turn of the learner the answer is the item's answer.`]
+  for (const l of sc.lines) {
+    if (isSceneSay(l)) lines.push(`${l.id} ${name(l.say)}: ${l.text}${l.translation ? ` (${l.translation})` : ''}`)
+    else if (isSceneReply(l)) lines.push(`${l.id} LEARNER (item ${l.reply}): ${l.youSay ?? answerOf(l.reply)} | help: ${l.help ?? '(none)'}`)
+  }
+  return { id: sc.id, kind: 'scene', facts, text: lines.join('\n') }
 }
 
 /** The choice items that still need distractors written: an mcq or multi-select with a wrong option without its why. */
@@ -569,6 +588,203 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
     { skipModel: async (job) => answerRefs(await P.items(job.data.book ?? '', job.data.unit ?? '')).length === 0 }
   )
 
+  // ---- role-play scenes (EGS-55, HUB-23): per unit, then the finale ----
+
+  const readScenes = (slug: string, unit: string | null): Promise<StoredScenes | undefined> => P.readJson<StoredScenes>(slug, `scenes/${unit ?? FINALE_FILE}.json`)
+  const writeScenes = (slug: string, unit: string | null, data: StoredScenes): Promise<void> => P.writeJson(slug, `scenes/${unit ?? FINALE_FILE}.json`, data)
+  /** A unit's items after the item-writer and the misconception-designer, with the language-coach's alternatives. */
+  const unitItemsAccepted = async (slug: string, unit: string): Promise<AuthoredItem[]> => {
+    const items = await P.items(slug, unit)
+    const accepted = await P.readJson<AcceptedOutput>(slug, `units/${unit}/accepted.json`)
+    return accepted ? mergeAccepted(items, accepted) : items
+  }
+  /** The tense of the scope as an id of the verb table ("Präteritum" -> "praeteritum"). */
+  const tenseId = (t: string): string => t.trim().toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/\s+/g, '')
+  type ScopeFile = { units: { unit: string; vocabulary: { term: string; gloss: string }[]; verbs?: { inf: string; tense: string; level: string }[] }[] }
+
+  /** What a scene-writer call is given (the prompt variables) and checked against, for a unit or (unit null) the finale. */
+  const sceneCall = async (h: H) => {
+    const U = h.unit
+    const cur = await curriculumOf(h.slug)
+    const unit = U ? cur.units.find((x) => x.id === U) : undefined
+    if (U && !unit) throw new Error(`the curriculum has no unit "${U}"`)
+    const { vars } = await common(h)
+    const fb = await factsOf(h.slug)
+    const R = h.R
+    const scope = await P.readJson<ScopeFile>(h.slug, 'scope.json')
+    const sc = U ? scope?.units.find((x) => x.unit === U) : undefined
+    const finale = !U
+    // the items a reply may reuse: the unit's own; the finale mixes the units, so it gets all of them with the late ones
+    let pool: AuthoredItem[] = []
+    const known: SceneSpeaker[] = []
+    const sceneIds: string[] = []
+    if (U) {
+      pool = replyCandidates(await unitItemsAccepted(h.slug, U))
+      // the speakers of the units before this one: the writer reuses them or picks new ids (a clash would show one person under another's name)
+      for (const u of cur.units.slice(0, cur.units.findIndex((x) => x.id === U))) known.push(...((await readScenes(h.slug, u.id))?.speakers ?? []))
+    } else {
+      for (const u of cur.units) {
+        const stored = await readScenes(h.slug, u.id)
+        pool.push(...replyCandidates([...(await unitItemsAccepted(h.slug, u.id)), ...(stored ? lateItems(stored) : [])]))
+        known.push(...(stored?.speakers ?? []))
+        sceneIds.push(...(stored?.scenes.map((x) => x.id) ?? []))
+      }
+    }
+    const speakers = mergeSpeakers([known])
+    const per = R.scenesPerUnit ?? defaultScenesPerUnit(R.cefr)
+    const count: readonly [number, number] = finale ? [1, 1] : per
+    const [lo, hi] = finale ? FINALE_LINES : SCENE_LINES
+    const [rlo, rhi] = finale ? FINALE_REPLIES : SCENE_REPLIES
+    const prefix = finale ? 'finale' : `${U}-`
+    const itemPrefix = `rp-${U ?? 'finale'}-`
+    const ctx: SceneContext = {
+      cefr: R.cefr ?? 'A1',
+      ...(R.brief.targetLang ? { targetLang: R.brief.targetLang } : {}),
+      items: pool.map(itemInfo),
+      ...(U ? { unit: { id: U, vocabulary: sc?.vocabulary ?? [], ...(sc?.verbs?.length ? { verbs: sc.verbs.map((v) => ({ inf: v.inf, tense: tenseId(v.tense) })) } : {}) } } : {}),
+      knownSpeakers: speakers,
+      existingSceneIds: sceneIds,
+      sceneCount: count,
+      allowNewItems: !finale,
+      itemIdPrefix: itemPrefix,
+      factIds: fb.facts.map((f) => f.id),
+      objectives: objectivesFor(cur)
+    }
+    const check = (out: SceneOutput): Problem[] => [
+      ...checkScenes(out, ctx),
+      ...out.scenes
+        .filter((x) => (finale ? x.id !== 'finale' : !x.id.startsWith(prefix)))
+        .map((x): Problem => ({ ref: x.id, issue: finale ? 'the id of the finale scene is exactly "finale"' : `a scene id starts with "${prefix}"`, fix: finale ? 'rename it "finale"' : `rename it "${prefix}<name>"`, severity: 'major' }))
+    ]
+    const callVars = {
+      title: vars.title,
+      audience: vars.audience,
+      cefr: R.cefr ?? 'A1',
+      language: vars.language,
+      target_language: langName(R.brief.targetLang ?? ''),
+      unit_id: U ?? 'finale',
+      unit_title: unit?.title ?? 'Finale: all units mixed',
+      unit_summary: unit?.summary ?? `One scene that mixes the situations and the words of every unit: ${cur.units.map((x) => x.title).join('; ')}.`,
+      objectives: U ? objectiveLines(cur.objectives, U) : '(none)',
+      factbase: factbaseText(fb.facts),
+      scope: U ? await unitScope(h.slug, U) : '(none)',
+      items: pool.map(itemLine).join('\n') || '(none)',
+      speakers: speakers.map((s) => `- ${s.id}: ${s.name}${s.learner ? ' (the learner)' : ''}`).join('\n') || '(none)',
+      language_rules: rules(h),
+      scene_count: count[0] === count[1] ? `exactly ${count[0]}` : `${count[0]} to ${count[1]}`,
+      scene_id_prefix: prefix,
+      finale_note: finale ? 'This is the finale: ONE scene whose id is exactly `finale`, with no `unit`, that mixes the situations and words of all the units. Use the speakers listed above and list only new ones.' : `Each scene has "unit": "${U}".`,
+      scene_lines: `${lo} to ${hi}`,
+      scene_replies: `${rlo} to ${rhi}`,
+      typed_replies: finale ? 0 : 1,
+      new_items_rule: finale ? 'Do not write new items: every reply uses an item of the list above and `newItems` is `[]`.' : 'Use the items that exist where they fit. Where none fits the conversation, write a new item (usually 2 to 4 for the unit).',
+      item_id_prefix: itemPrefix,
+      gap_marker: GAP_MARKER
+    }
+    const facts = [...new Set(cur.objectives.filter((o) => finale || o.unit === U).flatMap((o) => o.facts))]
+    return { vars: callVars, check, pool, speakers, facts }
+  }
+
+  step('scenes', async (h) => {
+    const call = await sceneCall(h)
+    const { value } = await askRole(h.ctx, { dataDir, role: SCENE_WRITER_ROLE, task: 'scenes', vars: call.vars, schema: sceneOutputSchema, check: call.check, maxTokens: 16_000 })
+    await writeScenes(h.slug, h.unit, { speakers: value.speakers, scenes: value.scenes, newItems: value.newItems, round: h.round })
+    return { note: `${value.scenes.length} scene(s), ${value.newItems.length} new reply item(s)`, path: `pipeline/scenes/${h.unit ?? FINALE_FILE}.json` }
+  })
+
+  step(
+    'scenes_check',
+    async (h) => {
+      const stored = await readScenes(h.slug, h.unit)
+      if (!stored) throw new Error(`there are no scenes for ${h.unit ?? 'the finale'} yet`)
+      const call = await sceneCall(h)
+      const { vars } = await common(h)
+      const fb = await factsOf(h.slug)
+      const answers = new Map([...call.pool, ...stored.newItems].map((it) => [it.id, itemInfo(it).answers[0] ?? '']))
+      const speakers = mergeSpeakers([stored.speakers, call.speakers])
+      const review = await factCheck(h.ctx, {
+        dataDir,
+        title: vars.title,
+        round: h.round,
+        languageRules: rules(h),
+        facts: fb.facts,
+        sources: fb.sources,
+        unit: { articles: [], items: [...stored.scenes.map((sc) => renderSceneForReview(sc, speakers, (id) => answers.get(id) ?? '', call.facts)), ...stored.newItems.map(renderItemForCheck)] }
+      })
+      const name = P.sceneCheckName(h.unit, h.round)
+      await P.writeJson(h.slug, `reviews/${name}.json`, { review, round: h.round } satisfies ReviewFile)
+      return { note: `${review.verdict}, accuracy ${review.scores.accuracy ?? '?'}${review.problems.length ? `, ${review.problems.length} problem(s)` : ''}`, path: `pipeline/reviews/${name}.json` }
+    },
+    { reviewing: true }
+  )
+
+  step('scenes_revise', async (h) => {
+    const prev = await readScenes(h.slug, h.unit)
+    const rf = await P.readReview(h.slug, P.sceneCheckName(h.unit, h.round - 1))
+    if (!prev || !rf) throw new Error(`there are no scenes or no review of round ${h.round - 1} for ${h.unit ?? 'the finale'}`)
+    const call = await sceneCall(h)
+    const problems: Problem[] = rf.review.problems.length ? rf.review.problems : [{ ref: '', issue: rf.review.notes || 'the fact-checker sent the scenes back' }]
+    const { value } = await askRole(h.ctx, {
+      dataDir,
+      role: SCENE_WRITER_ROLE,
+      task: 'scenes_revise',
+      vars: { ...call.vars, previous: JSON.stringify({ speakers: prev.speakers, scenes: prev.scenes, newItems: prev.newItems }), problems: formatProblems(problems) },
+      schema: sceneOutputSchema,
+      check: call.check,
+      maxTokens: 16_000
+    })
+    await writeScenes(h.slug, h.unit, { speakers: value.speakers, scenes: value.scenes, newItems: value.newItems, round: h.round })
+    return { note: `${value.scenes.length} scene(s) corrected, ${value.newItems.length} new reply item(s)`, path: `pipeline/scenes/${h.unit ?? FINALE_FILE}.json` }
+  })
+
+  step(
+    'scenes_accepted',
+    async (h) => {
+      const stored = await readScenes(h.slug, h.unit)
+      if (!stored) throw new Error(`there are no scenes for ${h.unit ?? 'the finale'} yet`)
+      const refs = answerRefs(stored.newItems)
+      if (refs.length === 0) {
+        await writeScenes(h.slug, h.unit, { ...stored, accepted: { answers: [] } })
+        return { note: 'no new typed reply or gap' }
+      }
+      const { vars } = await common(h)
+      const R = h.R
+      const { value } = await askRole(h.ctx, {
+        dataDir,
+        role: 'language-coach',
+        task: 'accepted',
+        vars: { title: vars.title, cefr: R.cefr ?? 'A1', language: vars.language, target_language: langName(R.brief.targetLang ?? ''), items: refs.map((r) => r.line).join('\n'), language_rules: rules(h) },
+        schema: acceptedSchema,
+        check: (out) => checkAccepted(stored.newItems, out)
+      })
+      await writeScenes(h.slug, h.unit, { ...stored, accepted: value })
+      return { note: `${value.answers.length} answer list(s) widened`, path: `pipeline/scenes/${h.unit ?? FINALE_FILE}.json` }
+    },
+    { skipModel: async (job) => answerRefs((await readScenes(job.data.book ?? '', job.data.unit && job.data.unit !== 'all' ? job.data.unit : null))?.newItems ?? []).length === 0 }
+  )
+
+  /** The role-play section for assemble, or undefined when the stage did not run (not done: skipped, or an old run without it). */
+  const roleplayFor = async (h: H, cur: Curriculum): Promise<{ speakers: SceneSpeaker[]; scenes: SceneDraft[]; finale: string; garden: GardenWord[]; items: AuthoredItem[] } | undefined> => {
+    if (h.st.steps[stepKey('scenes', null)]?.status !== 'done') return undefined
+    const scope = await P.readJson<ScopeFile>(h.slug, 'scope.json')
+    const perUnit: { stored: StoredScenes; items: AuthoredItem[]; vocabulary: { term: string; gloss: string }[] }[] = []
+    for (const u of cur.units) {
+      const stored = await readScenes(h.slug, u.id)
+      if (!stored) throw new Error(`the role-play scenes of ${u.id} are missing (restart the pipeline from the stage scenes)`)
+      perUnit.push({ stored, items: await unitItemsAccepted(h.slug, u.id), vocabulary: scope?.units.find((x) => x.unit === u.id)?.vocabulary ?? [] })
+    }
+    const fin = await readScenes(h.slug, null)
+    if (!fin || !fin.scenes[0]) throw new Error('the finale scene is missing (restart the pipeline from the stage scenes)')
+    const scenes = [...perUnit.flatMap((x) => x.stored.scenes), ...fin.scenes]
+    return {
+      speakers: mergeSpeakers([...perUnit.map((x) => x.stored.speakers), fin.speakers], scenes),
+      scenes,
+      finale: fin.scenes[0].id,
+      garden: deriveGarden(perUnit.map((x) => ({ vocabulary: x.vocabulary, scenes: x.stored.scenes, items: [...x.items, ...lateItems(x.stored)] }))),
+      items: perUnit.flatMap((x) => lateItems(x.stored))
+    }
+  }
+
   // ---- the whole course ----
 
   const allItems = async (slug: string, cur: Curriculum): Promise<AuthoredItem[]> => (await Promise.all(cur.units.map((u) => P.items(slug, u.id)))).flat()
@@ -841,6 +1057,7 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
       const design = await P.readJson<DesignData>(h.slug, 'design.json')
       const story = await P.readJson<{ mode: string; frame?: Frame }>(h.slug, 'story.json')
       const polish = await P.readJson<{ strings: Record<string, string> }>(h.slug, 'polish.json')
+      const roleplay = await roleplayFor(h, cur)
       const { pack, catalogs, itemKeys } = assembleCourse({
         slug: h.slug,
         title: plan?.title ?? R.brief.topic,
@@ -861,13 +1078,21 @@ export function registerPipelineHandlers(sched: Scheduler, svc: EduService): voi
         accepted,
         ...(design ? { design } : {}),
         ...(story?.frame ? { story: story.frame } : {}),
+        ...(roleplay ? { roleplay } : {}),
         ...(polish ? { polish: polish.strings } : {}),
         media: await svc.media.mergeFor(h.slug)
       })
       await svc.courses.writeAssembled(h.slug, pack, catalogs)
       const content = renderCourseForReview(pack as never, catalogs, R.brief.sourceLang, R.brief.targetLang)
       await P.writeJson(h.slug, 'assembled.json', { round: h.round, itemKeys, content })
-      return { note: `${items.length} item(s), ${articles.length} article(s), ${Object.keys(catalogs[R.brief.sourceLang]!.strings).length} text(s)`, path: `courses/${h.slug}/course/pack.json` }
+      let garden = ''
+      if (roleplay) {
+        const unitOfObjective = new Map(cur.objectives.map((o) => [o.id, o.unit]))
+        const unitOfItem = new Map([...items, ...roleplay.items].map((it) => [it.id, unitOfObjective.get(it.objective)]))
+        const warns = gardenWarnings(roleplay.garden, cur.units.map((u) => u.id), (w) => unitOfItem.get(w.item))
+        if (warns.length) garden = `; warning: ${warns.join('; ')}`
+      }
+      return { note: `${items.length} item(s), ${articles.length} article(s), ${Object.keys(catalogs[R.brief.sourceLang]!.strings).length} text(s)${garden}`, path: `courses/${h.slug}/course/pack.json` }
     },
     { noModel: true }
   )

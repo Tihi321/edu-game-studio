@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { initDataFolder } from '../src/engine/store/dataFolder'
 import { SEED_HASHES_FILE, planSeedFile, readSeedNotes, seedHash } from '../src/engine/store/seedRefresh'
+import { seedDir } from './helpers'
 
 describe('planSeedFile (the decision)', () => {
   const h = (s: string) => seedHash(s)
@@ -13,6 +14,27 @@ describe('planSeedFile (the decision)', () => {
     expect(planSeedFile('a.md', h('v2'), h('v1'), none, history).action).toBe('update')
     expect(planSeedFile('a.md', h('v2'), h('mine'), none, history)).toEqual({ action: 'keep', recorded: undefined, pending: true })
     expect(planSeedFile('a.md', h('v1'), h('mine'), none, history)).toEqual({ action: 'keep', recorded: h('v1'), pending: false })
+  })
+})
+
+describe('HUB-23 seed delivery (EGS-39)', () => {
+  it('the scene-writer files reach a data folder, and a roles.md, formats.md and designer prompt from before the stage are untouched seed that gets replaced', async () => {
+    const data = await mkdtemp(path.join(os.tmpdir(), 'edu-seed-'))
+    try {
+      await initDataFolder(data, seedDir)
+      expect(await readFile(path.join(data, 'prompts/scene-writer/scenes.md'), 'utf8')).toContain('role: scene-writer')
+      expect(await readFile(path.join(data, 'config/roles.md'), 'utf8')).toContain('scene-writer:')
+      expect(await readFile(path.join(data, 'agents/scene-writer-nina-hartmann.md'), 'utf8')).toContain('role: scene-writer')
+      const state = { files: {} as Record<string, string> } // no recorded hashes: only SEED_HISTORY can say the file is untouched
+      const pre = '0e379a56cd0135e3c821a16c454900ade3194354' // roles.md before the scene-writer role
+      expect(planSeedFile('config/roles.md', seedHash('now'), pre, state).action).toBe('update')
+      // EGS-55: formats.md (roleplay, scenes_per_unit) and the designer prompt (the role-play shell) from before the stage are untouched seed too
+      expect(await readFile(path.join(data, 'prompts/scene-writer/scenes_revise.md'), 'utf8')).toContain('task: scenes_revise')
+      expect(await readFile(path.join(data, 'config/formats.md'), 'utf8')).toContain('scenes_per_unit')
+      for (const [rel, old] of [['config/formats.md', '0dcbbfc107db0bd2517804e015cade5669952963'], ['prompts/game-designer/design.md', '122091bb1d085228996b9c57328f5eefb7a7f8d4']] as const) expect(planSeedFile(rel, seedHash('now'), old, state).action, rel).toBe('update')
+    } finally {
+      await rm(data, { recursive: true, force: true })
+    }
   })
 })
 

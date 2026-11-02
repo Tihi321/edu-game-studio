@@ -1,13 +1,15 @@
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import { publishDecision, pipelineJobId } from '../src/engine/edu/pipeline'
 import type { StepsFile } from '../src/engine/edu/pipeline'
 import type { ReviewResult } from '../src/engine/review/scoring'
+import { lintGameData } from '../src/engine/edu/lint'
 import { validateCourse } from '../src/shared/edu'
 import { briefSchema, resolveBrief } from '../src/shared/brief'
 import { formatsSchema, qualitySchema } from '../src/shared/schemas'
-import { failures } from './edu-helpers'
+import { failures, waitIdle } from './edu-helpers'
 import { BRIEF, courseFile, json, makePipelineEnv, pf, pipelineOf, run, SLUG, statusOf, toolsOf } from './pipeline-helpers'
+import type { PipelineEnv } from './pipeline-helpers'
 
 describe('the brief', () => {
   const formats = formatsSchema.parse({ kind: 'formats', formats: [{ id: 'quick', label: 'Quick', units: 2 }, { id: 'language-a1', label: 'Language', units: 4, language: true, cefr: 'A1' }] }).formats
@@ -87,7 +89,9 @@ describe('the whole pipeline on the mock team', () => {
       expect(p.next).toMatch(/published/)
       const bad = p.steps.filter((s) => !['done', 'skipped'].includes(s.status))
       expect(bad).toEqual([])
-      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'harvest:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
+      expect(p.steps.filter((s) => s.status === 'skipped').map((s) => s.step).sort()).toEqual(['accepted:u1', 'accepted:u2', 'art_review:all', 'editions:all', 'harvest:all', 'scenes:all', 'scope:all', 'story:all', 'voice_generate:all', 'voice_plan:all'])
+      expect(p.steps.find((s) => s.step === 'scenes:all')!.note).toBe('not a language course') // no role-play scenes for a course that teaches no language
+      expect(env.author.calls.some((x) => x.startsWith('scene-writer/'))).toBe(false)
       expect(p.steps.find((s) => s.step === 'art_review:all')!.note).toMatch(/no model with vision/) // the mock model has no vision: the art-critic is skipped, with the reason
       expect(statusOf(p, 'music_plan:all')).toBe('done')
       expect(statusOf(p, 'music_generate:all')).toBe('done')
@@ -244,3 +248,133 @@ describe('revise loops and gates', () => {
   })
 })
 
+describe('role-play scenes in the pipeline (EGS-55, HUB-23)', () => {
+  const DE = { topic: 'German basics', audience: 'adults', age: 30, sourceLang: 'hr', languages: ['hr', 'en'], targetLang: 'de', cefr: 'A1', units: 2, story: 'none' }
+  type Cat = { schema: 1; lang: string; strings: Record<string, string>; accepted?: Record<string, string[]> }
+  type Line = { id: string; say?: string; text?: string; reply?: string; help?: string }
+  type Pack = {
+    items: { id: string; kind: string; tags: string[]; extensions: { facts: string[] } }[]
+    shells: { enabled: string[]; config: { roleplay?: { speakers: { id: string; name: string; learner: boolean }[]; scenes: { id: string; unit?: string; title: string; lines: Line[] }[]; garden: { id: string; text: string; gloss: string; item: string }[]; finale: string } } }
+    extensions: { pipeline: { requestedShells?: string[] } }
+  }
+  const stepsFile = (env: PipelineEnv, slug: string, ...p: string[]) => courseFile(env, slug, 'pipeline', ...p)
+
+  it('a German A1 course gets a valid role-play section: scenes per unit and a finale, German in de.json, translations in hr and en, late reply items with accepted lists; a revise round; a restart from scenes changes nothing', async () => {
+    const env = await makePipelineEnv({ sceneCheck: (unit, round) => (unit === 'u1' && round === 1 ? 'revise' : 'pass') })
+    try {
+      const { failed, slug } = await run(env, DE, 90_000)
+      expect(failed).toEqual([])
+      expect(slug).toBe('german-basics')
+      const view = async () => (await toolsOf(env).call('edu_status', { slug })).data.pipeline as Awaited<ReturnType<typeof pipelineOf>>
+      let p = await view()
+      expect(p.stage, JSON.stringify(p.blockedBy)).toBe('published')
+      for (const k of ['scenes:u1', 'scenes:u2', 'scenes:all', 'scenes_check:u1', 'scenes_revise-k2:u1', 'scenes_check-k2:u1', 'scenes_check:u2', 'scenes_check:all', 'scenes_accepted:u1', 'scenes_accepted:u2']) expect(statusOf(p, k), k).toBe('done')
+      expect(p.steps.some((x) => x.step.startsWith('scenes_revise') && x.step.endsWith(':u2'))).toBe(false) // only the unit that was sent back is revised
+      expect(statusOf(p, 'scenes_accepted:all')).toBeUndefined() // the finale adds no item
+      expect(env.author.calls).toEqual(expect.arrayContaining(['scene-writer/scenes:u1', 'scene-writer/scenes:u2', 'scene-writer/scenes:finale', 'scene-writer/scenes_revise:u1', 'fact-checker/scenes_check:u1:k1', 'fact-checker/scenes_check:u1:k2', 'fact-checker/scenes_check:finale:k1']))
+
+      // the section: valid, no lint error (no RP_* error), enabled although the brief never named the shell
+      const dir = (...x: string[]) => courseFile(env, slug, 'course', ...x)
+      const pack = await json<Pack>(dir('pack.json'))
+      const [hr, en, de] = await Promise.all([json<Cat>(dir('text', 'hr.json')), json<Cat>(dir('text', 'en.json')), json<Cat>(dir('text', 'de.json'))])
+      expect(validateCourse(pack, { hr, en, de }).problems).toEqual([])
+      const game = await json<Parameters<typeof lintGameData>[0]>(courseFile(env, slug, 'build', 'game-data.json'))
+      expect(lintGameData(game, () => true).filter((x) => x.severity === 'error')).toEqual([])
+      expect(pack.shells.enabled).toContain('roleplay')
+      expect(pack.extensions.pipeline.requestedShells ?? []).not.toContain('roleplay')
+      const rp = pack.shells.config.roleplay!
+      expect(rp.scenes.map((x) => [x.id, x.unit])).toEqual([['u1-s1', 'u1'], ['u2-s1', 'u2'], ['finale', undefined]])
+      expect(rp.finale).toBe('finale')
+      expect(rp.scenes.map((x) => x.lines.length)).toEqual([10, 10, 12])
+      expect(rp.speakers.filter((x) => x.learner)).toHaveLength(1)
+      // each unit's writer sees the speakers of the units before it: a later unit's character never takes an earlier one's id (and so its name)
+      const said = (i: number) => new Set(rp.scenes[i]!.lines.flatMap((l) => (l.say ? [l.say] : [])))
+      expect([...said(1)].filter((id) => said(0).has(id))).toEqual([])
+      expect(hr.strings[rp.scenes[0]!.title]).toBe('Scene 1 of u1 (corrected)') // the revised scene is the one in the course
+
+      // German lines in de.json only; translations, help and names in the source catalog and (translated) the english edition
+      const say = rp.scenes[0]!.lines.find((l) => l.say)!
+      expect(de.strings[say.text!]).toBe('Wir sagen bok, Satz 1.')
+      expect(hr.strings[say.text!]).toBeUndefined()
+      expect(en.strings[say.text!]).toBeUndefined()
+      expect(hr.strings[`${say.text}.tr`]).toBe('Line 1.')
+      expect(en.strings[`${say.text}.tr`]).toBe('[English] Line 1.')
+      const reply = rp.scenes[0]!.lines.find((l) => l.reply)!
+      expect(hr.strings[reply.help!]).toBe('Say it simply (3).')
+      expect(en.strings[reply.help!]).toBe('[English] Say it simply (3).')
+      expect(hr.strings['rp.sp.anna']).toBe('Anna')
+      expect(de.strings['rp.sp.anna']).toBeUndefined()
+
+      // the late items: tagged scene, ids rp-<unit>-<n>, in the pack; the typed ones have an accepted list widened by the coach, in the German catalog
+      const late = pack.items.filter((i) => i.tags.includes('scene'))
+      expect(late.map((i) => i.id).sort()).toEqual(['rp-u1-1', 'rp-u1-2', 'rp-u2-1', 'rp-u2-2']) // a typed and a choice reply per scene; the third reply reuses an item of the unit
+      for (const i of late.filter((x) => x.kind === 'typed')) {
+        expect(de.accepted![`item.${i.id}.answer`]!.length, i.id).toBeGreaterThan(1)
+        expect(hr.accepted?.[`item.${i.id}.answer`]).toBeUndefined()
+      }
+      expect(late.every((i) => i.extensions.facts.length > 0)).toBe(true)
+      // every reply points at an item of the pack; the garden is derived in code (the scope vocabulary) and watered by an item of the pack
+      const ids = new Set(pack.items.map((i) => i.id))
+      for (const l of rp.scenes.flatMap((x) => x.lines)) if (l.reply) expect(ids.has(l.reply), l.reply).toBe(true)
+      expect(rp.garden).toEqual([{ id: 'w-bok', text: 'rp.w.bok', gloss: 'rp.w.bok.gloss', item: 'rp-u1-1' }])
+      expect(de.strings['rp.w.bok']).toBe('bok')
+      expect(hr.strings['rp.w.bok.gloss']).toBe('hello')
+      // the unit scenes reuse an item of the unit; the finale reuses items of the units and adds none
+      expect(rp.scenes[0]!.lines.filter((l) => l.reply).map((l) => l.reply)).toEqual(['rp-u1-1', 'rp-u1-2', expect.stringMatching(/^u1-q\d+$/)])
+      const finaleReplies = rp.scenes[2]!.lines.filter((l) => l.reply).map((l) => l.reply!)
+      expect(new Set(finaleReplies).size).toBe(4)
+      expect(finaleReplies.some((id) => id.startsWith('rp-finale-'))).toBe(false)
+
+      // restart from scenes: run 2 redoes the stage and what follows; the scenes, the items and the section come out the same
+      const files = ['u1', 'u2', '_finale'].map((x) => stepsFile(env, slug, 'scenes', `${x}.json`))
+      const before = await Promise.all(files.map((f) => readFile(f, 'utf8')))
+      const r = await toolsOf(env).call('edu_run_pipeline', { slug, restart: true, from: 'scenes' })
+      expect(r.ok, r.text).toBe(true)
+      expect(r.data.run).toBe(2)
+      await waitIdle(env, slug, 90_000)
+      p = await view()
+      expect(p).toMatchObject({ run: 2, stage: 'published' })
+      expect(p.steps.find((x) => x.step === 'scenes:u1')!.job).toBe(`${slug}--scenes--u1--r2`)
+      expect(p.steps.find((x) => x.step === 'accepted:u1')!.job).toBe(`${slug}--accepted--u1--r1`) // before the stage: kept
+      expect(await Promise.all(files.map((f) => readFile(f, 'utf8')))).toEqual(before)
+      const again = await json<Pack>(dir('pack.json'))
+      expect(again.shells.config.roleplay).toEqual(pack.shells.config.roleplay)
+      expect(again.items.map((i) => i.id)).toEqual(pack.items.map((i) => i.id))
+      expect(env.author.count('scene-writer/scenes:u2')).toBe(2)
+      expect(env.author.count('item-writer/items:u1')).toBe(1)
+    } finally {
+      await env.cleanup()
+    }
+  }, 60_000)
+
+  it('roleplay: false in the brief skips the stage with its reason and leaves the shell out; a steps.json from before the stage resumes without error', async () => {
+    const env = await makePipelineEnv()
+    try {
+      const { failed, slug } = await run(env, { ...DE, roleplay: false }, 90_000)
+      expect(failed).toEqual([])
+      const status = async () => (await toolsOf(env).call('edu_status', { slug })).data.pipeline as Awaited<ReturnType<typeof pipelineOf>>
+      const p = await status()
+      expect(p.stage).toBe('published')
+      expect(p.steps.find((x) => x.step === 'scenes:all')).toMatchObject({ status: 'skipped', note: expect.stringMatching(/switched off in the brief/) })
+      expect(env.author.calls.some((x) => x.startsWith('scene-writer/'))).toBe(false)
+      const pack = await json<Pack>(courseFile(env, slug, 'course', 'pack.json'))
+      expect(pack.shells.enabled).not.toContain('roleplay')
+      expect(pack.shells.config.roleplay).toBeUndefined()
+      // an old run: no stage in steps.json, no roleplay in the resolved brief
+      const file = stepsFile(env, slug, 'steps.json')
+      const old = await json<StepsFile>(file)
+      delete old.steps['scenes:all']
+      delete (old.resolved as Partial<typeof old.resolved>).roleplay
+      await writeFile(file, JSON.stringify(old))
+      const resumed = await toolsOf(env).call('edu_run_pipeline', { slug })
+      expect(resumed.ok, resumed.text).toBe(true)
+      await waitIdle(env, slug, 30_000)
+      const after = await status()
+      expect(after).toMatchObject({ run: 1, stage: 'published' })
+      expect(after.steps.find((x) => x.step === 'scenes:all')).toMatchObject({ status: 'skipped' })
+      expect(after.failed).toBeUndefined()
+    } finally {
+      await env.cleanup()
+    }
+  }, 60_000)
+})

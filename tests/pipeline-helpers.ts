@@ -35,6 +35,8 @@ export interface AuthorOptions {
   voicePlan?: 'ok' | 'repair' | 'unusable'
   /** The translator's answer: `ok` (default), `repair` (leaves the last entry out the first time) or `drops` (leaves it out every time: the step fails). */
   editions?: 'ok' | 'repair' | 'drops'
+  /** The fact-checker's verdict on the role-play scenes of a unit ('finale' for the finale) in a round (default pass). */
+  sceneCheck?: (unit: string, round: number) => 'pass' | 'revise'
 }
 
 export interface Author {
@@ -100,7 +102,7 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
   on('language-coach', (t) => {
     if (t.includes('Widen the accepted answers')) {
       log('language-coach/accepted')
-      return { answers: lines(t).map((l) => /^(\S+): .* -> (.+)$/.exec(l)).filter((m): m is RegExpExecArray => !!m).map((m) => ({ ref: m[1]!, accepted: [m[2]!, `${m[2]}!`] })) }
+      return { answers: lines(t).map((l) => /^(\S+): .* -> (.+)$/.exec(l)).filter((m): m is RegExpExecArray => !!m).map((m) => ({ ref: m[1]!, accepted: [m[2]!, `${m[2]} ja`] })) }
     }
     log('language-coach/scope')
     const isVerb = (u: string) => lines(t).some((l) => l.startsWith(`- ${u}: `) && l.includes('[VERB UNIT]'))
@@ -211,6 +213,13 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
   })
 
   on('fact-checker', (t) => {
+    if (t.includes('(scene)')) {
+      const sceneUnit = grab(t, /### Item (u\d+)-/) || 'finale'
+      const sceneRound = Number(grab(t, /review round (\d+)/)) || 1
+      log(`fact-checker/scenes_check:${sceneUnit}:k${sceneRound}`)
+      const sceneVerdict = o.sceneCheck?.(sceneUnit, sceneRound) ?? 'pass'
+      return sceneVerdict === 'pass' ? { verdict: sceneVerdict, scores: { accuracy: 9 }, notes: 'The scenes are fine.', problems: [] } : { verdict: sceneVerdict, scores: { accuracy: 4 }, notes: 'A line is wrong.', problems: [{ ref: grab(t, /### Item (\S+) \(scene\)/), issue: 'the German of a line is not natural', fix: 'say it the way a speaker would', severity: 'major' }] }
+    }
     const unit = grab(t, /Item (u\d+)-q/) ? `u${grab(t, /### Item u(\d+)-q/)}` : ''
     const round = Number(grab(t, /review round (\d+)/)) || 1
     log(`fact-checker/fact_check:${unit}:k${round}`)
@@ -229,6 +238,63 @@ export function installAuthor(env: ResearchEnv, o: AuthorOptions = {}): Author {
     log(`explainer/explain:${unit}`)
     const items = jsonLines(t)
     return { items: items.map((i, n) => ({ id: i.id, explanation: `Here is why: ${String(i.prompt).slice(0, 40)} rests on its fact.`, hint: 'Think of the fact.', ...(n === 0 ? { didYouKnow: 'A surprising extra.', didYouKnowFact: (i.facts as string[])[0] } : {}) })) }
+  })
+
+  // the scene-writer (seed/prompts/scene-writer/scenes.md, scenes_revise.md): one scene a call in the unit's prefix, ten lines with three turns of the learner (the finale: twelve and four),
+  // the unit's vocabulary in the say lines, a typed and a choice reply that are new items (a third reply reuses an existing choice item, or is another new typed item), German answers with a form of "sein"
+  on('scene-writer', (t) => {
+    const revise = t.includes('sent your role-play scenes')
+    const unit = grab(t, /^This call: (\S+?):/m)
+    log(`scene-writer/${revise ? 'scenes_revise' : 'scenes'}:${unit}`)
+    const finale = unit === 'finale'
+    const prefix = grab(t, /Scene ids start with `([^`]+)`/)
+    const count = /Scenes: (?:exactly (\d+)|(\d+) to (\d+))/.exec(t)
+    const n = Number(count?.[1] ?? count?.[2] ?? 1)
+    const itemPrefix = grab(t, /fresh id that starts with `([^`]+)`/)
+    const cefr = grab(t, /Level \(CEFR\): (\w+)\./)
+    const ob = objectives(t, unit)[0]
+    const terms = grab(t, /^Vocabulary: (.*)$/m).split('; ').map((v) => v.split(' = ')[0]!.trim()).filter(Boolean)
+    const listed = lines(t).map((l) => /^- (\S+) \((mcq|typed|cloze)(?:, typed)?\): /.exec(l)).filter((m): m is RegExpExecArray => !!m)
+    const known = lines(t.slice(t.indexOf('Speakers written by earlier calls'), t.indexOf('Language rules'))).map((l) => /^- (\S+): .*?( \(the learner\))?$/.exec(l)).filter((m): m is RegExpExecArray => !!m)
+    // a unit written after another is given its speakers: it reuses none and brings its own character under a new id
+    const mine = !finale && known.length > 0 ? `guide-${unit}` : undefined
+    const npc = mine ?? known.find((m) => !m[2])?.[1] ?? 'anna'
+    const typed = (id: string, answer: string) => ({ id, objective: ob?.id, kind: 'typed', taught: true, prompt: 'Introduce yourself.', explanation: 'Ich bin is the way to say who you are.', facts: [ob?.facts[0]], accepted: [answer] })
+    const choice = (id: string) => ({ id, objective: ob?.id, kind: 'mcq', taught: true, prompt: 'Which sentence tells your name?', explanation: 'Ich heiße is the way to say your name.', facts: [ob?.facts[0]], options: [{ id: 'a', text: 'Ich heiße Anna.' }, { id: 'b', text: 'Er heißt Anna.', why: 'That is about him, not you.' }, { id: 'c', text: 'Wir heißen Anna.', why: 'That is about us, not you.' }], answer: 'a' })
+    const newItems: Record<string, unknown>[] = []
+    const scenes = Array.from({ length: finale ? 1 : n }, (_, s) => {
+      const i = s + 1
+      let replies: string[]
+      if (finale) replies = listed.map((m) => m[1]!).slice(0, 4)
+      else {
+        const a = `${itemPrefix}${2 * i - 1}`
+        const b = `${itemPrefix}${2 * i}`
+        newItems.push(typed(a, 'Bok, ich bin Anna.'), choice(b))
+        const reuse = listed.find((m) => m[2] === 'mcq')?.[1]
+        let c = reuse
+        if (!c) {
+          c = `${itemPrefix}${2 * n + i}`
+          newItems.push(typed(c, 'Ich bin Tom.'))
+        }
+        replies = [a, b, c]
+      }
+      const total = finale ? 12 : 10
+      let turn = 0
+      return {
+        id: finale ? 'finale' : `${prefix}s${i}`,
+        ...(finale ? {} : { unit }),
+        title: `Scene ${i} of ${unit}${revise ? ' (corrected)' : ''}`,
+        setting: 'A friendly place.',
+        cefr,
+        start: 'l1',
+        lines: Array.from({ length: total }, (_, j) => {
+          const next = j + 1 < total ? `l${j + 2}` : null
+          if ((j + 1) % 3 === 0 && turn < replies.length) return { id: `l${j + 1}`, reply: replies[turn++], help: `Say it simply (${j + 1}).`, next }
+          return { id: `l${j + 1}`, say: npc, text: finale ? `Das war ein langer Tag, Satz ${j + 1}.` : `Wir sagen ${terms.length ? terms.join(' und ') : 'Guten Tag'}, Satz ${j + 1}.`, translation: `Line ${j + 1}.`, next }
+        })
+      }
+    })
+    return { speakers: finale ? [] : mine ? [{ id: mine, name: `Guide of ${unit}` }] : [{ id: 'anna', name: unit === 'u1' ? 'Anna' : `Anna of ${unit}` }, { id: 'tom', name: 'Tom' }, { id: 'you', name: 'You', learner: true }], scenes, newItems }
   })
 
   on('game-designer', (t) => {

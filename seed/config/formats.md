@@ -40,6 +40,8 @@ formats:
     research_questions_per_unit: 1
     verb_units: 1
     verbs_per_unit: 6
+    roleplay: true
+    scenes_per_unit: [1, 1]
     item_kinds: [mcq, cloze, typed, match-pairs, flashcard, sort-groups, conjugation]
   - id: language-a2
     label: Language course (A2)
@@ -53,6 +55,8 @@ formats:
     research_questions_per_unit: 1
     verb_units: 2
     verbs_per_unit: 6
+    roleplay: true
+    scenes_per_unit: [1, 2]
     item_kinds: [mcq, cloze, typed, match-pairs, flashcard, sort-groups, conjugation, true-false, order, multi-select]
   - id: language-b1
     label: Language course (B1)
@@ -69,6 +73,8 @@ formats:
     reading: true
     reading_words: [200, 400]
     glossary_per_text: [6, 12]
+    roleplay: true
+    scenes_per_unit: [2, 2]
     item_kinds: [mcq, cloze, typed, match-pairs, flashcard, sort-groups, conjugation, true-false, order, multi-select]
   - id: language-b2
     label: Language course (B2)
@@ -85,6 +91,8 @@ formats:
     reading: true
     reading_words: [350, 700]
     glossary_per_text: [10, 20]
+    roleplay: true
+    scenes_per_unit: [2, 2]
     item_kinds: [mcq, true-false, multi-select, cloze, typed, match-pairs, order, sort-groups, flashcard, conjugation]
 ---
 # Formats
@@ -100,6 +108,7 @@ How big a course is. The brief names a format (`format`, default `quick`) and th
 - `language: true`: a language course. The language-coach writes the vocabulary and grammar scope and the accepted answers of typed gaps; `cefr` is the level it is pitched at.
 - `verb_units` and `verbs_per_unit` (language formats, default 0 and 6): how many units are verb units (every objective about one verb group) and how many verbs the language-coach picks for each. The conjugation item kind needs the verb-table tickets (EGS-27); until it exists the pipeline leaves `conjugation` out of the kinds it asks for.
 - `reading` (language formats, default false), `reading_words` (default `[350, 700]`) and `glossary_per_text` (default `[10, 20]`) (EGS-36): the articles are graded readings in the taught language (the `subject-expert/reading` prompt), each with a glossary that the reader view shows as tap-to-gloss words and that the pipeline step `harvest` turns into a vocabulary deck of flashcards. B1 reads short texts, B2 long ones.
+- `roleplay` (language formats, default false) and `scenes_per_unit` (`[min, max]`, default by level: A1 one, A2 one or two, B1 and B2 two) (HUB-23, EGS-55): a German course gets role-play scenes. The pipeline stage `scenes` runs the `scene-writer` role for each unit and then once for a finale (German dialogue at the level of the course, the learner's replies as course items, help after a wrong reply), the fact-checker reviews the scenes, and the `roleplay` shell is enabled with the section it wrote. A brief can switch it off with `roleplay: false`; set `roleplay: false` here to switch it off for a format.
 - `enabled: false` hides a format from the pickers.
 
 Add your own format with a new `id` (lower-case letters, digits and `-`). The engine reloads this file when it changes.

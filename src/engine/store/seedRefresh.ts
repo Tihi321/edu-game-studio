@@ -26,11 +26,12 @@ export const seedHash = (content: string | Buffer): string => createHash('sha1')
  * EGS-06: the skeleton's roles.md (the director only) and providers.md (no search providers). EGS-07: the skeleton's studios.md (no Scriptorium).
  */
 export const SEED_HISTORY: Record<string, string[]> = {
-  'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88', 'de514738d52ee3af0f0b8b6c1519e22e2af154f9'],
+  // HUB-23 (EGS-39): the third entry is roles.md before the scene-writer role.
+  'config/roles.md': ['9e88b188a02d708205d434ffc5fb8808bb219d88', 'de514738d52ee3af0f0b8b6c1519e22e2af154f9', '0e379a56cd0135e3c821a16c454900ade3194354'],
   'config/providers.md': ['5aecc02009ddbba887510a274691d7b79d068af0'],
   'config/studios.md': ['37a657caf935ec861a816ac7a3809bf0abf100c2'],
   // EGS-29: language-a1 only (no A2 / B1, no verb units); the curriculum and scope prompts before the verb-unit note.
-  'config/formats.md': ['3633c790d5a018cfe77907fa3bdab9424c3a6e02'],
+  'config/formats.md': ['3633c790d5a018cfe77907fa3bdab9424c3a6e02', '0dcbbfc107db0bd2517804e015cade5669952963'],
   'prompts/curriculum-designer/curriculum.md': ['efabbebdfa66580082fa27a7a35871803f3592b7'],
   // EGS-30: the writer prompts before the {{language_rules}} block, and the language coach agent.
   'prompts/language-coach/scope.md': ['dbb3818a2d982a14d7393b146160e9e291f9b0ec', '0a0652273ba7ebc68df3b4967880ac90533dd068'],
@@ -46,8 +47,8 @@ export const SEED_HISTORY: Record<string, string[]> = {
   'config/languages.md': ['44401d2836ce03d3bbf98541079cae48eefd6712'],
   'prompts/voice-director/plan.md': ['b4ea7c2d1c9bcdd4a68a453ae66810130d363c19'],
   'prompts/subject-expert/articles_revise.md': ['94b54c239ca90ffebee38097478c4e7fe46bc5be'],
-  // EGS-53: the game-designer prompt before it named all four shells.
-  'prompts/game-designer/design.md': ['9189d38fa9aadb663678707dfa9804436428cd4c']
+  // EGS-53: the game-designer prompt before it named all four shells. HUB-23 (EGS-55): the second entries are formats.md without roleplay / scenes_per_unit and design.md without the role-play shell.
+  'prompts/game-designer/design.md': ['9189d38fa9aadb663678707dfa9804436428cd4c', '122091bb1d085228996b9c57328f5eefb7a7f8d4']
 }
 
 export interface SeedState {
