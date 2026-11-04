@@ -108,7 +108,7 @@ describe('custom providers in the engine', () => {
     const snap = await engine.snapshot()
     expect(snap.models.find((m) => m.ref === `${id}/claude-opus-5-5`)).toMatchObject({ group: id, vision: true, local: true })
     expect(snap.models.find((m) => m.ref === 'deepseek/deepseek-flash')?.group).toBe('paid')
-    expect(snap.models.find((m) => m.ref === 'strata/qwen3.8-flash-next')?.group).toBe('strata')
+    expect(snap.models.find((m) => m.ref === 'strata/default')?.group).toBe('strata')
     expect(snap.models.find((m) => m.ref === 'client/claude-code')?.group).toBeUndefined()
 
     // the alias: without a row it names no model; once added to fallbacks it resolves to that row
@@ -119,10 +119,10 @@ describe('custom providers in the engine', () => {
     expect((await readConfig('settings.md')).data.fallbacks).toEqual([`${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'])
     await engine.setRoleModel('script-analyst', id) // roles.md names the provider id like an alias
     expect(engine.registry.roleModelRefs('script-analyst')[0]).toBe(`${id}/qwen3.8-flash`)
-    await engine.handleCommand({ type: 'saveSettings', fallbacks: ['strata/qwen3.8-flash-next', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'], fallbackShared: false })
+    await engine.handleCommand({ type: 'saveSettings', fallbacks: ['strata/default', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'], fallbackShared: false })
     expect(engine.registry.roleEntries('director')).toEqual(['paid', 'strata', 'lmstudio']) // roles.md entries kept with shared false
     expect(engine.registry.roleEntries('script-analyst')[0]).toBe(id)
-    expect((await engine.snapshot()).settings.fallbacks).toEqual(['strata/qwen3.8-flash-next', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'])
+    expect((await engine.snapshot()).settings.fallbacks).toEqual(['strata/default', `${id}/qwen3.8-flash`, 'deepseek/deepseek-flash'])
 
     // limits and a hidden model are stored for it too
     await engine.handleCommand({ type: 'setProviderLimits', provider: id, rpm: 10 })
@@ -135,7 +135,7 @@ describe('custom providers in the engine', () => {
     const models = (await readConfig('models.md')).data
     expect(JSON.stringify(models)).not.toContain(id)
     const settings = (await readConfig('settings.md')).data
-    expect(settings.fallbacks).toEqual(['strata/qwen3.8-flash-next', 'deepseek/deepseek-flash'])
+    expect(settings.fallbacks).toEqual(['strata/default', 'deepseek/deepseek-flash'])
     expect(settings).not.toHaveProperty('group_defaults')
     expect(JSON.stringify((await readConfig('roles.md')).data)).toContain(id)
     expect(await readFile(file('providers.md'), 'utf8')).not.toContain(id)

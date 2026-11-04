@@ -42,8 +42,8 @@ describe('seed configs', () => {
     expect(registry.providers.get('lmstudio')?.available).toBe(true)
     expect(registry.providers.get('ollama')?.available).toBe(false)
     expect(registry.providers.get('strata')).toMatchObject({ available: true, local: true, jsonSchema: false })
-    expect(isPaidModel(registry.getModel('strata/qwen3.8-flash-next')!)).toBe(false)
-    expect(new ModelRouter(registry, undefined).candidates('director')[0]?.ref).toBe('strata/qwen3.8-flash-next')
+    expect(isPaidModel(registry.getModel('strata/default')!)).toBe(false)
+    expect(new ModelRouter(registry, undefined).candidates('director')[0]?.ref).toBe('strata/default')
     const flash = registry.getModel('deepseek/deepseek-flash')!
     expect(flash).toMatchObject({ priceIn: 0.3, priceOut: 1.2, priceCachedIn: 0.006, family: 'deepseek' })
     expect(isPaidModel(flash)).toBe(true)
@@ -51,7 +51,7 @@ describe('seed configs', () => {
     for (const role of Object.keys(registry.roles.roles)) for (const ref of registry.roleModelRefs(role)) expect(registry.getModel(ref), ref).toBeTruthy()
     // the seed roles use the aliases, resolved to the settings defaults
     expect(registry.roles.roles.director?.models).toEqual(['paid', 'strata', 'lmstudio'])
-    expect(registry.roleModelRefs('director')).toEqual(['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
+    expect(registry.roleModelRefs('director')).toEqual(['deepseek/deepseek-flash', 'strata/default', 'lmstudio/gemma-4-e4b-it'])
     // the client provider is on in the seed, with a context, and no role uses it
     expect(registry.providers.get('client')).toMatchObject({ kind: 'client', local: true, available: true, concurrency: 8 })
     expect(registry.getModel('client/claude-code')).toMatchObject({ vision: true, context: 200000 })
@@ -62,9 +62,9 @@ describe('seed configs', () => {
     expect(registry.loadConfigFor('lmstudio', 'nail-qwen3.6-35b-a3b-mtp')).toEqual({ parallel: 2, context: 65536, ttlMinutes: 60 })
     expect(registry.loadConfigFor('lmstudio', 'gemma-4-e4b-it')).toEqual({ parallel: 4, context: 131072, ttlMinutes: 60 })
     // another default in the settings: the roles follow, and an agent override may be an alias too
-    registry.setDefaults({ fallbacks: ['deepseek/deepseek-v4-pro', 'strata/qwen3.8-flash-next', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'], shared: false, lmLoad: { parallel: 2, context: 16384, ttlMinutes: 30 } })
+    registry.setDefaults({ fallbacks: ['deepseek/deepseek-v4-pro', 'strata/default', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'], shared: false, lmLoad: { parallel: 2, context: 16384, ttlMinutes: 30 } })
     await registry.load()
-    expect(registry.roleModelRefs('director')).toEqual(['deepseek/deepseek-v4-pro', 'strata/qwen3.8-flash-next', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'])
+    expect(registry.roleModelRefs('director')).toEqual(['deepseek/deepseek-v4-pro', 'strata/default', 'lmstudio/nail-qwen3.6-35b-a3b-mtp'])
     expect(registry.getModel('lmstudio/gemma-4-e4b-it')?.context).toBe(16384)
     expect(registry.getModel('lmstudio/nail-qwen3.6-35b-a3b-mtp')?.context).toBe(65536) // its own load_context wins
     expect(new ModelRouter(registry, undefined).candidates('director', { agentModel: 'lmstudio' })[0]?.ref).toBe('lmstudio/nail-qwen3.6-35b-a3b-mtp')
@@ -78,6 +78,7 @@ describe('seed configs', () => {
       const u = String(url)
       if (u.includes(':8080')) {
         if (!strata) throw new Error('connection refused')
+        if (u.endsWith('/v1/models')) return new Response(JSON.stringify({ data: [{ id: String(strata.model), meta: { n_ctx: 65536 } }, { id: 'default', alias_of: String(strata.model) }] }))
         return new Response(JSON.stringify(strata))
       }
       if (u.endsWith('/v1/status')) return new Response(JSON.stringify({ error: 'Unexpected endpoint or method. (GET /v1/status)' }))
@@ -87,7 +88,7 @@ describe('seed configs', () => {
     await registry.load()
     const router = new ModelRouter(registry, undefined)
     const refs = () => router.candidates('director').map((m) => m.ref)
-    expect(refs()).toEqual(['strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it']) // not asked yet
+    expect(refs()).toEqual(['strata/default', 'lmstudio/gemma-4-e4b-it']) // not asked yet
     await registry.syncServerSlots()
     expect(registry.providers.get('strata')!.down).toBe(true)
     expect(registry.providers.get('lmstudio')!.down).toBe(false)
@@ -97,9 +98,30 @@ describe('seed configs', () => {
     strata = { loaded: false, auto_load: false, concurrency: { serving: 1 } } // answers, but won't load its model for a request
     await registry.syncServerSlots()
     expect(registry.providers.get('strata')!.down).toBe(true)
-    strata = { loaded: true, auto_load: false, concurrency: { serving: 4 } }
+    strata = { loaded: true, auto_load: false, concurrency: { serving: 4 }, model: 'deepseek-v4.1-flash' }
+    const first = await registry.syncServerSlots()
+    expect(first.served).toMatchObject([{ to: 'deepseek-v4.1-flash' }])
+    expect(refs()).toEqual(['strata/default', 'lmstudio/gemma-4-e4b-it'])
+    // the loaded rows take the served model's profile; the variant's thinking level stays
+    const row = registry.getModel('strata/default')!
+    const low = registry.getModel('strata/default-low')!
+    expect(row).toMatchObject({ servedId: 'deepseek-v4.1-flash', family: 'deepseek', context: 131072, extraBody: { reasoning_effort: 'none' } })
+    expect(low).toMatchObject({ servedId: 'deepseek-v4.1-flash', family: 'deepseek', extraBody: { reasoning_effort: 'low' } })
+    expect(registry.getModel('strata/qwen3.8-flash-next-low')).toBe(low) // the old ref is an alias
+    expect(registry.resolve('strata/qwen3.8-flash-next')).toBe('strata/default')
+    // discovery only learns the model: no strata/<real id> appears
+    await registry.discover()
+    expect([...registry.models.keys()].filter((r) => r.startsWith('strata/'))).toEqual(['strata/default', 'strata/default-low'])
+    // a switch (restart with another quant) changes the same objects, by the id prefix
+    strata = { loaded: true, auto_load: false, concurrency: { serving: 1 }, model: 'qwen3.8-flash-next-iq3_s' }
+    expect((await registry.syncServerSlots()).served).toMatchObject([{ from: 'deepseek-v4.1-flash', to: 'qwen3.8-flash-next-iq3_s' }])
+    expect(registry.getModel('strata/default')).toBe(row)
+    expect(row).toMatchObject({ servedId: 'qwen3.8-flash-next-iq3_s', family: 'qwen' })
+    // down keeps what it ran last
+    strata = null
     await registry.syncServerSlots()
-    expect(refs()).toEqual(['strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'])
+    expect(registry.providers.get('strata')).toMatchObject({ down: true, served: 'qwen3.8-flash-next-iq3_s' })
+    expect(row.servedId).toBe('qwen3.8-flash-next-iq3_s')
   })
 })
 

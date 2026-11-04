@@ -626,6 +626,7 @@ export class Scheduler {
                   type: 'spend',
                   provider: ev.model.provider.id,
                   model: ev.model.id,
+                  served: ev.model.servedId,
                   tokensIn: ev.usage.inputTokens,
                   tokensOut: ev.usage.outputTokens,
                   costUsd: ev.costUsd,

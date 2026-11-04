@@ -240,10 +240,12 @@ export class Engine {
       this.log(`could not ask the servers for their slots: ${(err as Error).message}`)
       return
     }
-    for (const c of changed) {
+    for (const c of changed.slots) {
       this.log(`models: ${c.provider.id} runs ${c.to} request(s) at once (was ${c.from}), as the server reports`)
       if (c.to > c.from) this.router.limiter.wakeAll(c.provider)
     }
+    // the model a server runs changed (Strata restarted with another model): its `loaded` rows follow, the pickers show the new name
+    for (const c of changed.served) this.log(`models: ${c.provider.id} now serves ${c.to}${c.from ? ` (was ${c.from})` : ''}`)
     // a server that stops answering is skipped (its jobs go to the next model in the role) until it answers again
     let upOrDown = false
     for (const p of this.registry.providers.values()) {
@@ -251,8 +253,9 @@ export class Engine {
       upOrDown = true
       this.log(p.down ? `models: ${p.id} is down (${p.baseUrl} does not answer, or has no model loaded), jobs use the next model in their role` : `models: ${p.id} answers again`)
     }
-    if (changed.length || upOrDown) {
+    if (changed.slots.length || changed.served.length || upOrDown) {
       this.emit({ type: 'servers', servers: serverStatuses(this.registry) })
+      if (changed.served.length && this.started) this.emit(await this.snapshot()) // the models list carries `served`
       this.scheduler.kick()
     }
   }
@@ -352,7 +355,7 @@ export class Engine {
     if (this.opts.discover === false) return
     try {
       const r = await this.registry.discover()
-      for (const d of r) this.log(`models: ${d.provider} ${d.error ? 'discovery failed: ' + d.error : d.found + ' found'}`)
+      for (const d of r) this.log(`models: ${d.provider} ${d.error ? 'discovery failed: ' + d.error : d.served ? `serves ${d.served}` : d.found + ' found'}`)
       if (r.length && this.started) this.emit(await this.snapshot()) // before that, the first snapshot has them
       this.scheduler.kick()
     } catch (err) {

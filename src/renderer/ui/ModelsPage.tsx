@@ -16,6 +16,23 @@ interface Row {
   /** It can be ticked: known, local, or listed with a price. */
   pickable: boolean
   vision?: boolean
+  /** A `loaded` row (`strata/default`): the model name to show, `Strata: <served>`. */
+  label?: string
+}
+
+/** What a server that follows its loaded model runs: `Strata: qwen`, or that it is not running (and what it ran last). */
+function servedNote(p: ProviderSummary, down: boolean): string {
+  const name = p.name !== p.id ? p.name : p.id.charAt(0).toUpperCase() + p.id.slice(1)
+  if (down) return `${name}: not running${p.served ? ` (last: ${p.served})` : ''}`
+  return p.served ? `${name} runs ${p.served}. The rows below stand for it.` : `${name}: model not known yet`
+}
+
+/** `Strata: <model>` and `Strata: <model>, thinking low` for a `loaded` row that has been answered for; undefined for any other model. */
+function servedLabel(m: ModelSummary | undefined, providers: ProviderSummary[]): string | undefined {
+  if (!m?.served) return undefined
+  const p = providers.find((x) => x.id === m.provider)
+  const name = p && p.name !== p.id ? p.name : m.provider.charAt(0).toUpperCase() + m.provider.slice(1)
+  return `${name}: ${m.served}${m.thinking && m.thinking !== 'none' ? `, thinking ${m.thinking}` : ''}`
 }
 
 const SOURCE_LABEL = { config: 'providers.md', discovered: 'found', picked: 'added' } as const
@@ -105,6 +122,7 @@ export function ModelsPage() {
   const models = useEdu((s) => s.models)
   const catalogs = useEdu((s) => s.catalogs)
   const settings = useEdu((s) => s.settings)
+  const servers = useEdu((s) => s.servers)
   const providerTest = useEdu((s) => s.providerTest)
   const providerSaved = useEdu((s) => s.providerSaved)
   const [form, setForm] = useState<ProviderForm | null>(null)
@@ -150,7 +168,7 @@ export function ModelsPage() {
     const out = new Map<string, Row>()
     for (const m of models) {
       if (m.provider !== current.id) continue
-      out.set(m.ref, { ref: m.ref, id: m.model, context: m.context, priceIn: m.priceIn, priceOut: m.priceOut, shown: m.shown !== false, source: m.source, pickable: true, vision: m.vision })
+      out.set(m.ref, { ref: m.ref, id: m.model, context: m.context, priceIn: m.priceIn, priceOut: m.priceOut, shown: m.shown !== false, source: m.source, pickable: true, vision: m.vision, label: servedLabel(m, providers) })
     }
     for (const c of catalog?.models ?? []) {
       const known = out.get(c.ref)
@@ -158,7 +176,7 @@ export function ModelsPage() {
       else out.set(c.ref, { ref: c.ref, id: c.id, context: c.context, priceIn: c.priceIn, priceOut: c.priceOut, shown: false, pickable: c.pickable })
     }
     return [...out.values()].sort((a, b) => a.id.localeCompare(b.id))
-  }, [current, models, catalog])
+  }, [current, models, catalog, providers])
 
   const saveLoad = () => {
     if (!settings || !load) return
@@ -235,7 +253,7 @@ export function ModelsPage() {
         <select aria-label={`Model of fallback row ${i + 1}`} value={ref} onChange={(e) => save(fallbacks.map((r, j) => (j === i ? e.target.value : r)))} style={{ flex: 1, minWidth: 0 }} data-testid={`fallback-model-${i}`}>
           {refs.map((r) => (
             <option key={r} value={r}>
-              {r}
+              {servedLabel(models.find((m) => m.ref === r), providers) ?? r}
             </option>
           ))}
         </select>
@@ -454,6 +472,11 @@ export function ModelsPage() {
                   </button>
                 </div>
               )}
+              {current.followsServer && (
+                <div className={current.available && !servers.find((s) => s.id === current.id)?.down ? 'dim' : 'warn'} data-testid="served-note">
+                  {servedNote(current, servers.find((s) => s.id === current.id)?.down ?? false)}
+                </div>
+              )}
               {current.kind === 'client' && (
                 <div className="dim" data-testid="client-note">
                   Local and free. These models do nothing by themselves: a job on one waits until the MCP client it names (client/claude-code: Claude Code; client/antigravity: Antigravity CLI, which passes client: "antigravity") takes it with edu_get_task and answers with edu_submit_task. Do not leave a role on it when no client is working.
@@ -525,7 +548,7 @@ export function ModelsPage() {
                     data-testid={`model-row-${r.ref}`}
                   >
                     <input type="checkbox" checked={r.shown} disabled={!r.pickable} data-testid={`model-tick-${r.ref}`} onChange={(e) => sendCommand({ type: 'showModels', refs: [r.ref], shown: e.target.checked })} />
-                    <span className="model-id">{r.id}</span>
+                    <span className="model-id" title={r.label ? r.id : undefined}>{r.label ?? r.id}</span>
                     <span className="dim">{formatContext(r.context)}</span>
                     <span className={r.vision ? 'free' : 'dim'} title="Accepts images (vision: true in providers.md or models.md)">{r.vision ? 'vision' : ''}</span>
                     <span className={r.priceIn === 0 && r.priceOut === 0 && !local ? 'free' : 'dim'}>{formatPrice(r, local, current?.kind)}</span>
