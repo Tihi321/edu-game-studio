@@ -40,6 +40,8 @@ export function modelSummaries(registry: ModelRegistry): ModelSummary[] {
       shown: registry.isShown(m.ref),
       source: m.picked ? ('picked' as const) : m.discovered ? ('discovered' as const) : ('config' as const),
       context: m.context,
+      served: m.servedId,
+      thinking: m.loaded && typeof m.extraBody?.reasoning_effort === 'string' ? m.extraBody.reasoning_effort : undefined,
       vision: m.vision,
       priceIn: m.priceIn,
       priceOut: m.priceOut
@@ -66,6 +68,8 @@ export function providerSummaries(registry: ModelRegistry, limiter: ProviderLimi
       reason: p.available ? undefined : p.unavailableReason,
       keyFrom: p.keyFrom,
       canList: p.kind === 'openai-compat',
+      followsServer: p.hasLoaded,
+      served: p.served,
       concurrency: p.concurrency,
       concurrencyAuto: p.concurrencyAuto,
       rpm: p.rpm,
@@ -78,7 +82,7 @@ export function providerSummaries(registry: ModelRegistry, limiter: ProviderLimi
 
 /** The local servers the engine checks (`concurrency: auto`): Strata and LM Studio. */
 export function serverStatuses(registry: ModelRegistry): ServerStatus[] {
-  return [...registry.providers.values()].filter((p) => p.concurrencyAuto && p.available).map((p) => ({ id: p.id, down: p.down, slots: p.concurrency }))
+  return [...registry.providers.values()].filter((p) => p.concurrencyAuto && p.available).map((p) => ({ id: p.id, down: p.down, slots: p.concurrency, served: p.served }))
 }
 
 export function roleDefaults(registry: ModelRegistry): Record<string, string> {

@@ -2,7 +2,7 @@
 kind: settings
 fallbacks:
   - deepseek/deepseek-flash
-  - strata/qwen3.8-flash-next
+  - strata/default
   - lmstudio/gemma-4-e4b-it
 fallback_shared: false
 lmstudio_parallel: 4

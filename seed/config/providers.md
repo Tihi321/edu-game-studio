@@ -106,18 +106,27 @@ providers:
     local: true
     base_url: http://127.0.0.1:8080/v1
     api_key_env: STRATA_API_KEY   # optional: only sent if set
-    concurrency: auto             # as many as the running Strata serves (its /v1/status): 4 or 1, by the script you started
-    discover: false               # Strata answers any model name, so fixed ids keep roles.md the same across quants
+    concurrency: auto             # as many as the running Strata serves (its /v1/status)
+    discover: true                # ask Strata which model it runs (GET /v1/models, and `model` of /v1/status)
     json_schema: false
-    models:
-      - id: qwen3.8-flash-next
-        family: qwen
-        context: 131072
+    models:                       # the refs roles and settings use; each stands for whatever model Strata has loaded
+      - id: default               # thinking off
+        loaded: true
+        aliases: [qwen3.8-flash-next]
+        context: 131072           # used until Strata has answered once
         extra_body: { reasoning_effort: none }
-      - id: qwen3.8-flash-next-low
-        family: qwen
+      - id: default-low           # thinking on low, for the checks
+        loaded: true
+        aliases: [qwen3.8-flash-next-low]
         context: 131072
         extra_body: { reasoning_effort: low }
+    profiles:                     # settings per model Strata may run, matched by id prefix; not refs, not in pickers
+      - id: qwen3.8-flash-next    # matches qwen3.8-flash-next-iq3_s and qwen3.8-flash-next-unsloth-ud-iq4_xs
+        family: qwen
+        context: 131072
+      - id: deepseek-v4.1-flash
+        family: deepseek
+        context: 131072
   - id: ollama
     kind: openai-compat
     enabled: false
@@ -225,6 +234,7 @@ Prices were checked 2026-10-08 from third-party listings; the DeepSeek ones were
 - The app's **Models** panel sets requests at once, per minute and per day for each API provider. It saves them in `limits` of `config/models.md`, which win over the values here.
 - `discover`: ask the provider for its models (`GET /v1/models`) and add the ones not listed here. `discover_skip` leaves out models whose id contains one of its words (any case): LM Studio skips `dflash`, which it lists but can't load here. `discover: free` adds only the models the provider lists at price 0. A model of a paid provider is only added with the price the provider lists, so the budget always counts its cost: one listed without a price is left out (add it below with its price). Models that answer with something besides text (music, images) are left out. Discovery runs at start, when a key is stored and when this file changes.
 - `json_schema`: `true` (the default) sends the JSON schema of a structured answer as `response_format`. Set `false` for a server that answers a bad JSON reply with an error instead of constraining it. The prompt then asks for the JSON shape and the engine checks it and repairs it.
+- `loaded`, `aliases` (on a model), `profiles` (on the provider): for a server that runs one model at a time (Strata). A `loaded: true` row is not a model id but a ref (`strata/default`) that stands for whatever the server runs; with `discover: true` the app asks the server which model that is, and takes the row's family, context, `extra_body` and `json_schema` from the `profiles` entry whose `id` is that model's id or the longest prefix of it (a row's own values win over the profile's). `aliases` are older ids that still resolve to the row. Discovery adds no other models for such a provider.
 
 ## Client (Claude Code does the model work)
 
@@ -248,13 +258,14 @@ The `acp` entry (off by default) is for `api-acp-proxy`, a server on `http://127
 
 ## Strata
 
-Strata (`<your Strata folder>`) is a fast local server for Qwen3.8-Flash-Next with an OpenAI-style API. Edu Studio only connects to it, you start it:
+Strata (`<your Strata folder>`) is a fast local server with an OpenAI-style API. Edu Studio only connects to it, you start it:
 
-- Four agents at once or one: every model has two scripts in `<your Strata folder>`, `run-<model>-parallel.bat` (`"parallel": 4`, without `--batch-mtp`, which was slower) and `run-<model>-solo.bat` (one at a time), for `iq3_s`, `iq2_xs` and `coder-iq1_m`. The older `run-iq3_s.bat` is solo, `run-iq2_xs.bat` and `run-coder-iq1_m.bat` are four at once. Measured on 2026-10-11 (2.5K-token prompt, 600 tokens out): one request about 28 tok/s, four at once about 41 tok/s in total (about 10 each); solo four in a queue about 29 tok/s; with `--batch-mtp` about 31. IQ3_S stays solo (one request at a time). Each slot takes about 1.8 GB of VRAM from the expert cache.
-- Run `<your Strata folder>\run-iq3_s.bat` (or `run-iq2_xs.bat`). Loading the model takes 1 to 3 minutes. Check `curl http://127.0.0.1:8080/health` and wait for `loaded: true`. Until it answers, jobs skip it and use the next model in the role; a few seconds after it answers (the check runs every 10 seconds) they go back to Strata.
-- It serves one model per process, and every quant uses port 8080. It ignores the `model` field of a request, so the two ids above (no thinking, and thinking on `low`) only differ in `extra_body`. They stand in for the 27B editors and the 35B checks.
-- The IQ3_S quant takes about 84 GB, so it does not fit beside the big LM Studio models: keep only the nomic embedding model loaded in LM Studio while it runs. The IQ2_XS quant (`run-iq2_xs.bat`) takes about 48 GB, at some cost in quality. Both answer to the same model ids, so `config/roles.md` stays the same whichever you start.
-- `context` must match `--max-context` in the run config (131072).
+- It serves one model per process, on port 8080, chosen by the `run-*.bat` you start in `<your Strata folder>`: `run-iq3_s.bat` (Qwen3.8-Flash-Next IQ3_S, one request at a time), `run-iq3_s-solo.bat`, `run-iq3_s-parallel.bat` (four at once), `run-unsloth-ud-iq4_xs.bat` (Qwen IQ4_XS), `run-deepseek-v4.1-flash-ist-das-2.00bpw.bat` and `run-deepseek-v4.1-flash-ista-das-coder.bat` (DeepSeek V4.1 Flash). From the creative-hub folder, `scripts\hub.ps1 start strata <variant>` starts one.
+- Loading the model takes 1 to 3 minutes (the DeepSeek config allows up to an hour). Check `curl http://127.0.0.1:8080/health` and wait for `loaded: true`. Until it answers, jobs skip it and use the next model in the role; a few seconds after it answers (the check runs every 10 seconds) they go back to Strata.
+- Edu Studio asks Strata which model it runs (`/v1/status`) and uses the matching entry of `profiles` for that model's settings (family, context, extra body). `strata/default` (no thinking) and `strata/default-low` (thinking on `low`, for the checks) follow it: after you restart Strata with another model, the Models page shows the new name within about 10 seconds and `config/roles.md` stays the same. The older ids `qwen3.8-flash-next` and `qwen3.8-flash-next-low` still work as aliases. When you install a new model, add a profile for it (its `id` is matched as a prefix of the id Strata reports).
+- When Strata runs DeepSeek, the "Strata" reviewers are the same family as the paid DeepSeek writers: the "different family" rationale in `config/roles.md` holds only for the Qwen models.
+- Strata takes most of the GPU memory with any of these models: keep only the nomic embedding model loaded in LM Studio, and no ComfyUI, while it runs.
+- `context` in a profile must match `--max-context` in the run config (131072 for all six now).
 - `json_schema: false` because Strata checks a structured answer after the fact and fails the request (502 `structured_output_failed`) when it is bad. That would be retried and then sent to a paid model, while the engine's own parse-and-repair step already copes with a loose JSON answer.
 - No key is needed. `STRATA_API_KEY` is only sent if you set it.
 

@@ -34,9 +34,9 @@ roles:
   publisher:
     models: [paid, strata, lmstudio]
   researcher:
-    models: [strata/qwen3.8-flash-next-low, lmstudio, paid]
+    models: [strata/default-low, lmstudio, paid]
   fact-checker:
-    models: [strata/qwen3.8-flash-next-low, lmstudio, paid]
+    models: [strata/default-low, lmstudio, paid]
   accessibility-reviewer:
     models: [strata, lmstudio, paid]
   child-safety-reviewer:
@@ -76,7 +76,7 @@ The Edu Studio team (docs/design.md):
 Starting choices, all of them first guesses to be tuned in the model picker:
 - Writers and designers (and the director and publisher): the paid default, with Strata and then LM Studio as fallbacks.
 - Researcher and fact-checker: Strata with thinking on `low` (named directly, it is not the Strata default), then LM Studio, then the paid default.
-- Other reviewers and the playtester: Strata (a model family different from the paid writers, and free), then LM Studio, then the paid default.
+- Other reviewers and the playtester: Strata (free, and usually a family different from the paid writers; when the model Strata runs is DeepSeek, it is the same family as the paid DeepSeek writers, so then put LM Studio first for the reviews), then LM Studio, then the paid default.
 - The art-director, the composer, the voice-director, the translator and the scene-writer are writers (paid first). The art-critic must be a vision model, so it starts with Gemini 2.5 Flash, then Claude Sonnet (both see images), then LM Studio (only when a model there has `vision: true` in `config/providers.md`); the model picker offers it vision models only.
 
 Reviewer jobs prefer a model family different from the one that wrote the content. Changing a default here applies at once: a running job asks its current request again on the new model. `fallback_shared` in `config/settings.md` (the Models page's "One fallback order for every role") gives every role the fallback rows top to bottom instead. The engine rewrites this file when you change a role default in the UI, so comments in the YAML are not kept. The text below the frontmatter is.

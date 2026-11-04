@@ -62,7 +62,7 @@ describe('seed migrations', () => {
     // the client entry comes from the seed, so it already has antigravity
     expect(providers[1]).toMatchObject({ kind: 'client', models: [{ id: 'claude-code', context: 200000 }, { id: 'antigravity', vision: true, context: 1000000 }] })
     expect(providers[2]).toMatchObject({ id: 'acp', kind: 'openai-compat', enabled: false, local: true, base_url: 'http://127.0.0.1:7461/v1', concurrency: 2, json_schema: false, discover: true, models: [] })
-    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'strata-loaded-v1', 'strata-loaded-roles-v1', 'strata-loaded-settings-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 
   it('gives a client model without context 200000 and never changes one that has a value', async () => {
@@ -88,7 +88,7 @@ describe('seed migrations', () => {
     const res = await initDataFolder(data, seedDir)
     expect(res.migrated).toEqual([])
     expect(await readFile(file(), 'utf8')).toBe(bad)
-    expect((await loadSeedState(data)).migrations).toEqual(['settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['settings-fallbacks-v1', 'strata-loaded-roles-v1', 'strata-loaded-settings-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 
   it('an untouched file is updated by the seed refresh, and the migrations change nothing', async () => {
@@ -107,7 +107,7 @@ describe('seed migrations', () => {
     expect(res.updated).toContain('config/providers.md')
     expect(res.migrated).toEqual([])
     expect(await readFile(file(), 'utf8')).toBe(seedText)
-    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
+    expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'strata-loaded-v1', 'strata-loaded-roles-v1', 'strata-loaded-settings-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 
   it('adds the scene-writer role to an edited roles.md once, keeping the other roles and the body (EGS-55)', async () => {
@@ -164,6 +164,45 @@ model_order:
     expect(updated).toContain('fallback_shared: true')
     expect(updated).not.toContain('group_defaults:')
     expect(updated).not.toContain('model_order:')
+  })
+
+  it('strata-loaded-v1 turns the old Strata rows and refs into loaded rows once, keeps your own row, and leaves a deleted strata provider alone', async () => {
+    const strataOld = (extra: string) => `---
+kind: providers
+providers:
+  - id: strata
+    kind: openai-compat
+    local: true
+    base_url: http://127.0.0.1:8080/v1
+    concurrency: auto
+    discover: false
+    models:
+      - id: qwen3.8-flash-next
+        family: qwen
+      - id: qwen3.8-flash-next-low
+        family: qwen
+      - id: my-model
+        family: llama${extra}
+---
+`
+    await oldFolder(strataOld(''))
+    await writeFile(path.join(data, 'config', 'roles.md'), '---\nkind: roles\nroles:\n  checker:\n    models: [strata/qwen3.8-flash-next-low, lmstudio]\n---\n')
+    await writeFile(path.join(data, 'config', 'settings.md'), '---\nkind: settings\nfallbacks:\n  - strata/qwen3.8-flash-next\n  - deepseek/deepseek-flash\n---\n')
+    const res = await initDataFolder(data, seedDir)
+    expect(res.migrated).toEqual(expect.arrayContaining(['strata-loaded-v1', 'strata-loaded-roles-v1', 'strata-loaded-settings-v1']))
+    const strata = (await providersOf()).find((p) => p.id === 'strata') as unknown as { discover: boolean; models: { id: string; loaded?: boolean; aliases?: string[] }[]; profiles: { id: string }[] }
+    expect(strata.discover).toBe(true)
+    expect(strata.models.map((m) => m.id)).toEqual(['default', 'default-low', 'my-model'])
+    expect(strata.models[0]).toMatchObject({ loaded: true, aliases: ['qwen3.8-flash-next'] })
+    expect(strata.profiles.map((p) => p.id)).toEqual(['qwen3.8-flash-next', 'deepseek-v4.1-flash'])
+    expect(await readFile(path.join(data, 'config', 'roles.md'), 'utf8')).toContain('strata/default-low, lmstudio')
+    expect(await readFile(path.join(data, 'config', 'settings.md'), 'utf8')).toContain('- strata/default\n')
+    // it ran once: a row you remove later stays removed, and a second start changes nothing
+    expect((await initDataFolder(data, seedDir)).migrated).toEqual([])
+    // no strata provider: nothing is added
+    await oldFolder(OLD)
+    await initDataFolder(data, seedDir)
+    expect((await providersOf()).map((p) => p.id)).not.toContain('strata')
   })
 
   it('voice-local-v1 strips the VibeTTS keys from an edited voice.md and adds chunkChars, never touching format or speed', async () => {

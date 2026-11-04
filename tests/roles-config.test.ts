@@ -16,7 +16,7 @@ describe('the roles', () => {
     expect(Object.keys(roles).sort()).toEqual([...ROLES].sort())
     for (const role of ROLES) expect(roles[role]!.models.length, role).toBeGreaterThanOrEqual(3)
     for (const role of ['director', 'curriculum-designer', 'subject-expert', 'item-writer', 'misconception-designer', 'explainer', 'language-coach', 'game-designer', 'narrative-designer', 'publisher']) expect(roles[role]!.models, role).toEqual(['paid', 'strata', 'lmstudio'])
-    for (const role of ['researcher', 'fact-checker']) expect(roles[role]!.models, role).toEqual(['strata/qwen3.8-flash-next-low', 'lmstudio', 'paid'])
+    for (const role of ['researcher', 'fact-checker']) expect(roles[role]!.models, role).toEqual(['strata/default-low', 'lmstudio', 'paid'])
     for (const role of ['accessibility-reviewer', 'child-safety-reviewer', 'playtester']) expect(roles[role]!.models, role).toEqual(['strata', 'lmstudio', 'paid'])
     expect(roles['art-director']!.models).toEqual(['paid', 'strata', 'lmstudio'])
     expect(roles.composer!.models).toEqual(['paid', 'strata', 'lmstudio'])

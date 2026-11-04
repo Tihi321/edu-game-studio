@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { isMap, isSeq, parseDocument } from 'yaml'
+import { isMap, isSeq, parseDocument, visit } from 'yaml'
 import type { Document, YAMLMap } from 'yaml'
 import { splitFrontmatter } from '../../shared/md'
 import { atomicWrite } from './atomic'
@@ -32,6 +32,37 @@ function providersOf(doc: Document): YAMLMap[] {
 }
 
 const isClient = (p: YAMLMap): boolean => p.get('kind') === 'client' || p.get('id') === 'client'
+
+/** Strata's older model ids and the neutral refs that replaced them (HUB-26): the `loaded` rows follow whatever model Strata runs. */
+const STRATA_REFS: Record<string, string> = {
+  'strata/qwen3.8-flash-next-low': 'strata/default-low',
+  'strata/qwen3.8-flash-next': 'strata/default'
+}
+
+/** The `loaded` rows and the profiles the seed's `strata` provider has (providers.md). */
+const STRATA_LOADED_ROWS = [
+  { id: 'default', loaded: true, aliases: ['qwen3.8-flash-next'], context: 131072, extra_body: { reasoning_effort: 'none' } },
+  { id: 'default-low', loaded: true, aliases: ['qwen3.8-flash-next-low'], context: 131072, extra_body: { reasoning_effort: 'low' } }
+]
+const STRATA_PROFILES = [
+  { id: 'qwen3.8-flash-next', family: 'qwen', context: 131072 },
+  { id: 'deepseek-v4.1-flash', family: 'deepseek', context: 131072 }
+]
+
+/** Renames the exact old Strata refs in every string of a config file. Returns whether anything changed. */
+function renameStrataRefs(doc: Document): boolean {
+  let changed = false
+  visit(doc, {
+    Scalar(_key, node) {
+      const to = typeof node.value === 'string' ? STRATA_REFS[node.value] : undefined
+      if (to) {
+        node.value = to
+        changed = true
+      }
+    }
+  })
+  return changed
+}
 
 export const SEED_MIGRATIONS: SeedMigration[] = [
   {
@@ -124,6 +155,48 @@ export const SEED_MIGRATIONS: SeedMigration[] = [
       doc.delete('default_lmstudio_model')
       return true
     }
+  },
+  {
+    id: 'strata-loaded-v1',
+    file: 'config/providers.md',
+    // Strata's two rows become `loaded` rows (`strata/default`, `strata/default-low`) that follow the model Strata runs, with profiles per model.
+    // The user's own Strata rows stay; the rows the aliases replace go. A deleted `strata` provider, or one that has a `loaded` row already, is left alone.
+    apply(doc) {
+      const strata = providersOf(doc).find((p) => p.get('id') === 'strata')
+      if (!strata) return false
+      const models = strata.get('models', true)
+      if (isSeq(models) && models.items.some((m) => isMap(m) && m.get('loaded') === true)) return false
+      const aliasIds = new Set(STRATA_LOADED_ROWS.flatMap((r) => r.aliases))
+      let seq = models
+      if (!isSeq(seq)) {
+        strata.set('models', doc.createNode([]))
+        seq = strata.get('models', true)
+      }
+      if (!isSeq(seq)) return false
+      seq.items = seq.items.filter((m) => !(isMap(m) && aliasIds.has(String(m.get('id')))))
+      STRATA_LOADED_ROWS.forEach((r, i) => seq.items.splice(i, 0, doc.createNode(r)))
+      strata.set('discover', true)
+      let profiles = strata.get('profiles', true)
+      if (!isSeq(profiles)) {
+        strata.set('profiles', doc.createNode([]))
+        profiles = strata.get('profiles', true)
+      }
+      if (isSeq(profiles)) {
+        const have = new Set(profiles.items.filter(isMap).map((p) => String(p.get('id'))))
+        for (const p of STRATA_PROFILES) if (!have.has(p.id)) profiles.add(doc.createNode(p))
+      }
+      return true
+    }
+  },
+  {
+    id: 'strata-loaded-roles-v1',
+    file: 'config/roles.md',
+    apply: (doc) => renameStrataRefs(doc)
+  },
+  {
+    id: 'strata-loaded-settings-v1',
+    file: 'config/settings.md',
+    apply: (doc) => renameStrataRefs(doc)
   },
   {
     id: 'voice-local-v1',
