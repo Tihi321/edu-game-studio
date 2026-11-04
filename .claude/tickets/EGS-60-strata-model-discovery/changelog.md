@@ -28,3 +28,7 @@ Three `SEED_MIGRATIONS` entries (`strata-loaded-v1`, `-roles-v1`, `-settings-v1`
 ### Not run
 
 Nothing against a running Strata; no app started; no user data (`~\EduGames`) touched; the Models page labels were typechecked, not looked at.
+
+## Polish (checker findings)
+
+- `resolve()` now also maps an alias whose fallback row still names an old ref of a `loaded` row (`strata/qwen3.8-flash-next`) to the row (`strata/default`), as Scriptorium does, so the shared-order list holds `strata/default` once. One assertion added to the existing AC-1 Strata test; it failed before the fix and passes after.

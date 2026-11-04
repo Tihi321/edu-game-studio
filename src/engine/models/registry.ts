@@ -596,9 +596,13 @@ export class ModelRegistry {
     return map
   }
 
-  /** A `provider/model`, or an alias (`paid`, `paid-2`, `strata`, `lmstudio` ...) resolved to its row. An alias with no row stays as it is. */
+  /**
+   * A `provider/model`, or an alias (`paid`, `paid-2`, `strata`, `lmstudio` ...) resolved to its row. An alias with no row stays as it is.
+   * An older ref of a `loaded` row (`strata/qwen3.8-flash-next`, also as a fallback row) becomes the row's ref (`strata/default`).
+   */
   resolve(ref: string): string {
-    return ref.includes('/') ? (this.models.has(ref) ? ref : (this.aliasRefs.get(ref) ?? ref)) : (this.aliasMap().get(ref) ?? ref)
+    const r = ref.includes('/') ? ref : (this.aliasMap().get(ref) ?? ref)
+    return r.includes('/') && !this.models.has(r) ? (this.aliasRefs.get(r) ?? r) : r
   }
 
   /** The aliases roles.md uses that name no row of the fallback list. */

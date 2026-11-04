@@ -122,6 +122,9 @@ describe('seed configs', () => {
     await registry.syncServerSlots()
     expect(registry.providers.get('strata')).toMatchObject({ down: true, served: 'qwen3.8-flash-next-iq3_s' })
     expect(row.servedId).toBe('qwen3.8-flash-next-iq3_s')
+    // a fallback row that still names the old ref: the shared-order list holds strata/default once
+    registry.setDefaults({ fallbacks: ['deepseek/deepseek-flash', 'strata/qwen3.8-flash-next', 'lmstudio/gemma-4-e4b-it'], shared: true, lmLoad: { parallel: 1, context: 8192, ttlMinutes: 30 } })
+    expect(registry.roleModelRefs('director').filter((r) => r === 'strata/default')).toHaveLength(1)
   })
 })
 
