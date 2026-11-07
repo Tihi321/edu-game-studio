@@ -6,7 +6,7 @@
  */
 
 /** The back/leave controls of the shells, in the order they are tried. */
-export const BACK_TESTIDS = ['leave', 'back', 'battle-flee', 'to-map', 'to-office'] as const
+export const BACK_TESTIDS = ['audio-close', 'leave', 'back', 'battle-flee', 'to-map', 'to-office'] as const
 
 interface AppPlugin {
   addListener?: (event: string, cb: (e?: unknown) => void) => unknown

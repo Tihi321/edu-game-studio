@@ -77,7 +77,7 @@ describe('autoplay bot on the golden fixtures', () => {
         })())
 
       it.concurrent('perfect: right every time, every unit mastered, the end screen, an empty review queue', { timeout: 120_000 }, async () => {
-        const { code, summary, stderr } = await play(await built(), ['--mode', 'perfect', '--seed', '1'])
+        const { code, summary, stderr } = await play(await built(), ['--mode', 'perfect', '--seed', '1', '--viewport', '375x667'])
         expect(summary.failures, stderr).toEqual([])
         expect(code).toBe(0)
         expect(summary.consoleErrors).toBe(0)

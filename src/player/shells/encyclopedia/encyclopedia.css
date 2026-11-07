@@ -1434,7 +1434,25 @@
 
 /* ---- phones ---- */
 
+/* the speaker button sits fixed in the top-right corner: the tab strip keeps clear of it (HUB-28) */
+@media (max-width: 839px) {
+  .edu-stage .enc-tabs {
+    padding-right: var(--edu-corner, 56px);
+  }
+}
+
+/* a finger needs 44 px on a source link (HUB-28) */
+@media (max-width: 640px), (pointer: coarse) {
+  .edu-stage .enc-source-link {
+    min-height: var(--edu-tap);
+  }
+}
+
 @media (max-width: 640px) {
+  .edu-stage :is(.enc-tl-tick-label, .enc-tl-card-more) {
+    font-size: var(--edu-text-s);
+  }
+
   .edu-stage .enc-tab {
     padding: 4px var(--edu-space-3);
     font-size: var(--edu-text-s);

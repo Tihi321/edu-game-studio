@@ -1209,6 +1209,10 @@
 }
 
 @media (max-width: 560px) {
+  .edu-stage .mm-door-num {
+    font-size: var(--edu-text-s);
+  }
+
   .edu-stage .mm-door {
     width: calc(50% - var(--edu-space-2));
     min-width: 132px;

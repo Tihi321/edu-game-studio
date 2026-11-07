@@ -54,8 +54,8 @@ export interface Progress {
   /** Answers given and answers right the first time, over all sessions (for the end screen). */
   answered: number
   right: number
-  /** `sound`: sounds on (false: nothing plays). `reduceAudio` (EGS-16): no music and quieter sound effects; missing in an older save means false. `speak` (EGS-18): the mic button of text answers; missing in an older save means true. */
-  settings: { lang?: string; timer: boolean; sound: boolean; reduceAudio?: boolean; speak?: boolean; name?: string; studentId?: string }
+  /** `sound`: sounds on (false: nothing plays). `reduceAudio` (EGS-16): no music and quieter sound effects; missing in an older save means false. `speak` (EGS-18): the mic button of text answers; missing in an older save means true. `musicVolume`, `sfxVolume`, `voiceVolume` (EGS-62): the levels of the in-game audio panel, whole numbers 0-100; missing or invalid in a save means 100. */
+  settings: { lang?: string; timer: boolean; sound: boolean; reduceAudio?: boolean; speak?: boolean; musicVolume?: number; sfxVolume?: number; voiceVolume?: number; name?: string; studentId?: string }
   /** Seconds of play with activity (EGS-20, the time on task a result file reports); missing in an older save means 0. */
   playSeconds?: number
   /** Epoch ms of the last save. */
@@ -78,7 +78,7 @@ export function newProgress(packId: string): Progress {
     bestCombo: 0,
     answered: 0,
     right: 0,
-    settings: { timer: false, sound: true, reduceAudio: false, speak: true },
+    settings: { timer: false, sound: true, reduceAudio: false, speak: true, musicVolume: 100, sfxVolume: 100, voiceVolume: 100 },
     updatedAt: 0,
     shells: {}
   }
@@ -148,6 +148,9 @@ export function glossOffOf(p: Pick<Progress, 'shells'>): ReadonlySet<string> {
 export const exportProgress = (p: Progress): string => JSON.stringify({ format: EXPORT_FORMAT, version: PROGRESS_VERSION, pack: p.pack, progress: p } satisfies ProgressExport, null, 2)
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/** A volume setting: a number rounded and clamped to 0-100; anything else (a save from before EGS-62) is 100. */
+const volumeOf = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 100)
 const num = (v: unknown, min: number, max: number, fallback: number): number => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback)
 const int = (v: unknown, min: number, max: number, fallback: number): number => Math.round(num(v, min, max, fallback))
 
@@ -211,6 +214,9 @@ export function parseProgress(text: string, pack: Pick<CoursePack, 'id' | 'units
       sound: src.settings.sound !== false,
       reduceAudio: src.settings.reduceAudio === true,
       speak: src.settings.speak !== false,
+      musicVolume: volumeOf(src.settings.musicVolume),
+      sfxVolume: volumeOf(src.settings.sfxVolume),
+      voiceVolume: volumeOf(src.settings.voiceVolume),
       ...(typeof src.settings.lang === 'string' ? { lang: src.settings.lang } : {}),
       ...(cleanName(src.settings.name) ? { name: cleanName(src.settings.name) } : {}),
       ...(typeof src.settings.studentId === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(src.settings.studentId) ? { studentId: src.settings.studentId } : {})

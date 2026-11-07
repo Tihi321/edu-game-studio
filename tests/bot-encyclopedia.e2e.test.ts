@@ -54,7 +54,7 @@ describe('autoplay bot in the encyclopedia explorer', () => {
       const enc = (s: BotSummary) => s.encyclopedia as { hunts: number; steps: number; search: number; searchEnter: number; index: number; crossLinks: number; related: number; articlesChecked: number; events: number; places: number; collectibles: number; locked: number; reducedMotion: boolean }
 
       it.concurrent('perfect + axe: every hunt to 3 stars in prerequisite order, the grand hunt, the end; the book is browsed on the way', { timeout: 180_000 }, async () => {
-        const r = await run('--mode', 'perfect', '--seed', '1', '--axe')
+        const r = await run('--mode', 'perfect', '--seed', '1', '--axe', '--viewport', '375x667')
         expectPassed(r)
         const s = r.summary
         expectCleanAxe(s, 15)

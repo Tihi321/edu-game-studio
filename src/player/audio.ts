@@ -5,7 +5,8 @@
  *            (the `menu` track is the fallback), the same file in two areas keeps playing. A track made by Chiptune Studio has loop points in
  *            `pack.extensions.audio.loops`: the player jumps from the end point back to the start point.
  *   effects  a cue `{on: '<event>', loop: false, volume}`: `correct`, `wrong`, `combo`, `level-up` (also the old name `unit-complete`), `boss`.
- *   settings `sound` off: nothing plays. `reduceAudio` on: no music, and the effects are quieter.
+ *   settings `sound` off: nothing plays (a voice clip still does). `reduceAudio` on: no music, and the effects are quieter. `musicVolume`, `sfxVolume`,
+ *            `voiceVolume` (EGS-62, 0-100, missing = 100): the three levels of the in-game audio panel, through the curve `volumeGain`.
  *
  * A browser may refuse to play before the first click or key press: that is caught silently and the track starts at the first gesture. A file that
  * cannot be loaded is a `console.error` (the autoplay bot counts it). The shell owns the settings: it passes a function that reads them, and calls
@@ -33,6 +34,10 @@ export interface AudioCue {
 export interface AudioSettings {
   sound: boolean
   reduceAudio?: boolean
+  /** Channel levels 0-100 (missing: 100). */
+  musicVolume?: number
+  sfxVolume?: number
+  voiceVolume?: number
 }
 
 export interface AudioOptions {
@@ -57,6 +62,8 @@ export const REDUCED_SFX_FACTOR = 0.4
 export const DUCK_FACTOR = 0.3
 export const FADE_MS = 400
 const FADE_STEP_MS = 40
+/** A slider move or a toggle reaches the music in this many ms (a short ramp, like the VN player). */
+const SLIDER_RAMP_MS = 180
 /** How often the loop point of a track is checked, in ms. */
 const LOOP_CHECK_MS = 60
 
@@ -77,6 +84,12 @@ interface Track {
 
 const clamp01 = (n: number): number => Math.min(1, Math.max(0, n))
 
+/** A slider value 0-100 as a gain (the curve of the VN player): 50 is quiet background rather than half the volume. Missing or invalid: 100. */
+export function volumeGain(v: number | undefined): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? Math.min(100, Math.max(0, v)) : 100
+  return (n / 100) ** 1.6
+}
+
 /** The loop points of the pack (`pack.extensions.audio.loops`), checked: only entries with two numbers and an end after the start. */
 export function loopsOf(extensions: unknown): Record<string, { startSec: number; endSec: number }> {
   const raw = (extensions as { audio?: { loops?: Record<string, unknown> } } | null | undefined)?.audio?.loops
@@ -94,6 +107,8 @@ export class GameAudio {
   private wanted: string | null = null
   private track: Track | null = null
   private ducked = false
+  /** The voice clip that plays now (see `voice`): a slider move changes its volume. */
+  private clip: AudioLike | null = null
   private readonly gesture: EventTarget | null
   private readonly onGesture = (): void => this.resume()
 
@@ -136,7 +151,7 @@ export class GameAudio {
   }
 
   private volumeOf(t: Track): number {
-    return clamp01(t.cueVolume * (this.ducked ? DUCK_FACTOR : 1))
+    return clamp01(t.cueVolume * volumeGain(this.o.settings().musicVolume) * (this.ducked ? DUCK_FACTOR : 1))
   }
 
   // ---- music ----
@@ -147,22 +162,23 @@ export class GameAudio {
     this.apply()
   }
 
-  /** The settings changed (the toggles): start, stop or quieten what plays. */
+  /** The settings changed (the toggles, the sliders): start, stop or quieten what plays, and the voice clip that plays now. */
   refresh(): void {
     this.apply()
+    if (this.clip) this.clip.volume = clamp01(volumeGain(this.o.settings().voiceVolume))
   }
 
   private apply(): void {
     const s = this.o.settings()
-    const cue = this.wanted && s.sound && !s.reduceAudio ? this.musicCue(this.wanted) : undefined
+    const cue = this.wanted && s.sound && !s.reduceAudio && volumeGain(s.musicVolume) > 0 ? this.musicCue(this.wanted) : undefined
     const url = cue ? this.o.assets[cue.asset] : undefined
-    if (!cue || !url) return this.stopTrack(!s.sound || !!s.reduceAudio)
+    if (!cue || !url) return this.stopTrack(!s.sound || !!s.reduceAudio || volumeGain(s.musicVolume) === 0)
     const area = this.wanted as string
     if (this.track && this.track.url === url) {
       this.track.area = area
       this.track.cueVolume = cue.volume
       if (this.track.el.paused) this.attempt(this.track.el)
-      this.setLevel(this.track, this.volumeOf(this.track))
+      this.fadeTo(this.track, this.volumeOf(this.track), SLIDER_RAMP_MS)
       return
     }
     this.stopTrack(false)
@@ -237,7 +253,16 @@ export class GameAudio {
   /** Narration or a listening clip plays: the music goes quieter while it does (the listening item, the encyclopedia's narration and the quiz arena call this). */
   duck(on: boolean): void {
     this.ducked = on
-    if (this.track) this.setLevel(this.track, this.volumeOf(this.track))
+    const t = this.track
+    if (!t) return
+    if (t.fade) this.fadeTo(t, this.volumeOf(t), SLIDER_RAMP_MS) // a fade in progress would run on to its old target
+    else this.setLevel(t, this.volumeOf(t))
+  }
+
+  /** A voice clip (a narration, a listening clip, a role-play line) is about to play: its volume is the voice level, and `refresh()` keeps it current while it plays. */
+  voice(el: AudioLike): void {
+    this.clip = el
+    el.volume = clamp01(volumeGain(this.o.settings().voiceVolume))
   }
 
   // ---- sound effects ----
@@ -245,14 +270,14 @@ export class GameAudio {
   /** A game event: plays every one-shot cue for it. Nothing when sound is off; quieter with "reduce audio". */
   sfx(event: string): void {
     const s = this.o.settings()
-    if (!s.sound) return
+    if (!s.sound || volumeGain(s.sfxVolume) === 0) return
     const names = ALIASES[event] ?? [event]
     for (const cue of this.o.cues.filter((c) => names.includes(c.on) && !c.loop)) {
       const url = this.o.assets[cue.asset]
       if (!url) continue
       try {
         const el = this.create(url)
-        el.volume = clamp01(cue.volume * (s.reduceAudio ? REDUCED_SFX_FACTOR : 1))
+        el.volume = clamp01(cue.volume * volumeGain(s.sfxVolume) * (s.reduceAudio ? REDUCED_SFX_FACTOR : 1))
         el.addEventListener('error', () => this.report(url))
         this.attempt(el)
       } catch {
@@ -266,6 +291,7 @@ export class GameAudio {
   /** The game is left: the music stops at once and the listeners go. */
   dispose(): void {
     this.wanted = null
+    this.clip = null
     this.stopTrack(true)
     if (this.gesture) for (const g of GESTURES) this.gesture.removeEventListener(g, this.onGesture, { capture: true } as EventListenerOptions)
   }

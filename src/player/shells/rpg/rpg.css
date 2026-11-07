@@ -627,7 +627,18 @@
   }
 }
 
+/* the speaker button sits fixed in the top-right corner: the HUD row keeps clear of it (HUB-28) */
+@media (max-width: 839px) {
+  .edu-stage .rpg-hud {
+    padding-right: var(--edu-corner, 56px);
+  }
+}
+
 @media (max-width: 560px) {
+  .edu-stage .rpg-pad .pad-talk {
+    font-size: var(--edu-text-s);
+  }
+
   .edu-stage .rpg-speaker {
     flex-direction: column;
     align-items: center;

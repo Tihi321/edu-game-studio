@@ -156,8 +156,14 @@ class Roleplay {
     this.stopAudio()
     try {
       const a = new Audio(url)
+      const audio = this.session.audio
+      audio.voice(a)
       this.audio = a
-      void a.play().catch(() => undefined)
+      // the music is quieter only while the line sounds
+      a.onended = () => {
+        if (this.audio === a) audio.duck(false)
+      }
+      void a.play().then(() => audio.duck(true), () => undefined)
     } catch {
       /* a sound is never worth an error */
     }
@@ -169,6 +175,7 @@ class Roleplay {
     } catch {
       /* ignore */
     }
+    if (this.audio && this.session.pack.cues.length) this.session.audio.duck(false)
     this.audio = null
   }
 

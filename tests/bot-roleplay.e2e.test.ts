@@ -60,7 +60,7 @@ describe('autoplay bot in the role-play shell', () => {
       const run = async (...args: string[]) => play(await built(), [...args, '--shell', 'roleplay'])
 
       it.concurrent('perfect: every conversation to 3 stars in order, translations and clips checked, the garden watered, the finale, the end', { timeout: 240_000 }, async () => {
-        const r = await run('--mode', 'perfect', '--seed', '1')
+        const r = await run('--mode', 'perfect', '--seed', '1', '--viewport', '375x667')
         expectPassed(r)
         const s = r.summary
         expect(s.shell).toBe('roleplay')
