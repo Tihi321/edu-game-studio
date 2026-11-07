@@ -24,6 +24,7 @@ export const listeningRenderer: ItemRenderer = {
       () => {
         status.textContent = ''
         audio.currentTime = 0
+        ctx.voice?.(audio)
         audio.play().then(
           () => {
             ctx.duck?.(true)

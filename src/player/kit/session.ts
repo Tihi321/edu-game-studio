@@ -7,6 +7,7 @@ import { sectionOf } from '../../shared/shells'
 import { PlayTimer } from '../classroom'
 import { clear, h, type Child } from '../dom'
 import { GameAudio, loopsOf } from '../audio'
+import { AudioMenu, audioChannels, hasAnyAudio } from './audio-menu'
 import { buildFeedback, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
 import { createSpeechService, type SpeechService } from '../speech'
@@ -152,6 +153,8 @@ export class ShellSession<K extends string = string> {
     () => this.save()
   )
   private gameAudio: GameAudio | null = null
+  /** The speaker button and audio panel (EGS-62), drawn by every `render`; its open state outlives a re-render. */
+  private readonly audioMenu: AudioMenu
   private extra: PublishExtra = {}
   private readonly strings: ShellStrings<K>
   private readonly onKey = (e: KeyboardEvent): void => {
@@ -175,6 +178,16 @@ export class ShellSession<K extends string = string> {
     this.ui = makeUi(this.lang, this.data.catalogs[this.lang])
     this.s = makeShellUi(this.strings, this.lang, this.data.catalogs[this.lang])
     this.check = makeCheckContext({ pack: this.pack, text: this.text })
+    this.audioMenu = new AudioMenu({
+      ui: (key, vars) => this.ui(key, vars),
+      channels: audioChannels(this.pack.cues, this.data.assets),
+      settings: () => this.progress.settings,
+      update: (patch) => {
+        this.progress = { ...this.progress, settings: { ...this.progress.settings, ...patch } }
+        this.save()
+      },
+      refresh: () => this.audio.refresh()
+    })
     this.applyLang()
   }
 
@@ -202,6 +215,7 @@ export class ShellSession<K extends string = string> {
   /** Stops listening, clears the bot helpers. Call from `Shell.unmount`. */
   unmount(): void {
     this.playTimer.dispose()
+    this.audioMenu.close()
     this.gameAudio?.dispose()
     this.gameAudio = null
     document.removeEventListener('keydown', this.onKey)
@@ -397,6 +411,7 @@ export class ShellSession<K extends string = string> {
       ...(this.passageOpen ? { passageOpen: true } : {}),
       submit,
       duck: (on) => this.audio.duck(on),
+      voice: (el) => this.audio.voice(el),
       ...(this.progress.settings.speak !== false && this.speechService ? { speech: this.speechService } : {})
     }
   }
@@ -508,8 +523,9 @@ export class ShellSession<K extends string = string> {
       h('div', { class: 'sr-only', role: 'status', 'aria-live': 'polite', testid: 'live' })
     )
     root.appendChild(app)
+    if (hasAnyAudio(this.pack.cues, this.data.assets)) this.audioMenu.mount(app)
     this.publish(screen, extra)
-    if (opts.focus !== false) {
+    if (opts.focus !== false && !this.audioMenu.open) {
       const target = main.querySelector<HTMLElement>('[data-autofocus]') ?? main.querySelector<HTMLElement>('h1, h2')
       target?.focus({ preventScroll: false })
       if (typeof window.scrollTo === 'function') window.scrollTo(0, 0)

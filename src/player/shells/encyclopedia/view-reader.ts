@@ -165,6 +165,7 @@ export function readerBody(app: EncApp, id: string): HTMLElement {
       }
       try {
         const el = new Audio(q.url)
+        s.audio.voice(el)
         app.audio = el
         playing.from = q.p
         el.onended = () => {

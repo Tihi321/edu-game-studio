@@ -68,6 +68,8 @@ export interface ItemContext {
   submit(answer: unknown): CheckResult
   /** A clip is playing (true) or has stopped (false): the shell's music goes quieter meanwhile (`GameAudio.duck`). Missing in the studio's preview. */
   duck?(on: boolean): void
+  /** A voice clip is about to play (EGS-62): the game gives it the Voices volume of the audio panel and keeps it current while it plays. Missing in the studio's preview. */
+  voice?(el: HTMLAudioElement): void
   /** The passage panel of an item starts open (the encyclopedia reader's practice); missing: closed. */
   passageOpen?: boolean
   /** Speaking practice (EGS-18): a recognizer for the course's target language, or missing (no recognizer, not a language course, switched off, the studio's preview). */

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FADE_MS, GameAudio } from '../src/player/audio'
+import { DUCK_FACTOR, FADE_MS, GameAudio, volumeGain } from '../src/player/audio'
 import type { AudioCue, AudioLike, AudioSettings } from '../src/player/audio'
 
 /**
@@ -103,6 +103,26 @@ describe('music', () => {
     expect(urls(alive())).toEqual([ASSETS['mus-menu']])
   })
 
+  it('the music volume scales the cue through the gain curve; 0 stops the track and raising it starts it again', () => {
+    const a = make()
+    a.setArea('menu')
+    settle()
+    expect(FakeAudio.made[0]!.volume).toBeCloseTo(0.5, 5) // a save without volumes: 100
+    settings = { sound: true, musicVolume: 50 }
+    a.refresh()
+    settle()
+    expect(volumeGain(50)).toBeCloseTo(0.5 ** 1.6, 10)
+    expect(FakeAudio.made[0]!.volume).toBeCloseTo(0.5 * 0.5 ** 1.6, 5)
+    settings = { sound: true, musicVolume: 0 }
+    a.refresh()
+    expect(alive()).toHaveLength(0)
+    settings = { sound: true, musicVolume: 100 }
+    a.refresh()
+    settle()
+    expect(urls(alive())).toEqual([ASSETS['mus-menu']])
+    expect(alive()[0]!.volume).toBeCloseTo(0.5, 5)
+  })
+
 })
 
 describe('sound effects', () => {
@@ -127,6 +147,34 @@ describe('sound effects', () => {
     a.sfx('combo') // no cue for it: nothing
     a.sfx('boss')
     expect(FakeAudio.made).toHaveLength(4)
+    // the effects volume: scaled through the curve (and by reduce audio), nothing at 0
+    FakeAudio.made.length = 0
+    settings = { sound: true, sfxVolume: 50, reduceAudio: true }
+    a.sfx('correct')
+    expect(FakeAudio.made[0]!.volume).toBeCloseTo(0.8 * 0.5 ** 1.6 * 0.4, 5)
+    settings = { sound: true, sfxVolume: 0 }
+    a.sfx('correct')
+    expect(FakeAudio.made).toHaveLength(1)
+  })
+
+  it('a voice clip gets the voices volume and follows the slider while it plays; sound off keeps it; the music ducks under it', () => {
+    settings = { sound: true, voiceVolume: 50 }
+    const a = make()
+    const clip = new FakeAudio('assets/clip.wav')
+    a.voice(clip)
+    expect(clip.volume).toBeCloseTo(0.5 ** 1.6, 5)
+    settings = { sound: false, voiceVolume: 20 }
+    a.refresh()
+    expect(clip.volume).toBeCloseTo(0.2 ** 1.6, 5) // the master Sound toggle does not silence a clip the learner asked for
+    settings = { sound: false, voiceVolume: 0 }
+    a.refresh()
+    expect(clip.volume).toBe(0)
+    settings = { sound: true, musicVolume: 50 }
+    a.setArea('menu')
+    settle()
+    a.duck(true)
+    expect(FakeAudio.made[1]!.volume).toBeCloseTo(0.5 * 0.5 ** 1.6 * DUCK_FACTOR, 5)
+    expect(DUCK_FACTOR).toBe(0.3)
   })
 
 })

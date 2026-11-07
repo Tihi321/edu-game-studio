@@ -46,7 +46,7 @@ describe('autoplay bot in the MindMaze castle', () => {
       const maze = (s: BotSummary) => s.maze as { wings: Record<string, number>; doors: number; questions: number; ghosts: number; keys: number; backs: number; digitDoors: number; shape: { auto: boolean; doors: number }[] }
 
       it.concurrent('perfect: every wing to 3 stars in prerequisite order, torches never drop, the throne, the end', { timeout: 120_000 }, async () => {
-        const r = await run('--mode', 'perfect', '--seed', '1')
+        const r = await run('--mode', 'perfect', '--seed', '1', '--viewport', '375x667')
         expectPassed(r)
         const s = r.summary
         expect(s.shell).toBe('mindmaze')

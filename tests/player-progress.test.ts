@@ -72,7 +72,7 @@ describe('export and import', () => {
     const f = await loadFixture('solar-system')
     let p = newProgress(f.pack.id)
     p = recordRound(p, { unitId: f.pack.units[0]!.id }, 0.8)
-    p = { ...p, score: 420, queue: [f.pack.items[0]!.id], settings: { lang: 'hr', timer: true, sound: false, reduceAudio: true, speak: false } }
+    p = { ...p, score: 420, queue: [f.pack.items[0]!.id], settings: { lang: 'hr', timer: true, sound: false, reduceAudio: true, speak: false, musicVolume: 35, sfxVolume: 0, voiceVolume: 100 } }
     const res = parseProgress(exportProgress(p), f.pack)
     expect(res.ok).toBe(true)
     if (res.ok) expect(res.progress).toEqual(p)
@@ -122,6 +122,14 @@ describe('export and import', () => {
     expect(p.score).toBe(0)
     expect(p.right).toBe(5)
     expect(p.settings.timer).toBe(false)
+    // a save from before the audio panel (EGS-62) has no volumes: all three are 100; a new game starts there too
+    expect([p.settings.musicVolume, p.settings.sfxVolume, p.settings.voiceVolume]).toEqual([100, 100, 100])
+    expect(newProgress(f.pack.id).settings).toMatchObject({ musicVolume: 100, sfxVolume: 100, voiceVolume: 100 })
+    // out-of-range values are clamped, fractions rounded, junk is 100
+    const odd = parseProgress(JSON.stringify({ ...raw, settings: { musicVolume: 150, sfxVolume: -4, voiceVolume: 'loud' } }), f.pack)
+    expect(odd.ok && [odd.progress.settings.musicVolume, odd.progress.settings.sfxVolume, odd.progress.settings.voiceVolume]).toEqual([100, 0, 100])
+    const frac = parseProgress(JSON.stringify({ ...raw, settings: { musicVolume: 47.6 } }), f.pack)
+    expect(frac.ok && frac.progress.settings.musicVolume).toBe(48)
   }
   })
 })

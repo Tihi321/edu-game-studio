@@ -942,4 +942,8 @@
   .edu-stage .det-corner {
     width: 5.6em;
   }
+  /* body text is not below 14 px on a phone (HUB-28) */
+  .edu-stage :is(.det-col, .det-row, .det-pinned, .det-map-name) {
+    font-size: var(--edu-text-s);
+  }
 }

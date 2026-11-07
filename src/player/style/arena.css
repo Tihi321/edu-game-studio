@@ -725,7 +725,27 @@
 
 /* ---- phones ---- */
 
+/* the speaker button sits fixed in the top-right corner: the top rows of every shell (the `.topbar` is shared) keep clear of it (HUB-28) */
+@media (max-width: 839px) {
+  .edu-stage :is(.topbar, .hud) {
+    padding-right: var(--edu-corner, 56px);
+  }
+}
+
 @media (max-width: 560px) {
+  /* with the corner space the row can be tight: its items wrap instead of the star count breaking over three lines */
+  .edu-stage .topbar {
+    flex-wrap: wrap;
+  }
+
+  .edu-stage .topbar-stars {
+    white-space: nowrap;
+  }
+
+  .edu-stage :is(.stat, .combo) small {
+    font-size: var(--edu-text-s);
+  }
+
   .edu-stage .hud {
     grid-template-columns: 1fr auto;
   }

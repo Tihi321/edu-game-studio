@@ -4,6 +4,7 @@ import { checkItem, makeCheckContext, makeTextResolver, rngFor, schedule, Seeded
 import type { GameData } from '../../shared/game-data'
 import { unitArea } from '../../shared/music'
 import { GameAudio, loopsOf } from '../audio'
+import { AudioMenu, audioChannels, hasAnyAudio } from '../kit/audio-menu'
 import { button, clear, h, isTyping, pulse, type Child } from '../dom'
 import { buildFeedback, answerLines, type Feedback } from '../feedback'
 import { makeUi, SPECIAL_LETTERS, type Ui, type UiKey } from '../i18n'
@@ -98,6 +99,8 @@ class QuizArena {
   private readonly rng: SeededRandom
   /** The music of the area and the sound effects of the events (EGS-16). */
   private readonly audio: GameAudio
+  /** The speaker button and audio panel (EGS-62), drawn by every screen; its open state outlives a re-render. */
+  private readonly audioMenu: AudioMenu
   private readonly onKey = (e: KeyboardEvent): void => this.handleKey(e)
   /** Seconds of play, for the result file (EGS-20). */
   private readonly playTimer = new PlayTimer(
@@ -119,6 +122,16 @@ class QuizArena {
     this.check = makeCheckContext({ pack: this.pack, text: this.text })
     this.rng = rngFor(host.seed, 'arena')
     this.audio = new GameAudio({ cues: this.pack.cues, assets: this.data.assets, loops: loopsOf(this.pack.extensions), settings: () => this.progress.settings })
+    this.audioMenu = new AudioMenu({
+      ui: (key, vars) => this.ui(key, vars),
+      channels: audioChannels(this.pack.cues, this.data.assets),
+      settings: () => this.progress.settings,
+      update: (patch) => {
+        this.progress = { ...this.progress, settings: { ...this.progress.settings, ...patch } }
+        this.save()
+      },
+      refresh: () => this.audio.refresh()
+    })
     this.setLang(this.lang, false)
   }
 
@@ -141,6 +154,7 @@ class QuizArena {
   unmount(): void {
     document.removeEventListener('keydown', this.onKey)
     this.playTimer.dispose()
+    this.audioMenu.close()
     this.audio.dispose()
     this.stopTimer()
     this.current?.view.destroy?.()
@@ -219,8 +233,9 @@ class QuizArena {
       h('div', { class: 'sr-only', role: 'status', 'aria-live': 'polite', testid: 'live' })
     )
     root.appendChild(app)
+    if (hasAnyAudio(this.pack.cues, this.data.assets)) this.audioMenu.mount(app)
     this.publish()
-    this.focusScreen()
+    if (!this.audioMenu.open) this.focusScreen()
   }
 
   /** The music area of a screen: the menu music on the title, the map and the review, the unit's or the boss's during a round, the end music at the end; the summary keeps what plays. */
@@ -512,6 +527,7 @@ class QuizArena {
       specialLetters: SPECIAL_LETTERS[target] ?? [],
       submit: (answer) => this.submit(answer),
       duck: (on) => this.audio.duck(on),
+      voice: (el) => this.audio.voice(el),
       ...(this.progress.settings.speak !== false && this.speechService ? { speech: this.speechService } : {})
     }
   }

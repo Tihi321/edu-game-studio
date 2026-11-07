@@ -35,8 +35,8 @@ describe('autoplay bot in the detective shell', () => {
       const built = (): Promise<string> => (dirP ??= buildFixtureGame(c.fixture))
       const run = async (...args: string[]) => play(await built(), [...args, '--shell', 'detective'])
 
-      it.concurrent('perfect + axe: every room to 3 stars (too-early accusation refused, a wrong one refused, hint, grid, right one), the final room, then the chase and the end', { timeout: 120_000 }, async () => {
-        const r = await run('--mode', 'perfect', '--seed', '1', '--axe')
+      it.concurrent('perfect + axe: every room to 3 stars (too-early accusation refused, a wrong one refused, hint, grid, right one), the final room, then the chase and the end', { timeout: 180_000 }, async () => {
+        const r = await run('--mode', 'perfect', '--seed', '1', '--axe', '--viewport', '375x667')
         expectPassed(r)
         const s = r.summary
         const d = info(s)

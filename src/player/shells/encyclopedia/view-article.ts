@@ -58,6 +58,7 @@ export function articleScreenBody(app: EncApp, id: string): HTMLElement {
         }
         try {
           const el = new Audio(clipUrl)
+          s.audio.voice(el)
           app.audio = el
           el.onended = () => {
             if (app.audio === el) app.audio = null

@@ -1,0 +1,145 @@
+/*
+ * The in-game audio panel (EGS-62, `kit/audio-menu.ts`): the speaker button fixed in the top-right corner of every screen and the modal panel with
+ * the volume sliders. Colours from the --edu-* slots only, every selector under .edu-stage, so each theme dresses them.
+ * `--edu-corner` is the room the shells leave at the right end of their top row (`padding-right: var(--edu-corner)`), so the button never covers a control.
+ */
+
+.edu-stage .edu-app {
+  --edu-corner: 56px;
+}
+
+.edu-stage .edu-audio-btn {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  right: calc(env(safe-area-inset-right, 0px) + 8px);
+  z-index: var(--edu-z-raised);
+  box-sizing: border-box;
+  min-width: var(--edu-tap);
+  min-height: var(--edu-tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font: inherit;
+  font-size: var(--edu-text-l);
+  line-height: 1;
+  color: var(--edu-text);
+  background: var(--edu-surface);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-pill);
+  box-shadow: var(--edu-shadow-1);
+  cursor: pointer;
+}
+
+.edu-stage .edu-audio-btn:hover,
+.edu-stage .edu-audio-btn[aria-expanded='true'] {
+  background: var(--edu-mark);
+  color: var(--edu-mark-ink);
+}
+
+.edu-stage .edu-audio-btn:focus-visible {
+  outline: var(--edu-focus-width) solid var(--edu-focus);
+  outline-offset: var(--edu-focus-offset);
+}
+
+.edu-stage .edu-audio-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--edu-z-overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--edu-space-4);
+  background: rgb(28 37 65 / 0.55);
+  overflow-y: auto;
+}
+
+.edu-stage .edu-audio-panel {
+  box-sizing: border-box;
+  width: min(100%, 26rem);
+  display: grid;
+  gap: var(--edu-space-4);
+  padding: var(--edu-space-5);
+  color: var(--edu-text);
+  background: var(--edu-surface);
+  border: var(--edu-border) solid var(--edu-line-strong);
+  border-radius: var(--edu-radius-l);
+  box-shadow: var(--edu-shadow-2);
+  text-align: left;
+}
+
+.edu-stage .edu-audio-title {
+  margin: 0;
+  font-size: var(--edu-text-xl);
+}
+
+.edu-stage .edu-audio-row {
+  display: grid;
+  gap: var(--edu-space-1);
+}
+
+.edu-stage .edu-audio-row label {
+  font-size: var(--edu-text-m);
+  font-weight: 700;
+}
+
+.edu-stage .edu-audio-ctl {
+  display: flex;
+  align-items: center;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .edu-audio-ctl input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--edu-tap);
+  margin: 0;
+  accent-color: var(--edu-accent);
+}
+
+.edu-stage .edu-audio-value {
+  flex: 0 0 3ch;
+  text-align: right;
+  font-size: var(--edu-text-m);
+  font-variant-numeric: tabular-nums;
+}
+
+.edu-stage .edu-audio-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--edu-space-3);
+}
+
+.edu-stage .edu-audio-mute {
+  min-height: var(--edu-tap);
+}
+
+.edu-stage .edu-audio-mute[aria-pressed='true'] {
+  background: var(--edu-mark);
+  color: var(--edu-mark-ink);
+}
+
+.edu-stage .edu-audio-reduce {
+  min-height: var(--edu-tap);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--edu-space-2);
+}
+
+.edu-stage .edu-audio-close {
+  min-height: var(--edu-tap);
+  min-width: var(--edu-tap);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .edu-stage .edu-audio-panel {
+    animation: edu-audio-in var(--edu-dur-med) var(--edu-ease-out);
+  }
+}
+
+@keyframes edu-audio-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

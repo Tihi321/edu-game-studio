@@ -33,7 +33,7 @@ The same player runs in the WebView. For phones and coarse pointers it adds (in 
 - buttons, choices, pills and unit cards at least 44 px high at 560 px and narrower, and on any coarse pointer;
 - the hover lift only on devices that can hover.
 
-**The back button** (`src/player/android-back.ts`): inside Capacitor (`window.Capacitor.Plugins.App` present; `@capacitor/app` is not imported) a back press clicks the first of the visible controls `leave`, `back`, `battle-flee`, `to-map`, `to-office` (see the test ids in `player.md`), so it goes one screen back in the current shell; with none on screen it calls `App.exitApp()`. In a normal browser nothing is installed.
+**The back button** (`src/player/android-back.ts`): inside Capacitor (`window.Capacitor.Plugins.App` present; `@capacitor/app` is not imported) a back press clicks the first of the visible controls `audio-close` (the open audio panel), `leave`, `back`, `battle-flee`, `to-map`, `to-office` (see the test ids in `player.md`), so it goes one screen back in the current shell; with none on screen it calls `App.exitApp()`. In a normal browser nothing is installed.
 
 ## Checks
 
