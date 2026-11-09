@@ -61,7 +61,7 @@ describe('seed migrations', () => {
     expect(providers[0]).toMatchObject({ concurrency: 2, base_url: 'http://localhost:1234/v1' })
     // the client entry comes from the seed, so it already has antigravity
     expect(providers[1]).toMatchObject({ kind: 'client', models: [{ id: 'claude-code', context: 200000 }, { id: 'antigravity', vision: true, context: 1000000 }] })
-    expect(providers[2]).toMatchObject({ id: 'acp', kind: 'openai-compat', enabled: false, local: true, base_url: 'http://127.0.0.1:7461/v1', concurrency: 2, json_schema: false, discover: true, models: [] })
+    expect(providers[2]).toMatchObject({ id: 'acp', kind: 'openai-compat', enabled: false, local: true, base_url: 'http://127.0.0.1:8787/v1', concurrency: 2, json_schema: false, discover: true, models: [] })
     expect((await loadSeedState(data)).migrations).toEqual(['providers-client-v1', 'providers-client-context-v1', 'providers-acp-v1', 'providers-client-antigravity-v1', 'settings-fallbacks-v1', 'strata-loaded-v1', 'strata-loaded-roles-v1', 'strata-loaded-settings-v1', 'voice-local-v1', 'roles-scene-writer-v1'])
   })
 

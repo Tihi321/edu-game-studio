@@ -141,7 +141,7 @@ providers:
     kind: openai-compat
     enabled: false
     local: true
-    base_url: http://127.0.0.1:7461/v1
+    base_url: http://127.0.0.1:8787/v1
     concurrency: 2
     json_schema: false
     discover: true
@@ -248,7 +248,7 @@ Each model is a named client: a task made for `client/antigravity` is only hande
 
 ## ACP proxy
 
-The `acp` entry (off by default) is for `api-acp-proxy`, a server on `http://127.0.0.1:7461/v1` that answers OpenAI-style requests through Antigravity, Codex or Claude over ACP. Start it yourself, then set `enabled: true` (or use the Models page), press **Detect models** and tick the models you want.
+The `acp` entry (off by default) is for `api-acp-proxy`, a server on `http://127.0.0.1:8787/v1` that answers OpenAI-style requests through Antigravity, Codex or Claude over ACP. Start it yourself, then set `enabled: true` (or use the Models page), press **Detect models** and tick the models you want.
 
 - Start it with `PROXY_IGNORE_SAMPLING=1`: Edu Studio sends `temperature`, `max_tokens` and `stream_options`, which the proxy otherwise passes on or rejects.
 - It is text only: no vision, so it can't serve the art-critic (use `client/antigravity`, `client/claude-code` or a vision model there).

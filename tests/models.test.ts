@@ -149,6 +149,24 @@ describe('router', () => {
     expect(r.candidates('unknown-role')).toEqual([])
   })
 
+  it('EGS-68: after the local servers a role goes to the ACP proxy, then an OpenRouter free model, before its paid entry', async () => {
+    const { registry } = await registryWith({
+      providers: [
+        { id: 'strata', local: true, models: ['default'] },
+        { id: 'lmstudio', local: true, models: ['g'] },
+        { id: 'acp', local: true, models: ['claude'] },
+        { id: 'openrouter', models: ['free-one'] },
+        { id: 'deepseek', price: 1, models: ['flash'] }
+      ],
+      roles: { checker: ['strata/default', 'lmstudio/g', 'deepseek/flash'], writer: ['deepseek/flash'] }
+    })
+    expect(registry.roleModelRefs('checker')).toEqual(['strata/default', 'lmstudio/g', 'acp/claude', 'openrouter/free-one', 'deepseek/flash'])
+    expect(registry.roleModelRefs('writer')).toEqual(['deepseek/flash']) // no local server in its list: unchanged
+    registry.providers.get('strata')!.down = true
+    registry.providers.get('lmstudio')!.down = true
+    expect(new ModelRouter(registry, undefined).candidates('checker')[0]?.ref).toBe('acp/claude')
+  })
+
   it('retries a retryable error, then falls back to the next model in order', async () => {
     const { registry, mock } = await registryWith({
       providers: [{ id: 'a', models: ['x'] }, { id: 'b', models: ['y'] }, { id: 'c', models: ['z'] }],

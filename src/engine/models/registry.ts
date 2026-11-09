@@ -615,7 +615,32 @@ export class ModelRegistry {
 
   /** Model refs in the roles file for a role, in order, with aliases resolved. */
   roleModelRefs(role: string): string[] {
-    return this.roleEntries(role).map((r) => this.resolve(r))
+    const refs = this.roleEntries(role).map((r) => this.resolve(r))
+    // EGS-68: a role that leans on a local server (Strata, LM Studio) goes next to the ACP proxy, then to an OpenRouter free model,
+    // before any later entry of its list (the paid default). Down servers are skipped by the router, so this is where they fall to.
+    const isServer = (ref: string) => {
+      const p = this.providers.get(ref.split('/')[0]!)
+      return !!p && p.local && p.kind !== 'client' && p.id !== 'mock' && p.id !== 'acp'
+    }
+    let last = -1
+    refs.forEach((r, i) => {
+      if (isServer(r)) last = i
+    })
+    if (last < 0) return refs
+    const extra = this.localFallbackRefs().filter((r) => !refs.includes(r))
+    return [...refs.slice(0, last + 1), ...extra, ...refs.slice(last + 1)]
+  }
+
+  /** The fallbacks after the local servers: the first ACP proxy model, then the first OpenRouter model at price 0 (a fallback row first). */
+  localFallbackRefs(): string[] {
+    const out: string[] = []
+    const of = (id: string) => [...this.models.values()].filter((m) => m.provider.id === id && m.provider.available && !m.embedding)
+    const acp = of('acp')[0]
+    if (acp) out.push(acp.ref)
+    const free = of('openrouter').filter((m) => m.priceIn === 0 && m.priceOut === 0)
+    const row = free.find((m) => this.defaults.fallbacks.includes(m.ref)) ?? free[0]
+    if (row) out.push(row.ref)
+    return out
   }
 
   /**
