@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { appendFile, cp } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -103,6 +104,16 @@ describe('autoplay bot on the golden fixtures', () => {
         expect(summary.keyboard?.ringChecks).toBeGreaterThan(50)
         expectCleanAxe(summary)
       })
+
+      if (name === 'solar-system')
+        it.concurrent('--layout fails a build whose buttons are too small to tap', { timeout: 120_000 }, async () => {
+          const dir = await tmp('edu-bot-small-')
+          await cp(await built(), dir, { recursive: true })
+          await appendFile(path.join(dir, 'player.css'), ' button { min-height: 0 !important; height: 20px !important; padding-top: 0 !important; padding-bottom: 0 !important; } ')
+          const { code, summary } = await play(dir, ['--mode', 'perfect', '--seed', '1', '--viewport', '375x667', '--layout'])
+          expect(code).not.toBe(0)
+          expect(summary.failures.join(' ')).toMatch(/layout at \S+: .*x20px/)
+        })
     })
   }
 

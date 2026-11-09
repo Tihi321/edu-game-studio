@@ -15,10 +15,10 @@ export interface JobFile {
   body: string
 }
 
-/** What a caller gives to enqueue. Everything but id, task and role has a default. */
 /** A job requeued at the start that is older than this many days is named in the start log. */
 export const OLD_JOB_DAYS = 3
 
+/** What a caller gives to enqueue. Everything but id, task and role has a default. */
 export type NewJob = { id: string; task: string; role: string } & Partial<Omit<JobFrontmatter, 'id' | 'task' | 'role'>>
 
 /**
