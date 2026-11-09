@@ -151,6 +151,12 @@ describe('the game audio in the shells', () => {
           await volumeNear(0.6 * gain(50)) // the music of the scene: the track of its unit
           await page.locator('[data-testid^="line-play-"]').first().click()
           await volumeNear(0.6 * gain(50) * 0.3)
+          // EGS-64: the clip stops when the talk goes on to the learner's turn (it did not before) and the music is loud again
+          while (!(await page.locator('[data-testid="scene-reply"]').count())) await page.locator('[data-testid="scene-next"]').click()
+          await page.locator('[data-testid="scene-reply"]').click()
+          await page.waitForSelector('[data-testid="item-body"]')
+          expect(await page.evaluate(() => (globalThis as unknown as { __audio: Rec[] }).__audio.filter((a) => !a.loop).every((a) => a.paused))).toBe(true)
+          await volumeNear(0.6 * gain(50))
           await page.goto(url)
           await page.waitForSelector('[data-testid="course-title"]')
         }

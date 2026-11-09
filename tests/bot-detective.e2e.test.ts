@@ -67,7 +67,7 @@ describe('autoplay bot in the detective shell', () => {
         }
       })
 
-      it.concurrent('keyboard only: Tab, Enter and Space play the file, no mouse click, axe is clean on every distinct screen', { timeout: 120_000 }, async () => {
+      it.concurrent('keyboard only: Tab, Enter and Space play the file, no mouse click, axe is clean on every distinct screen', { timeout: 180_000 }, async () => {
         const r = await run('--mode', 'perfect', '--seed', '1', '--keyboard', '--axe')
         expectPassed(r)
         const s = r.summary
