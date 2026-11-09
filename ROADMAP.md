@@ -91,6 +91,7 @@ The phase numbers are the ones of the hub plan.
 
 Not planned yet:
 
+- ElevenLabs voices through flow-music-mcp `flow_narrate` engine `elevenlabs` (HUB-31): free tier only, the user sets the key; Cartoon Studio already uses it (word times from the alignment, voice ids per character in the bible).
 - The RPG frame story written by Scriptorium over MCP (the fixtures hand-write it), and Pixel Studio tiles and sprites in its image slots (phase 6).
 - Pronunciation scoring (EGS-18 only turns speech into the typed answer), a classroom server with accounts, and live quiz questions with pictures.
 - Run the autoplay bot from the studio's Playtest tab (`playtestCourse`): the packaged app does not carry Playwright, so it needs an engine-side runner; the tab shows the `yarn play` commands until then.
