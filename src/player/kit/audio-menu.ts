@@ -10,7 +10,7 @@ import type { Progress } from '../progress'
  * Both render paths (`ShellSession.render`, `QuizArena.go`) call `mount(app)` after they drew a screen. The open state lives in this object, so a
  * re-render while the panel is open draws it open again with the focus on the same control. While it is open one capture-phase `keydown`
  * listener on the window keeps the keys typed in the panel from reaching the shell (RPG arrows, quiz shortcuts), closes it on Escape and keeps
- * Tab inside. A tap on the backdrop, Close and the Android back button (`audio-close`) close it; the focus goes back to the speaker button.
+ * Tab inside. A tap on the backdrop, Close and the Android back button (`audio-close`) close it. TV remote (EGS-65): Back (and Escape) closes it, Up/Down (Left/Right off a slider) move the focus, OK toggles a checkbox; the focus goes back to the speaker button.
  *
  * Test ids: `audio-settings` (the button), `audio-panel`, `audio-backdrop`, `setting-music-volume`, `setting-sfx-volume`, `setting-voice-volume`
  * (each with `<id>-value`), `audio-mute` (`aria-pressed` = sound off), `audio-reduce`, `audio-close`.
@@ -55,6 +55,11 @@ const SLIDERS: { key: VolumeKey; id: string; label: 'audio.music' | 'audio.sfx' 
   { key: 'sfxVolume', id: 'setting-sfx-volume', label: 'audio.sfx', channel: 'sfx' },
   { key: 'voiceVolume', id: 'setting-voice-volume', label: 'audio.voice', channel: 'voice' }
 ]
+
+const isRange = (el: HTMLElement): boolean => el instanceof HTMLInputElement && el.type === 'range'
+
+/** Escape and the TV remote's Back (webOS 461, Tizen 10009, Android TV keyCode 4, `BrowserBack`, `GoBack`). */
+const isBackKey = (e: KeyboardEvent): boolean => e.key === 'Escape' || e.key === 'BrowserBack' || e.key === 'GoBack' || e.keyCode === 4 || e.keyCode === 461 || e.keyCode === 10009
 
 export class AudioMenu {
   private isOpen = false
@@ -207,7 +212,8 @@ export class AudioMenu {
     const panel = this.panelEl
     if (!this.isOpen || !panel?.isConnected) return this.unlisten()
     const inPanel = e.target instanceof Node && panel.contains(e.target)
-    if (e.key === 'Escape') {
+    if (isBackKey(e)) {
+      // Escape and the remote's Back close the panel; the hub bridge sees the panel is open and does not leave the game
       e.stopPropagation()
       e.preventDefault()
       this.close()
@@ -228,7 +234,28 @@ export class AudioMenu {
         }
       }
     }
+    if (this.remoteKey(e, panel)) return
     e.stopPropagation() // the shell's keys (RPG arrows, quiz shortcuts) do not act while the panel has the keyboard
+  }
+
+  /** TV remote: Up/Down move through the controls, Left/Right too except on a slider (they change its value), OK toggles the checkbox. True when handled. */
+  private remoteKey(e: KeyboardEvent, panel: HTMLElement): boolean {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return false
+    const t = e.target as HTMLElement
+    if (e.key === 'Enter' && t instanceof HTMLInputElement && t.type === 'checkbox') {
+      e.stopPropagation()
+      e.preventDefault()
+      t.click()
+      return true
+    }
+    const sideways = !isRange(t)
+    const step = e.key === 'ArrowDown' || (e.key === 'ArrowRight' && sideways) ? 1 : e.key === 'ArrowUp' || (e.key === 'ArrowLeft' && sideways) ? -1 : 0
+    if (!step) return false
+    const items = [...panel.querySelectorAll<HTMLElement>('input, button')].filter((el) => !(el as HTMLButtonElement).disabled)
+    e.stopPropagation()
+    e.preventDefault()
+    items[items.indexOf(t) + step]?.focus({ preventScroll: true })
+    return true
   }
 
   private listen(): void {
