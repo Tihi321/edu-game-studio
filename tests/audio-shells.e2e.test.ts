@@ -117,7 +117,17 @@ describe('the game audio in the shells', () => {
         await page.locator('[data-testid="setting-music-volume"]').fill('50')
         await volumeNear(0.5 * gain(50))
         expect(await page.locator('[data-testid="setting-music-volume-value"]').textContent()).toBe('50')
-        await page.keyboard.press('Escape')
+        // EGS-65, a TV remote: Right / Left change the slider and keep the focus, Down moves on to the next control, Back closes the panel
+        const active = (): Promise<string | null> => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? null)
+        await page.locator('[data-testid="setting-music-volume"]').focus()
+        await page.keyboard.press('ArrowRight')
+        expect(await page.locator('[data-testid="setting-music-volume-value"]').textContent()).toBe('55')
+        await page.keyboard.press('ArrowLeft')
+        expect(await active()).toBe('setting-music-volume')
+        await page.keyboard.press('ArrowDown')
+        expect(await active()).not.toBe('setting-music-volume')
+        expect(await page.evaluate(() => !!document.activeElement?.closest('[data-testid="audio-panel"]'))).toBe(true)
+        await page.evaluate(() => document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'BrowserBack', keyCode: 461, bubbles: true, cancelable: true })))
         await page.waitForSelector('[data-testid="audio-panel"]', { state: 'detached' })
         expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('audio-settings')
 
