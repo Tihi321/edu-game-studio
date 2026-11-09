@@ -1,7 +1,9 @@
 import { existsSync } from 'node:fs'
-import { readdir, readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { JobStore } from '../src/engine/queue/jobs'
 import { parseMd } from '../src/shared/md'
 import type { EngineEvent } from '../src/shared/protocol'
 import { makeEnv, waitFor } from './helpers'
@@ -225,6 +227,22 @@ describe('scheduler with a client provider', () => {
       roles: { writer: ['client/claude-code'] },
       agents: [{ role: 'writer', name: 'A' }]
     })
+
+  it('a restart requeues a parked client job and names it when it is older than 3 days (EGS-66: a stale job came back unnoticed)', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'jobs-'))
+    await mkdir(path.join(dir, 'jobs', 'running'), { recursive: true })
+    const jobs = new JobStore(dir)
+    await jobs.enqueue({ id: 'b1--t--all--r4', task: 't', role: 'writer', book: 'b1' }, 'Write it.')
+    await jobs.enqueue({ id: 'b1--t--u2--r4', task: 't', role: 'writer', book: 'b1' }, 'Write it.')
+    await jobs.claim('b1--t--all--r4')
+    await jobs.claim('b1--t--u2--r4')
+    const rec = await jobs.recoverRunning(Date.now() + 5 * 86_400_000)
+    expect(rec.requeued.sort()).toEqual(['b1--t--all--r4', 'b1--t--u2--r4'])
+    expect(rec.old.sort()).toEqual(rec.requeued)
+    expect((await jobs.read('queued', 'b1--t--all--r4'))?.data.attempts).toBe(1)
+    await jobs.claim('b1--t--all--r4')
+    expect((await jobs.recoverRunning()).old).toEqual([]) // a job from today is requeued without a mention
+  })
 
   it('a job on client waits in the queue, is answered over it and completes, at no cost', async () => {
     env = await clientEnv()

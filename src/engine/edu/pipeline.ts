@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { resolveBrief } from '../../shared/brief'
 import type { Brief, ResolvedBrief } from '../../shared/brief'
+import { AUDIO_KINDS } from '../../shared/media'
 import type { QualityConfig } from '../../shared/schemas'
 import type { Article, AuthoredItem, Curriculum } from './authoring'
 import type { JobState, NewJob } from '../queue/jobs'
@@ -619,6 +620,16 @@ export class Pipeline {
    */
   private async musicFlow(c: Ctx): Promise<'done' | 'wait'> {
     const media = await this.svc.media.settings(c.slug)
+    // music made through the asset tools (edu_music_plan, edu_asset_generate) is in assets.json: a music step the run skipped earlier (music was off
+    // then) or skips now is done, not skipped (EGS-66)
+    const made = await this.soundsMade(c.slug)
+    if (made) {
+      for (const t of ['music_plan', 'music_generate']) {
+        const key = stepKey(t, null, 1)
+        const status = c.st.steps[key]?.status
+        if (status !== 'done' && (status === 'skipped' || !media.music.enabled)) c.st.steps[key] = { status: 'done', note: `${made} sound(s) made through the asset tools, not by the run`, round: 1, at: iso() }
+      }
+    }
     if (!media.music.enabled) {
       for (const t of ['music_plan', 'music_generate']) this.skip(c, t, null, 'media.music.enabled is false: the course has no music and no sound effects')
       return 'done'
@@ -626,6 +637,12 @@ export class Pipeline {
     if ((await this.ensure(c, { task: 'music_plan', role: 'composer', label: 'plan the music and the sound effects' })) !== 'done') return 'wait'
     if ((await this.ensure(c, { task: 'music_generate', role: 'composer', label: 'make the music and the sound effects' })) !== 'done') return 'wait'
     return 'done'
+  }
+
+  /** How many music, sound effect and ambience assets of the course have a file (made by the pipeline or by the asset tools). */
+  private async soundsMade(slug: string): Promise<number> {
+    const m = await this.svc.media.loadManifest(slug).catch(() => null)
+    return m ? m.assets.filter((a) => AUDIO_KINDS.has(a.kind) && a.selected != null).length : 0
   }
 
   /**
