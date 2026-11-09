@@ -271,6 +271,26 @@ describe('music and sound effects', () => {
       }
     })
 
+    it('music made through the asset tools after the run skipped it (music was off): the next run marks music_plan and music_generate done, not skipped (EGS-66)', async () => {
+      const env = await makePipelineEnv()
+      try {
+        const { slug } = await run(env, { ...BRIEF, media: { music: { enabled: false } } })
+        expect(statusOf(await pipelineOf(env), 'music_plan:all')).toBe('skipped')
+        const { call } = toolsOf(env)
+        expect((await call('edu_media_settings', { slug, set: { music: { enabled: true } } })).ok).toBe(true) // the asset tools need music on
+        expect((await call('edu_music_plan', { slug })).ok).toBe(true)
+        await waitIdle(env, slug, 60_000)
+        expect((await call('edu_asset_generate', { slug })).ok).toBe(true)
+        await waitIdle(env, slug, 60_000)
+        expect((await call('edu_run_pipeline', { slug })).ok).toBe(true)
+        await waitIdle(env, slug, 60_000)
+        const p = await pipelineOf(env)
+        for (const step of ['music_plan:all', 'music_generate:all']) expect(p.steps.find((x) => x.step === step), step).toMatchObject({ status: 'done', note: expect.stringMatching(/made through the asset tools/) })
+      } finally {
+        await env.cleanup()
+      }
+    })
+
     it('restart from: music makes run 2 with a new music_plan, the same ids and nothing made again; restart from: art redoes the art plan and the music plan the same way', async () => {
       const env = await makePipelineEnv()
       try {

@@ -16,6 +16,9 @@ export interface JobFile {
 }
 
 /** What a caller gives to enqueue. Everything but id, task and role has a default. */
+/** A job requeued at the start that is older than this many days is named in the start log. */
+export const OLD_JOB_DAYS = 3
+
 export type NewJob = { id: string; task: string; role: string } & Partial<Omit<JobFrontmatter, 'id' | 'task' | 'role'>>
 
 /**
@@ -149,9 +152,12 @@ export class JobStore {
   /**
    * On start: every job left in running/ moves back to queued/ with attempts + 1.
    * A job that also exists in done/ or failed/ (crash during the move) is just dropped from running/.
+   * A job parked on a client model (Claude Code over MCP) is in running/ too: its task lived in memory, so it is queued and parked again. `old` names
+   * the requeued jobs created more than `OLD_JOB_DAYS` days ago, so a forgotten one is reported at the start instead of coming back unnoticed (EGS-66).
    */
-  async recoverRunning(): Promise<{ requeued: string[]; dropped: string[] }> {
+  async recoverRunning(now = Date.now()): Promise<{ requeued: string[]; dropped: string[]; old: string[] }> {
     const requeued: string[] = []
+    const old: string[] = []
     const dropped: string[] = []
     // temporary files left by a write that was cut short
     for (const state of JOB_STATES) {
@@ -170,7 +176,8 @@ export class JobStore {
       if (!cur) continue
       await this.requeue(id, { attempts: cur.data.attempts + 1, paid: null })
       requeued.push(id)
+      if (cur.data.created && now - Date.parse(cur.data.created) > OLD_JOB_DAYS * 86_400_000) old.push(id)
     }
-    return { requeued, dropped }
+    return { requeued, dropped, old }
   }
 }

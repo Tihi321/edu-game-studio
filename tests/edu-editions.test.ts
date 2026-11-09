@@ -3,6 +3,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { applyEdition, checkEdition, chunkEntries, editionEntries, editionSchema, placeholdersOf } from '../src/engine/edu/editions'
 import { loadCourseFolder } from '../src/engine/edu/course-io'
+import { defaultAlts } from '../src/engine/edu/media-link'
 import { editionLanguages } from '../src/engine/edu/pipeline'
 import { CourseStore } from '../src/engine/edu/store'
 import { validateCourse } from '../src/shared/edu'
@@ -53,6 +54,14 @@ describe('editions: the pure parts', () => {
     const asked = [{ key: 'a', text: 'x' }, { key: 'c', accepted: ['k'] }]
     applyEdition(asked, editionSchema.parse({ items: [{ key: 'a', text: ' A ' }, { key: 'c', accepted: [' K '] }, { key: 'z', text: 'Z' }] }), into)
     expect(into).toEqual({ strings: { a: 'A' }, accepted: { c: ['K'] } })
+  })
+
+  it('music added after the editions gives every existing edition the alt text (EGS-66: the build failed with MISSING_TEXT in en)', () => {
+    const hr = cat('hr', { 'asset.mus-menu.alt': 'Glazba izbornika' })
+    const en = cat('en', { 'asset.mus-menu.alt': 'Menu music', other: 'x' })
+    const changed = defaultAlts(hr, { hr, en, de: cat('de', {}) }, [{ id: 'mus-menu' }, { id: 'sfx-wrong' }])
+    expect(changed.sort()).toEqual(['de', 'en'])
+    expect(en.strings).toEqual({ 'asset.mus-menu.alt': 'Menu music', 'asset.sfx-wrong.alt': 'sfx-wrong', other: 'x' }) // a translated alt stays, a missing one gets a default
   })
 
   it('an edition is every language of the brief but the source and the taught language', () => {

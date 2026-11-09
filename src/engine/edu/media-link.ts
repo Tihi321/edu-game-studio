@@ -52,6 +52,25 @@ export interface MediaMerge {
 
 export const altKey = (id: string): string => `asset.${id}.alt`
 
+/**
+ * The alt text of an asset is a text key of every edition. `applyMedia` writes it to the source catalog; this gives it to the other catalogs that
+ * exist (the editions the translator made earlier, the taught language) as a default (the source text) where they have none, so music or pictures added
+ * after the editions do not make the build fail with MISSING_TEXT. The translator can replace it. Returns the languages that were changed.
+ */
+export function defaultAlts(source: Pick<TextCatalog, 'strings'>, catalogs: Record<string, Pick<TextCatalog, 'strings'> | undefined>, assets: readonly { id: string }[]): string[] {
+  const changed: string[] = []
+  for (const [lang, c] of Object.entries(catalogs)) {
+    if (!c || c === source || !isObj(c.strings)) continue
+    for (const a of assets) {
+      const key = altKey(a.id)
+      if (typeof c.strings[key] === 'string') continue
+      c.strings[key] = source.strings[key] ?? a.id
+      if (!changed.includes(lang)) changed.push(lang)
+    }
+  }
+  return changed
+}
+
 type Json = Record<string, unknown>
 const isObj = (v: unknown): v is Json => v !== null && typeof v === 'object' && !Array.isArray(v)
 

@@ -16,7 +16,7 @@ import type { ListedModel } from './models/openaiCompat'
 import type { RegistryOptions } from './models/registry'
 import { ModelRouter } from './models/router'
 import type { RouterOptions } from './models/router'
-import { JobStore } from './queue/jobs'
+import { JobStore, OLD_JOB_DAYS } from './queue/jobs'
 import { Scheduler } from './queue/scheduler'
 import { atomicWrite, readMd, writeMd } from './store/atomic'
 import { agentSummary, modelSummaries, providerSummaries, roleDefaults, serverStatuses } from './summary'
@@ -213,6 +213,9 @@ export class Engine {
     const rec = await this.jobs.recoverRunning()
     if (rec.requeued.length || rec.dropped.length) {
       this.log(`recovery: ${rec.requeued.length} running job(s) back to queued, ${rec.dropped.length} duplicate(s) dropped`)
+    }
+    if (rec.old.length) {
+      this.log(`recovery: ${rec.old.length} of them are older than ${OLD_JOB_DAYS} days (${rec.old.slice(0, 5).join(', ')}${rec.old.length > 5 ? ', ...' : ''}): a job waiting for a client (Claude Code) is queued and parked again; answer it (edu_client_tasks, edu_get_task, edu_submit_task) or remove its file from jobs/queued/ when the run is abandoned`)
     }
     await this.agents.loadAll((file, err) => this.log(`invalid agent file ${file}: ${err.message}`))
     this.knownAgents = new Set(this.agents.list().map((a) => a.id))

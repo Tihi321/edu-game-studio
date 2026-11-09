@@ -7,7 +7,7 @@ import { buildCourse, buildDirOf, GAME_DATA_FILE, type BuildResult } from './bui
 import { loadCourseFolder, validateCourseFolder } from './course-io'
 import { harvestGlossary, type HarvestOptions, type HarvestResult } from './harvest'
 import { lintGame, summarize, type LintResult } from './lint'
-import { applyMedia } from './media-link'
+import { applyMedia, defaultAlts } from './media-link'
 import type { MediaApplied, MediaMerge } from './media-link'
 import { assertSlug, coursesDir } from './paths'
 
@@ -270,8 +270,10 @@ export class CourseStore {
       if (targetCat && !isObj(targetCat.strings)) targetCat.strings = {}
       const applied = applyMedia(pack, cat as { strings: Record<string, string> }, merge, target && targetCat ? { [target]: targetCat as { strings: Record<string, string> } } : {})
       const all = { ...catalogs, [lang]: cat, ...(target && targetCat ? { [target]: targetCat } : {}) }
+      // an edition that already has a catalog gets the alt texts of the merged assets too, so a build does not fail with MISSING_TEXT
+      const editions = defaultAlts(cat as { strings: Record<string, string> }, all as Record<string, { strings: Record<string, string> }>, merge.assets)
       this.refuse('the media merge', before, this.check(pack, all).blocking)
-      await this.save(slug, pack, all, { catalogs: [lang, ...(target ? [target] : [])] })
+      await this.save(slug, pack, all, { catalogs: [...new Set([lang, ...(target ? [target] : []), ...editions])] })
       return { slug, ...applied }
     })
   }
