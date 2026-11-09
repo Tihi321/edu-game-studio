@@ -302,6 +302,7 @@ class Roleplay {
 
   private title(): void {
     const ses = this.session
+    this.stopAudio()
     ses.finished = false
     this.playing = null
     this.water = null
@@ -447,6 +448,7 @@ class Roleplay {
     const sc = p.scene
     const step = stepOf(sc, p.st)
     if (step.type !== 'turn') return this.scene()
+    this.stopAudio() // a line clip does not play on into the question or out of the scene
     const line: RpReplyLine = step.line
     const item = ses.item(line.reply)
     if (!ses.canAsk(item)) {
@@ -485,7 +487,10 @@ class Roleplay {
       index: Math.max(0, p.st.turns.length - (step.retry ? 1 : 0)),
       view: () => this.sceneView() ?? {},
       leaveLabel: s('rp.scene.back'),
-      onLeave: () => this.scene(),
+      onLeave: () => {
+        this.stopAudio()
+        this.scene()
+      },
       onAnswered: (o) => {
         const text = replyText(item, line, ses.text)
         p.st = answerTurn(sc, p.st, { correct: o.result.correct, score: o.result.score, text })

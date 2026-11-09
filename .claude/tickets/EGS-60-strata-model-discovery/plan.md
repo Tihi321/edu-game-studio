@@ -2,7 +2,7 @@
 
 Branch `EGS-60_strata-model-discovery` (from `master`). Replay of VNO-60 (VN Studio, branch `VNO-60_strata-model-discovery`, commit 9d0d173), hub task HUB-26, task T2.
 
-The plan is `C:\projects\Personal\creative-hub\.claude\tickets\HUB-26-strata-model-discovery\plan.md`: contract C1 and task T2. The reference is `C:\projects\Personal\visual-novels-orchestrator\.claude\tickets\VNO-60-strata-model-discovery\` (plan.md, changelog.md).
+The plan is `../creative-hub/.claude/tickets/HUB-26-strata-model-discovery/plan.md`: contract C1 and task T2. The reference is `../visual-novels-orchestrator/.claude/tickets/VNO-60-strata-model-discovery/` (plan.md, changelog.md).
 
 ## Checklist
 
