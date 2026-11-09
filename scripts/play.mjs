@@ -3,7 +3,7 @@
  * The autoplay bot: plays a BUILT game folder in headless Chromium over file:// and proves it is playable.
  *
  *   node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>]
- *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--no-media-check] [--json] [--verbose]
+ *                         [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--layout] [--no-media-check] [--json] [--verbose]
  *
  * It needs the folder alone (index.html, game-data.json, player.js ...) and `playwright` with Chromium; no TypeScript and no
  * source of this repository is imported. It drives the game ONLY through `data-testid`s and `window.EduEngine.getState()`, and asks
@@ -32,6 +32,9 @@
  *   --axe       injects node_modules/axe-core (or the copy next to the script's repository) into the page and runs it once on every
  *               distinct screen and item kind (title, map, each item kind, each feedback kind, summary, review, end); a serious or
  *               critical violation is a failure; the counts are in the JSON summary (`axe`).
+ *   --layout    (off by default) on every screen that checks horizontal overflow, also fails a visible control (button, link, select, text field,
+ *               checkbox label) smaller than 44 x 44 px, a control that lies outside the window sideways or is cut off by a clipping parent (overflow
+ *               hidden), and a clipping box whose text is cut off (scrollWidth > clientWidth). The summary lists the first few per screen in the failure.
  *
  * Step bound (all modes, unless --max-steps): the driver's `maxSteps`; the quiz arena's is
  * maxSteps = ceil(6 * (units * roundLength + bossLength) * max(1, 0.75 / accuracy)^2)
@@ -49,13 +52,13 @@ import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import { DRIVERS } from './bot/index.mjs'
 
-const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--no-media-check] [--json] [--verbose]'
+const USAGE = 'usage: node scripts/play.mjs <build-dir> --mode perfect|wrong|random [--shell <id>] [--seed N] [--accuracy 0.75] [--shots <dir>] [--viewport 1280x800] [--max-steps N] [--rounds N] [--keyboard] [--axe] [--layout] [--no-media-check] [--json] [--verbose]'
 const ACTION_TIMEOUT = 8000
 
 // ---------------------------------------------------------------- arguments
 
 function parseArgs(argv) {
-  const o = { dir: '', mode: '', shell: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, media: true, json: false, verbose: false }
+  const o = { dir: '', mode: '', shell: '', seed: 1, accuracy: 0.75, shots: '', viewport: { width: 1280, height: 800 }, maxSteps: 0, rounds: 1, keyboard: false, axe: false, layout: false, media: true, json: false, verbose: false }
   const rest = argv.slice()
   const take = (flag) => {
     const v = rest.shift()
@@ -77,6 +80,7 @@ function parseArgs(argv) {
       o.viewport = { width: Number(m[1]), height: Number(m[2]) }
     } else if (a === '--keyboard') o.keyboard = true
     else if (a === '--axe') o.axe = true
+    else if (a === '--layout') o.layout = true
     else if (a === '--no-media-check') o.media = false
     else if (a === '--json') o.json = true
     else if (a === '--verbose') o.verbose = true
@@ -322,6 +326,47 @@ async function run(opts) {
   async function overflowCheck(where) {
     const o = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }))
     if (o.sw > o.iw) fail(`horizontal overflow at ${where}: ${o.sw} > ${o.iw}`)
+    if (opts.layout) await layoutCheck(where)
+  }
+
+  /** --layout: small tap targets, controls outside the window or cut off by a clipping parent, clipped text. */
+  async function layoutCheck(where) {
+    const bad = await page.evaluate(() => {
+      const MIN = 44
+      const out = []
+      const root = document.getElementById('edu-root') ?? document.body
+      const shown = (el) => {
+        const r = el.getBoundingClientRect()
+        const cs = getComputedStyle(el)
+        return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none' && !el.closest('[hidden], [aria-hidden="true"], [inert], .sr-only')
+      }
+      const name = (el) => el.getAttribute('data-testid') || el.id || el.tagName.toLowerCase()
+      const clips = (cs) => /hidden|clip/.test(cs.overflowX) || /hidden|clip/.test(cs.overflowY)
+      const controls = root.querySelectorAll('button, a[href], select, input:not([type=hidden]), textarea, [role=button]')
+      for (const el of controls) {
+        // a checkbox or radio is tapped through its label
+        const box = el instanceof HTMLInputElement && /^(checkbox|radio)$/.test(el.type) ? (el.closest('label') ?? el) : el
+        if (!shown(box)) continue
+        const r = box.getBoundingClientRect()
+        if (r.width < MIN - 0.5 || r.height < MIN - 0.5) out.push(`${name(el)} is ${Math.round(r.width)}x${Math.round(r.height)}px (tap targets: ${MIN}x${MIN})`)
+        if (r.right > window.innerWidth + 1 || r.left < -1) out.push(`${name(el)} lies outside the window (${Math.round(r.left)}..${Math.round(r.right)} of ${window.innerWidth})`)
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (!clips(getComputedStyle(p))) continue
+          const pr = p.getBoundingClientRect()
+          if (r.right > pr.right + 2 || r.left < pr.left - 2 || r.bottom > pr.bottom + 2 || r.top < pr.top - 2) {
+            out.push(`${name(el)} is cut off by ${name(p)}`)
+            break
+          }
+        }
+      }
+      for (const el of root.querySelectorAll('*')) {
+        if (el.tagName === 'CANVAS' || !shown(el) || !clips(getComputedStyle(el))) continue
+        if (getComputedStyle(el).textOverflow === 'ellipsis') continue
+        if (el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) out.push(`${name(el)} cuts its content off sideways (${el.scrollWidth} > ${el.clientWidth})`)
+      }
+      return [...new Set(out)]
+    })
+    if (bad.length) fail(`layout at ${where}: ${bad.slice(0, 5).join('; ')}${bad.length > 5 ? `; and ${bad.length - 5} more` : ''}`)
   }
 
   const ask = (which, itemId) => page.evaluate(([w, id]) => window.EduEngine.debug[w](id), [which, itemId])
