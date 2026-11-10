@@ -58,6 +58,36 @@ describe('the deterministic fallback', () => {
   })
 })
 
+describe('the fallback plan is varied (EGS-70)', () => {
+  const big = src({ units: ['u1', 'u2', 'u3', 'u4'].map((id) => ({ id, title: id })), shells: ['quiz-arena', 'mindmaze', 'rpg'] })
+
+  it('gives 10 areas at least 5 moods, a tempo span of 40 bpm, a texture each and the gm chip; a pixel course keeps SNES', () => {
+    const { music } = fallbackMusicLines(big)
+    expect(music).toHaveLength(10)
+    expect(new Set(music.map((l) => l.mood)).size).toBeGreaterThanOrEqual(5)
+    expect(Math.max(...music.map((l) => l.bpm!)) - Math.min(...music.map((l) => l.bpm!))).toBeGreaterThanOrEqual(40)
+    expect(music.every((l) => l.chip === 'gm' && l.texture && l.form)).toBe(true)
+    expect(music.map((l) => l.mood)).toEqual(expect.arrayContaining(['wonder', 'focus', 'curious', 'cafe', 'storybook', 'adventure-light', 'mysterious-calm', 'playful']))
+    // no more "calm instrumental ... slow tempo" on every track
+    expect(music.filter((l) => /calm instrumental|slow tempo/.test(l.prompt))).toEqual([])
+    expect(new Set(music.map((l) => l.prompt)).size).toBe(10)
+    expect(fallbackMusicLines({ ...big, genreText: 'pixel retro' }).music.every((l) => l.chip === 'snes')).toBe(true)
+  })
+
+  it('the entries keep the texture, form and gm chip, the gm tempo cap lets the boss run at 120, and a provider on a line beats the course default', () => {
+    const m = media()
+    const r = resolveMusicEntries(fallbackMusicLines(big), big, { media: m, by: 'fallback' })
+    expect(r.tracks.find((t) => t.id === 'mus-boss')).toMatchObject({ mood: 'adventure-light', chip: 'gm', bpm: 120, texture: 'march', form: 'AABA', provider: 'comfy' })
+    expect(r.tracks.find((t) => t.id === 'mus-castle')).toMatchObject({ provider: 'chiptune', texture: 'chorale' })
+    const lines = fallbackMusicLines(big)
+    const over = resolveMusicEntries({ ...lines, music: lines.music.map((l) => (l.area === 'menu' ? { ...l, provider: 'chiptune' as const } : l.area === 'rpg-battle' ? { ...l, provider: 'comfy' as const } : l.area === 'end' ? { ...l, provider: 'flow' as const } : l)) }, big, { media: m, by: 'model' })
+    expect(Object.fromEntries(over.tracks.filter((t) => ['mus-menu', 'mus-rpg-battle', 'mus-end'].includes(t.id)).map((t) => [t.id, t.provider]))).toEqual({ 'mus-menu': 'chiptune', 'mus-rpg-battle': 'comfy', 'mus-end': 'comfy' }) // flow needs the credits opt-in
+    expect(over.warnings.join()).toMatch(/mus-end: provider flow needs media.music.flowCredits/)
+    // the media settings accept the gm chip
+    expect(media({ music: { provider: 'chiptune', chip: 'gm' } }).music).toMatchObject({ provider: 'chiptune', chip: 'gm' })
+  })
+})
+
 describe('providers per area', () => {
 
   it('Flow Music needs the opt-in: provider flow alone gives the default provider and a warning', () => {

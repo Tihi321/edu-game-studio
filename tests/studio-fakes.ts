@@ -85,7 +85,7 @@ export class FakeChiptune implements ChiptuneClient {
     this.check()
     this.calls.push({ tool: 'compose_track', args })
     const id = `song-${++this.n}`
-    return { songId: id, name: args.name ?? id, chip: args.chip ?? 'snes', bpm: args.bpm ?? 72, key: args.key ?? 'C', mood: args.mood, bars: args.bars ?? 16, seed: args.seed ?? 4242, durationSec: 41.5, loop: { startBar: 1, endBar: args.bars ?? 16 }, channels: ['a', 'b'] }
+    return { songId: id, name: args.name ?? id, chip: args.chip ?? 'snes', bpm: args.bpm ?? 72, key: args.key ?? 'C', mood: args.mood, bars: args.bars ?? 16, seed: args.seed ?? 4242, durationSec: 41.5, loop: { startBar: 1, endBar: args.bars ?? 16 }, channels: ['a', 'b'], fingerprint: { texture: args.texture ?? 'pad-lead', lead: `lead-${this.n}`, pad: 'pad', bass: 'bass', bpm: args.bpm ?? 72, key: args.key ?? 'C', scale: 'major', form: args.form ?? 'A' } }
   }
   async composeSfx(args: ComposeSfxArgs) {
     this.check()

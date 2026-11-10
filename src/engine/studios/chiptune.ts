@@ -1,4 +1,4 @@
-import type { Chip } from '../../shared/media'
+import type { Chip, Fingerprint } from '../../shared/media'
 import { McpHttpError, createMcpClient } from './mcp-http'
 import type { McpHttpClient, McpToolInfo } from './mcp-http'
 
@@ -33,7 +33,15 @@ export interface ComposeArgs {
   seconds?: number
   loop?: boolean
   seed?: number
+  /** Channel -> preset id (`gm.lead.clarinet` on the `gm` chip). */
   instruments?: Record<string, string>
+  /** The shape of the accompaniment (`pad-lead`, `broken-chord`, `ostinato`, `chorale`, `march`, `bossa`, `lullaby-rock`, `pizzicato-walk`). */
+  texture?: string
+  /** `A`, `AB`, `ABA` or `AABA`. */
+  form?: string
+  palette?: string
+  /** The fingerprints of the tracks of the same work made before: the studio composes this one to differ from them. */
+  avoid?: Fingerprint[]
   name?: string
 }
 
@@ -50,6 +58,10 @@ export interface ComposeResult {
   durationSec: number
   loop: { startBar: number; endBar: number } | null
   channels: string[]
+  /** What the track is made of (a studio older than HUB-33 does not return it). */
+  fingerprint?: Fingerprint
+  /** The studio could not meet a rule (for example `avoid`): which one. */
+  warning?: string
 }
 
 export interface ComposeSfxArgs {

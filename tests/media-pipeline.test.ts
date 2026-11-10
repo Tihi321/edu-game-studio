@@ -214,7 +214,12 @@ describe('music and sound effects', () => {
         expect(pack.cues.filter((c) => c.on.startsWith('music:')).map((c) => [c.on, c.asset, c.loop])).toEqual(TRACKS.map((t) => [`music:${t.replace('mus-', '')}`, t, true]))
         expect(pack.cues.filter((c) => !c.on.startsWith('music:')).map((c) => [c.on, c.asset, c.loop])).toEqual(SFX.map((s) => [s.replace('sfx-', ''), s, false]))
         expect(pack.cues.every((c) => c.volume > 0 && c.volume <= 1)).toBe(true)
-        expect(pack.extensions.audio!.loops).toEqual({ 'mus-rpg-overworld': { startSec: 2, endSec: 41.5 }, 'mus-rpg-battle': { startSec: 2, endSec: 41.5 } })
+        // Chiptune Studio's loop points, and the ACE-Step tracks closed with a crossfade (the fake's 1 s tone becomes 0.75 s): every track loops whole or between its points
+        expect(pack.extensions.audio!.loops).toEqual({
+          ...Object.fromEntries(TRACKS.filter((t) => !t.startsWith('mus-rpg-')).map((t) => [t, { startSec: 0, endSec: 0.75 }])),
+          'mus-rpg-overworld': { startSec: 2, endSec: 41.5 },
+          'mus-rpg-battle': { startSec: 2, endSec: 41.5 }
+        })
         expect(validateCourse(pack, { en: { schema: 1, lang: 'en', ...catalog } }).problems).toEqual([])
 
         // the files: in the course, in the build, real audio; the game data lists them

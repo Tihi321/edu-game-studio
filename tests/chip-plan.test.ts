@@ -4,7 +4,7 @@ import { CHIPS, parseCourseMedia } from '../src/shared/media'
 
 /** Ported from VN Studio's `chip-plan` test: the Chiptune Studio track plan (mood, chip, tempo, key, bars) and its fallback. */
 
-const base = fallbackChipPlan('music_01', { genreText: 'kids bedtime' })
+const base = fallbackChipPlan('music_01', { genreText: 'kids bedtime', chip: 'snes' })
 
 describe('ps1 and dreamcast chips', () => {
   it('are chips of the course media settings', () => {
@@ -18,6 +18,8 @@ describe('ps1 and dreamcast chips', () => {
     expect(mergeChipPlan({ chip: 'dreamcast', mood: 'outrun', bpm: 300 }, base)).toMatchObject({ chip: 'dreamcast', mood: 'outrun', bpm: 118 })
     expect(mergeChipPlan({ mood: 'synthwave', bpm: 112 }, base).bpm).toBe(112)
     expect(mergeChipPlan({ mood: 'calm', bpm: 300 }, base).bpm).toBe(100)
+    expect(mergeChipPlan({ mood: 'playful', bpm: 300 }, base).bpm).toBe(126) // the lively moods run faster on any chip
+    expect(mergeChipPlan({ mood: 'calm', bpm: 300 }, { ...base, chip: 'gm' }).bpm).toBe(128) // and the SoundFont chip to 128
     expect(mergeChipPlan({ mood: 'heavy-metal', bpm: 300 }, base)).toMatchObject({ mood: base.mood, bpm: 100 })
   })
 
@@ -33,10 +35,11 @@ describe('ps1 and dreamcast chips', () => {
   })
 
   it('a course that is not synth or 90s keeps exactly the plan it had', () => {
-    expect(fallbackChipPlan('music_01', { genreText: 'mystery detective', seconds: 100 })).toEqual({ mood: 'mysterious-calm', chip: 'snes', bpm: 72, key: 'C', bars: 32 })
-    expect(fallbackChipPlan('music_02', { genreText: 'mystery detective', seconds: 100 })).toEqual({ mood: 'peaceful', chip: 'snes', bpm: 66, key: 'F', bars: 28 })
-    expect(fallbackChipPlan('music_01', { genreText: 'kids bedtime', seconds: 100 })).toEqual({ mood: 'lullaby', chip: 'snes', bpm: 72, key: 'C', bars: 32 })
-    expect(fallbackChipPlan('music_02', { genreText: 'a quiet novel', seconds: 100 })).toEqual({ mood: 'ambient', chip: 'snes', bpm: 66, key: 'F', bars: 28 })
-    expect(fallbackChipPlan('music_01', { genreText: 'space sci-fi cyber', seconds: 100 })).toMatchObject({ mood: 'ambient', chip: 'snes' })
+    expect(fallbackChipPlan('music_01', { genreText: 'mystery detective', seconds: 100 })).toEqual({ mood: 'mysterious-calm', chip: 'gm', bpm: 72, key: 'C', bars: 32 })
+    expect(fallbackChipPlan('music_02', { genreText: 'mystery detective', seconds: 100 })).toEqual({ mood: 'peaceful', chip: 'gm', bpm: 66, key: 'F', bars: 28 })
+    expect(fallbackChipPlan('music_01', { genreText: 'kids bedtime', seconds: 100 })).toEqual({ mood: 'lullaby', chip: 'gm', bpm: 72, key: 'C', bars: 32 })
+    expect(fallbackChipPlan('music_02', { genreText: 'a quiet novel', seconds: 100 })).toEqual({ mood: 'ambient', chip: 'gm', bpm: 66, key: 'F', bars: 28 })
+    expect(fallbackChipPlan('music_01', { genreText: 'space sci-fi cyber', seconds: 100 })).toMatchObject({ mood: 'ambient', chip: 'gm' })
+    expect(fallbackChipPlan('music_01', { genreText: 'kids bedtime pixel retro', seconds: 100 })).toMatchObject({ mood: 'lullaby', chip: 'snes' }) // a pixel course keeps SNES
   })
 })

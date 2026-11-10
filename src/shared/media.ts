@@ -19,8 +19,8 @@ export const MUSIC_PROVIDERS = ['comfy', 'chiptune', 'flow'] as const
 /** The voice providers of a course (`media.voice.provider`, EGS-17). `auto` is the hub's allocation rule. */
 export const VOICE_PROVIDERS = ['auto', 'gemini', 'vibetts', 'comfy'] as const
 export type VoiceProvider = (typeof VOICE_PROVIDERS)[number]
-/** The chips of Chiptune Studio (`ps1` and `dreamcast` are its later, lusher chips; EGS-16 ported them with the composer). */
-export const CHIPS = ['nes', 'gb', 'genesis', 'snes', 'pce', 'ps1', 'dreamcast'] as const
+/** The chips of Chiptune Studio (`ps1` and `dreamcast` are its later, lusher chips; EGS-16 ported them with the composer). `gm` (EGS-70, HUB-33) is the General MIDI SoundFont chip: real instruments, the default for a course that is not pixel style. */
+export const CHIPS = ['nes', 'gb', 'genesis', 'snes', 'pce', 'ps1', 'dreamcast', 'gm'] as const
 export const DITHERS = ['none', 'ordered', 'floyd'] as const
 export type Chip = (typeof CHIPS)[number]
 export type Dither = (typeof DITHERS)[number]
@@ -288,6 +288,19 @@ export const ASSET_KINDS = ['background', 'sheet', 'sprite', 'cover', 'cg', 'ill
 export const assetKindSchema = z.enum(ASSET_KINDS)
 export type AssetKind = z.infer<typeof assetKindSchema>
 
+/** What Chiptune Studio's `compose_track` says a track is made of (EGS-70): the next track of the same work is composed to differ from these (`avoid`). */
+export const fingerprintSchema = z.object({
+  texture: z.string().optional(),
+  lead: z.string().optional(),
+  pad: z.string().optional(),
+  bass: z.string().optional(),
+  bpm: z.number().optional(),
+  key: z.string().optional(),
+  scale: z.string().optional(),
+  form: z.string().optional()
+})
+export type Fingerprint = z.infer<typeof fingerprintSchema>
+
 export const assetVersionSchema = z.object({
   n: z.number().int().positive(),
   /** File name inside `assets/<id>/`. */
@@ -301,6 +314,8 @@ export const assetVersionSchema = z.object({
   loopEndSec: z.number().nullable().optional(),
   /** Made by Google Flow / Flow Music: the Flow media id (images) or song id, so a later image can use it as a reference. */
   remote: z.object({ provider: z.enum(['flow', 'flow-music']), id: z.string(), project: z.string().optional() }).optional(),
+  /** Music from Chiptune Studio: the fingerprint of the composition (texture, lead, pad, bass, tempo, key, form). */
+  fingerprint: fingerprintSchema.optional(),
   /** Chiptune Studio's native song file of this version (next to the audio), for "Open in Chiptune Studio". */
   songFile: z.string().optional(),
   /** Pixel Studio art: the PNG at the native pixel size (before the nearest-neighbour scale up), for "Open in Pixel Studio". */

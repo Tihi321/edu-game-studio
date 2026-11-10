@@ -106,6 +106,12 @@ export interface MusicTrackEntry {
   bpm: number
   key: string
   bars: number
+  /** Chiptune Studio: the texture of the accompaniment (`TEXTURES` in `chip-plan.ts`). Missing: the studio picks one. */
+  texture?: string
+  /** Chiptune Studio: the form (`A`, `AB`, `ABA`, `AABA`). Missing: the studio picks one. */
+  form?: string
+  /** Chiptune Studio: channel -> preset id (`{"M4": "gm.lead.clarinet"}`), for the `gm` chip. Missing: the studio picks from the mood's pool. */
+  instruments?: Record<string, string>
   by: 'model' | 'fallback'
 }
 
