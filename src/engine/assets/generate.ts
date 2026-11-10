@@ -5,7 +5,7 @@ import { artSizes, composePrompt, ART_NEGATIVE } from '../../shared/art'
 import type { ArtKind, ArtRatio } from '../../shared/art'
 import type { RegionShape } from '../../shared/course'
 import { AUDIO_KINDS, FLOW_ENGINE, IMAGE_KINDS, PIXEL_KINDS, resolveArtProvider, resolvePixel, resolveRpgPixelProvider } from '../../shared/media'
-import type { AssetEntry, AssetManifest, AssetVersion, CourseMedia } from '../../shared/media'
+import type { AssetEntry, AssetManifest, AssetVersion, CourseMedia, Fingerprint } from '../../shared/media'
 import type { ChiptuneClient } from '../studios/chiptune'
 import type { ComfyClient, ComfyProgress } from '../comfy/client'
 import { randomSeed } from '../comfy/graphs'
@@ -90,6 +90,8 @@ export interface GenerateContext {
   chiptune?: ChiptuneClient
   /** What the composer's plan says about an audio asset: the Chiptune Studio plan, the prompt, the length, the sound. */
   audioOf?: (assetId: string) => AudioGenInfo | undefined
+  /** The fingerprints of the work's other music tracks (EGS-70): Chiptune Studio composes a new track to differ from them. Read when the track is made, so a track made a moment ago counts. */
+  avoidOf?: (assetId: string) => Fingerprint[] | Promise<Fingerprint[]>
   /** How many Flow Music songs the course has made (the cap `flowOptions.maxSongs` counts them); the generator adds one for each song it makes. */
   flowSongs?: { made: number }
 }

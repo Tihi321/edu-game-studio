@@ -47,6 +47,24 @@ describe('music from Chiptune Studio', () => {
     expect(kit.comfy.requests).toHaveLength(0)
   })
 
+  it('passes the texture, form and instruments, and the fingerprints of the other tracks as avoid; stores the fingerprint; a regenerate is v2 and v1 stays', async () => {
+    const chip = { mood: 'cafe', chip: 'gm', bpm: 96, key: 'A', bars: 24, texture: 'bossa', form: 'AABA', instruments: { M4: 'gm.lead.clarinet' } } as const
+    const first = await must(generateAsset(kit.ctx({ audioOf: () => ({ chip }), avoidOf: () => [] }), track('mus-menu', 'chiptune')))
+    const fp = first.version.fingerprint!
+    expect(fp).toMatchObject({ texture: 'bossa', form: 'AABA', bpm: 96 })
+    expect(kit.chiptune.calls[0]!.args).toMatchObject({ texture: 'bossa', form: 'AABA', instruments: { M4: 'gm.lead.clarinet' } })
+    expect(kit.chiptune.calls[0]!.args).not.toHaveProperty('avoid') // nothing to avoid yet
+    const second = await must(generateAsset(kit.ctx({ audioOf: () => ({ chip }), avoidOf: () => [fp] }), track('mus-unit-u1', 'chiptune')))
+    expect(kit.chiptune.calls.filter((c) => c.tool === 'compose_track')[1]!.args).toMatchObject({ avoid: [fp] })
+    expect(second.version.fingerprint).toBeDefined()
+    // a regenerate of the first track: version 2 beside version 1, which keeps its file
+    const again = await must(generateAsset(kit.ctx({ audioOf: () => ({ chip }) }), first.entry, { force: true }))
+    expect(again.version.n).toBe(2)
+    expect(again.entry.versions.map((v) => v.file)).toEqual(['v1.wav', 'v2.wav'])
+    expect(existsSync(path.join(kit.dir, 'assets', 'mus-menu', 'v1.wav'))).toBe(true)
+    expect(existsSync(path.join(kit.dir, 'assets', 'mus-menu', 'v2.wav'))).toBe(true)
+  })
+
   it('without the studio it fails with the start hint, and the entry is unchanged', async () => {
     kit.chiptune.down = true
     const e = track('mus-menu', 'chiptune')
@@ -76,7 +94,7 @@ describe('music from ComfyUI (ACE-Step)', () => {
     expect(kit.comfy.requests).toHaveLength(1)
     expect(kit.comfy.requests[0]).toMatchObject({ engine: 'ace-step-v1-instrumental', prompt: 'calm instrumental, soft piano', seconds: 75 })
     expect(r.version).toMatchObject({ n: 1, file: 'v1.wav', engine: 'ace-step-v1-instrumental', prompt: 'calm instrumental, soft piano' })
-    expect(r.version.loopStartSec).toBeUndefined() // no loop points: the player repeats the whole file
+    expect(r.version).toMatchObject({ loopStartSec: 0, loopEndSec: 0.75 }) // EGS-70: the loop is closed with a crossfade (the fake's 1 s tone loses 0.25 s)
     expect(await isWav(path.join(kit.dir, 'assets', 'mus-unit-u1', 'v1.wav'))).toBe(true)
     expect(kit.chiptune.calls).toHaveLength(0)
   })

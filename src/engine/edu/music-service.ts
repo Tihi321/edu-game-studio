@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { languageInfo } from '../../shared/languages'
 import { AUDIO_KINDS, FLOW_MUSIC_ENGINE, flowMusicAllowed } from '../../shared/media'
-import type { AssetEntry, CourseMedia } from '../../shared/media'
+import type { AssetEntry, CourseMedia, Fingerprint } from '../../shared/media'
 import type { MusicPlanFile } from '../../shared/music'
 import type { DesignData, Frame } from './authoring'
 import { askRole } from './authoring'
@@ -156,6 +156,17 @@ export class MusicService {
     return { plan, added: ids.filter((i) => !before.has(i)), kept: ids.filter((i) => before.has(i)) }
   }
 
+  /** The fingerprints of the other music tracks of the course (the selected version of each, else its latest): a new Chiptune track avoids them. Read from disk, so a track made a moment ago counts. */
+  private async fingerprintsOther(dir: string, assetId: string): Promise<Fingerprint[]> {
+    const out: Fingerprint[] = []
+    for (const e of (await loadManifest(dir)).assets) {
+      if (e.kind !== 'music' || e.id === assetId) continue
+      const v = e.versions.find((x) => x.n === e.selected) ?? e.versions[e.versions.length - 1]
+      if (v?.fingerprint) out.push(v.fingerprint)
+    }
+    return out
+  }
+
   // ---- making the sounds ----
 
   /**
@@ -200,7 +211,7 @@ export class MusicService {
     manifest = await loadManifest(dir)
 
     const info = new Map<string, AudioGenInfo>()
-    for (const t of plan?.tracks ?? []) info.set(t.id, { chip: { mood: t.mood, chip: t.chip, bpm: t.bpm, key: t.key, bars: t.bars }, prompt: t.prompt, seconds: t.seconds })
+    for (const t of plan?.tracks ?? []) info.set(t.id, { chip: { mood: t.mood, chip: t.chip, bpm: t.bpm, key: t.key, bars: t.bars, ...(t.texture ? { texture: t.texture } : {}), ...(t.form ? { form: t.form } : {}), ...(t.instruments ? { instruments: t.instruments } : {}) }, prompt: t.prompt, seconds: t.seconds })
     for (const s of plan?.sfx ?? []) info.set(s.id, { sound: s.sound, prompt: s.prompt })
     const ctx: GenerateContext = {
       slug,
@@ -214,6 +225,7 @@ export class MusicService {
       flowSongs: { made: countFlowSongs(manifest.assets) },
       palettesDir: dataFolders(this.svc.dataDir).palettes,
       audioOf: (id) => info.get(id),
+      avoidOf: (id) => this.fingerprintsOther(dir, id),
       signal: job.signal,
       onProgress: (e) => job.log?.(`${e.id}: ${e.stage} ${e.message}`)
     }

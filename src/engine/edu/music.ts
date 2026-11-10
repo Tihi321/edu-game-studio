@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CHIPS, CHIPTUNE_ENGINE, SFX_IMPORT_ONLY, flowMusicAllowed } from '../../shared/media'
+import { CHIPS, CHIPTUNE_ENGINE, MUSIC_PROVIDERS, SFX_IMPORT_ONLY, flowMusicAllowed } from '../../shared/media'
 import type { Chip, CourseMedia } from '../../shared/media'
 import {
   DEFAULT_MUSIC_VOLUME,
@@ -18,7 +18,7 @@ import {
 } from '../../shared/music'
 import type { MusicArea, MusicPlanFile, MusicTrackEntry, MusicTrackProvider, SfxEntry } from '../../shared/music'
 import { CHIP_SOUNDS, pickChipSound } from '../studios/chip-sound'
-import { MUSIC_MOODS, MAX_BARS, MIN_BARS, fallbackChipPlan, mergeChipPlan, planSummary } from '../studios/chip-plan'
+import { FORMS, MUSIC_MOODS, MAX_BARS, MIN_BARS, PS1_GENRE, SYNTH_GENRE, TEXTURES, barsFor, chipFor, fallbackChipPlan, mergeChipPlan, planSummary } from '../studios/chip-plan'
 import type { ChipTrackPlanDraft } from '../studios/chip-plan'
 import { dropNulls } from './authoring'
 import type { Problem } from './authoring'
@@ -68,7 +68,15 @@ export const musicPlanSchema = lenient(
           chip: z.string().optional(),
           bpm: z.number().optional(),
           key: z.string().optional(),
-          bars: z.number().optional()
+          bars: z.number().optional(),
+          /** Chiptune Studio: the shape of the accompaniment (`pad-lead`, `broken-chord`, `ostinato`, `chorale`, `march`, `bossa`, `lullaby-rock`, `pizzicato-walk`). */
+          texture: z.string().optional(),
+          /** Chiptune Studio: `A`, `AB`, `ABA` or `AABA`. */
+          form: z.string().optional(),
+          /** Chiptune Studio, `gm` chip: channel -> preset id. */
+          instruments: z.record(z.string(), z.string()).optional(),
+          /** Who makes this track, over the course default: `comfy`, `chiptune` or `flow` (Flow needs the credits opt-in). */
+          provider: z.enum(MUSIC_PROVIDERS).optional()
         }),
         { error: 'music must be a list of {area, mood, prompt, alt, ...}' }
       )
@@ -137,36 +145,73 @@ export function checkMusicPlan(plan: MusicPlanOutput, src: MusicSource): Problem
 /** The sound of each event when no model chose: Chiptune Studio's own names. */
 const FALLBACK_SOUND: Record<string, string> = { correct: 'coin', wrong: 'cancel', combo: 'magic', 'level-up': 'powerup', boss: 'alert', 'unit-complete': 'powerup' }
 
-/** The fixed mood of the areas that are not a unit or the menu (a unit and the menu rotate over the calm moods). */
-const AREA_MOOD: Record<string, { mood: string; bpm: number; key: string; words: string }> = {
-  boss: { mood: 'mysterious-calm', bpm: 96, key: 'D', words: 'tense, driving, steady pulse, low strings and a soft drum' },
-  end: { mood: 'peaceful', bpm: 66, key: 'F', words: 'warm, rewarding, bells and soft piano' },
-  castle: { mood: 'mysterious-calm', bpm: 64, key: 'A', words: 'mysterious, echoing, harp and low flute' },
-  'rpg-overworld': { mood: 'peaceful', bpm: 84, key: 'G', words: 'light, travelling, plucked strings and flute' },
-  'rpg-battle': { mood: 'mysterious-calm', bpm: 100, key: 'E', words: 'urgent but friendly, bouncing bass and bright lead' }
+/** One area of the fallback plan: a distinct mood, tempo, key and texture, and the words ACE-Step is given (EGS-70: the areas no longer all say "calm ... slow tempo"). */
+interface AreaPlan {
+  mood: string
+  bpm: number
+  key: string
+  texture: string
+  form: string
+  words: string
 }
+
+/** The fixed plan of the areas that are not a unit or the menu. Tempo bands: castle 64, end 72, overworld 108, boss 120, battle 124. */
+const AREA_MOOD: Record<string, AreaPlan> = {
+  boss: { mood: 'adventure-light', bpm: 120, key: 'D', texture: 'march', form: 'AABA', words: 'driving but friendly adventure, snare march rhythm, brass and strings, a heroic tune' },
+  end: { mood: 'storybook', bpm: 72, key: 'F', texture: 'lullaby-rock', form: 'ABA', words: 'warm and rewarding, music box, celesta, soft piano and strings, a feeling of having finished' },
+  castle: { mood: 'mysterious-calm', bpm: 64, key: 'A', texture: 'chorale', form: 'AB', words: 'mysterious echoing halls, pipe organ and choir, slow chords, a hint of harp' },
+  'rpg-overworld': { mood: 'adventure-light', bpm: 108, key: 'G', texture: 'pizzicato-walk', form: 'ABA', words: 'light travelling folk tune, plucked strings, flute and a walking bass' },
+  'rpg-battle': { mood: 'playful', bpm: 124, key: 'E', texture: 'ostinato', form: 'AABA', words: 'urgent but friendly, bouncing bass, bright staccato lead and light percussion' }
+}
+const MENU_PLAN: AreaPlan = { mood: 'wonder', bpm: 100, key: 'C', texture: 'broken-chord', form: 'ABA', words: 'curious and welcoming, celesta and harp arpeggios, soft strings, a sense of wonder' }
+/** The units rotate over four moods, each with its own texture and tempo band (84 to 104). */
+const UNIT_PLANS: AreaPlan[] = [
+  { mood: 'focus', bpm: 90, key: 'D', texture: 'ostinato', form: 'AB', words: 'steady and focused, electric piano ostinato, soft bass and a side-stick tick, helps concentration' },
+  { mood: 'curious', bpm: 104, key: 'G', texture: 'pizzicato-walk', form: 'ABA', words: 'curious and light, pizzicato strings, marimba, a walking bass' },
+  { mood: 'cafe', bpm: 96, key: 'A', texture: 'bossa', form: 'AABA', words: 'relaxed cafe bossa nova, nylon guitar, vibraphone, upright bass and brushed drums' },
+  { mood: 'storybook', bpm: 84, key: 'Eb', texture: 'pad-lead', form: 'ABA', words: 'gentle storybook feeling, clarinet melody, harp and warm strings' }
+]
+const UNIT_KEYS = ['D', 'G', 'A', 'Eb', 'F', 'C', 'Bb', 'E']
 
 const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n))
 
-/** The plan made from the course text alone: music for every area, a sound for every event. */
+/** The ACE-Step words of a track: the genre words of its area, its tempo, and the subject. Never the same "calm instrumental ... slow tempo" for every area. */
+const promptOf = (p: Pick<AreaPlan, 'bpm' | 'words'>, subject: string): string => `instrumental game music, ${p.words}, around ${p.bpm} bpm, loops well, no vocals, for a learning game about ${subject}`
+
+/** The plan made from the course text alone: music for every area, a sound for every event. Every area has its own mood, tempo and texture. */
 export function fallbackMusicLines(src: MusicSource): { music: MusicLine[]; sfx: SfxLine[] } {
   const music: MusicLine[] = []
+  const synth = SYNTH_GENRE.test(src.genreText) || PS1_GENRE.test(src.genreText)
   let n = 0
+  let unit = 0
   for (const a of areasOf(src)) {
     n++
-    const fixed = AREA_MOOD[a.area]
     const base = fallbackChipPlan(`music_${String(n).padStart(2, '0')}`, { genreText: src.genreText, seconds: DEFAULT_TRACK_SECONDS })
-    const mood = fixed?.mood ?? base.mood
-    const words = fixed?.words ?? (a.area === 'menu' ? 'welcoming, warm, soft piano and strings' : 'steady, calm, light piano and soft pads')
+    const isUnit = a.area.startsWith('unit-')
+    let plan: AreaPlan
+    if (AREA_MOOD[a.area]) plan = AREA_MOOD[a.area]!
+    else if (a.area === 'menu') plan = MENU_PLAN
+    else {
+      const u = UNIT_PLANS[unit % UNIT_PLANS.length]!
+      // after a full lap the same four moods come back in other keys and 4 bpm apart
+      const lap = Math.floor(unit / UNIT_PLANS.length)
+      plan = { ...u, key: UNIT_KEYS[(unit + lap + 1) % UNIT_KEYS.length]!, bpm: u.bpm - lap * 4 }
+      unit++
+    }
+    // a synth / 90s course keeps the synth moods and the slow tempos for its menu and units
+    const keepBase = synth && (isUnit || a.area === 'menu')
+    const bpm = keepBase ? base.bpm : plan.bpm
     music.push({
       area: a.area,
-      mood,
-      prompt: `calm instrumental background music, ${words}, slow tempo, loops well, no vocals, for a learning game about ${src.subject}`,
+      mood: keepBase ? base.mood : plan.mood,
+      prompt: promptOf({ bpm, words: keepBase ? `${plan.words}, synth pads` : plan.words }, src.subject),
       alt: `${a.area === 'menu' ? 'The menu music' : a.area === 'boss' ? 'The boss music' : a.area === 'end' ? 'The end music' : `The music of ${a.area}`} of the game about ${src.subject}`,
       seconds: DEFAULT_TRACK_SECONDS,
-      bpm: fixed?.bpm ?? base.bpm,
-      key: fixed?.key ?? base.key,
-      bars: base.bars
+      chip: chipFor({ genreText: src.genreText }),
+      bpm,
+      key: keepBase ? base.key : plan.key,
+      bars: barsFor(DEFAULT_TRACK_SECONDS, bpm),
+      ...(keepBase ? {} : { texture: plan.texture, form: plan.form })
     })
   }
   const sfx: SfxLine[] = (['correct', 'wrong', 'combo', 'level-up', 'boss'] as const).map((event) => ({
@@ -210,7 +255,7 @@ export function sfxEngineOf(media: Pick<CourseMedia, 'sound'>): string {
 export const engineOfProvider = (provider: MusicTrackProvider, media: Pick<CourseMedia, 'music'>): string => (provider === 'chiptune' ? CHIPTUNE_ENGINE : provider === 'flow' ? 'flow-music' : media.music.engine)
 
 /** The prompt of a manifest entry for a track: Chiptune Studio's own words (the plan, in one line), or the line's prompt for ACE-Step and Flow Music. */
-export const trackPromptOf = (t: Pick<MusicTrackEntry, 'provider' | 'prompt' | 'mood' | 'chip' | 'bpm' | 'key' | 'bars'>): string => (t.provider === 'chiptune' ? planSummary(t) : t.prompt)
+export const trackPromptOf = (t: Pick<MusicTrackEntry, 'provider' | 'prompt' | 'mood' | 'chip' | 'bpm' | 'key' | 'bars' | 'texture' | 'form'>): string => (t.provider === 'chiptune' ? planSummary(t) : t.prompt)
 
 /**
  * The entries of a plan: a track per line (ids `mus-<first area>`; the lines of the answer are repaired by the fallback where an area has no
@@ -227,9 +272,12 @@ export function resolveMusicEntries(lines: { music: readonly MusicLine[]; sfx: r
     if (areas.length === 0) return
     const id = musicAssetId(areas[0]!)
     if (tracks.has(id)) return
-    const provider = trackProvider(o.media, areas, warnings)
+    // a provider on the line (the plan file, or the composer) wins over the course default; Flow Music still needs the credits opt-in
+    const flowOk = flowMusicAllowed({ ...o.media, music: { ...o.media.music, provider: 'flow' } })
+    const provider = l.provider && (l.provider !== 'flow' || flowOk) ? l.provider : trackProvider(o.media, areas, warnings)
+    if (l.provider === 'flow' && provider !== 'flow') warnings.push(`${id}: provider flow needs media.music.flowCredits: true; made by ${provider} instead`)
     const seconds = clamp(Math.round(l.seconds ?? DEFAULT_TRACK_SECONDS), MIN_TRACK_SECONDS, MAX_TRACK_SECONDS)
-    const draft: ChipTrackPlanDraft = { mood: l.mood, chip: l.chip, bpm: l.bpm, key: l.key, bars: l.bars }
+    const draft: ChipTrackPlanDraft = { mood: l.mood, chip: l.chip, bpm: l.bpm, key: l.key, bars: l.bars, texture: l.texture, form: l.form, instruments: l.instruments }
     const base = fallbackChipPlan(`music_${String(tracks.size + 1).padStart(2, '0')}`, { genreText: src.genreText, chip: o.media.music.chip, seconds })
     const chip = mergeChipPlan(draft, base, o.media.music.chip)
     const mood = (MUSIC_MOODS as readonly string[]).includes(l.mood) ? l.mood : chip.mood
@@ -247,6 +295,9 @@ export function resolveMusicEntries(lines: { music: readonly MusicLine[]; sfx: r
       bpm: chip.bpm,
       key: chip.key,
       bars: clamp(chip.bars, MIN_BARS, MAX_BARS),
+      ...(chip.texture ? { texture: chip.texture } : {}),
+      ...(chip.form ? { form: chip.form } : {}),
+      ...(chip.instruments ? { instruments: chip.instruments } : {}),
       by
     })
     for (const a of areas) covered.add(a)
@@ -290,6 +341,8 @@ export function musicPromptVars(src: MusicSource, media: Pick<CourseMedia, 'art'
     areas: areas.map((a) => `- ${a.area} (${trackProvider(media, [a.area], warn)}): ${a.describe}`).join('\n'),
     events: SFX_EVENTS.filter((e) => e !== 'unit-complete').map((e) => `- ${e}${REQUIRED_SFX_EVENTS.includes(e) ? ' (REQUIRED)' : ''}: ${SFX_DESCRIBE[e]}`).join('\n'),
     moods: list(MUSIC_MOODS),
+    textures: list(TEXTURES),
+    forms: list(FORMS),
     chips: list(CHIPS),
     chip: media.music.chip ?? 'none',
     sounds: list(CHIP_SOUNDS.sfx),

@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { CHIPTUNE_ENGINE, FLOW_MUSIC_ENGINE, SFX_IMPORT_ONLY, flowMusicAllowed, parseCourseMedia } from '../../shared/media'
-import type { AssetEntry, AssetVersion } from '../../shared/media'
+import type { AssetEntry, AssetVersion, Fingerprint } from '../../shared/media'
 import { randomSeed } from '../comfy/graphs'
 import type { ComfyProgress, ComfyResult } from '../comfy/client'
 import { renameRetry } from '../store/atomic'
@@ -14,6 +14,7 @@ import type { ChiptuneTrack } from '../studios/music'
 import { DEFAULT_FLOW_OPTIONS } from './flow-image'
 import { addVersion, assetDir, nextVersionN } from './manifest'
 import { dropPlaceholder } from './placeholder'
+import { makeSeamlessLoop } from './loop'
 import type { GenerateContext, GenerateOptions, GenerateProgress, GenerateResult } from './generate'
 
 /**
@@ -81,6 +82,7 @@ export async function generateAudioAsset(ctx: GenerateContext, entry: AssetEntry
     /** The words a model is given (ACE-Step, Flow Music): a prompt left over from Chiptune Studio (`chiptune: calm, snes ...`) is not words for a model. */
     const words = /^chiptune:/i.test(prompt) ? (info?.prompt?.trim() || prompt) : prompt
     let made: ChiptuneTrack | undefined
+    let loop: { loopStartSec: number; loopEndSec: number } | undefined
     let bytes: Buffer | undefined
     let ext = ''
     let remote: AssetVersion['remote']
@@ -114,7 +116,8 @@ export async function generateAudioAsset(ctx: GenerateContext, entry: AssetEntry
           if (!ctx.chiptune) throw new Error('Chiptune Studio is not configured')
           progress('comfy', 'compose with Chiptune Studio')
           const plan = info?.chip ?? fallbackChipPlan(edited.id, { chip: media.music.chip, seconds: info?.seconds })
-          made = await makeChiptuneTrack(ctx.chiptune, { dir, n, plan, seed: edited.seed ?? undefined, name, signal: ctx.signal })
+          const avoid: Fingerprint[] = (await ctx.avoidOf?.(edited.id)) ?? []
+          made = await makeChiptuneTrack(ctx.chiptune, { dir, n, plan, seed: edited.seed ?? undefined, name, avoid, signal: ctx.signal })
           for (const w of made.warnings) warn(w)
           break
         }
@@ -149,6 +152,15 @@ export async function generateAudioAsset(ctx: GenerateContext, entry: AssetEntry
 
     const file = made ? made.file : `v${n}.${ext}`
     if (!made) await writeFileAtomic(path.join(dir, file), bytes!)
+    // ACE-Step music is not made to loop: close the loop with a crossfade, so the player repeats it without a click (EGS-70). A track that cannot be processed keeps its raw file and loops whole.
+    if (!made && edited.kind === 'music') {
+      try {
+        const l = await makeSeamlessLoop(path.join(dir, file), path.join(dir, file))
+        loop = { loopStartSec: l.loopStartSec, loopEndSec: l.loopEndSec }
+      } catch (e) {
+        warn(`the loop could not be closed with a crossfade (${(e as Error).message}): the track repeats whole and may click at the seam`)
+      }
+    }
     const version: AssetVersion = {
       n,
       file,
@@ -157,7 +169,8 @@ export async function generateAudioAsset(ctx: GenerateContext, entry: AssetEntry
       ...(remote ? { remote } : {}),
       engine: edited.engine,
       prompt,
-      ...(made ? { loopStartSec: made.loopStartSec, loopEndSec: made.loopEndSec, ...(made.songFile ? { songFile: made.songFile } : {}) } : {}),
+      ...(made ? { loopStartSec: made.loopStartSec, loopEndSec: made.loopEndSec, ...(made.songFile ? { songFile: made.songFile } : {}), ...(made.fingerprint ? { fingerprint: made.fingerprint } : {}) } : {}),
+      ...(loop ? loop : {}),
       ...(warnings.length ? { warnings } : {})
     }
     const updated = await dropPlaceholder(ctx.projectDir, addVersion({ ...edited, seed: edited.seed }, version))
